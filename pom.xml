@@ -4,7 +4,7 @@
 
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.github.mvallim</groupId>
+	<groupId>com.amazon</groupId>
 	<artifactId>amazon-sns-java-messaging-lib</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
@@ -68,36 +68,6 @@
 					<useSystemClassLoader>false</useSystemClassLoader>
 					<argLine>${jacoco.argLine} -Dfile.encoding=${project.build.sourceEncoding}</argLine>
 				</configuration>
-			</plugin>
-
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>aspectj-maven-plugin</artifactId>
-				<version>1.14.0</version>
-				<configuration>
-					<Xlint>ignore</Xlint>
-					<complianceLevel>${java.version}</complianceLevel>
-					<showWeaveInfo>false</showWeaveInfo>
-					<verbose>false</verbose>
-					<source>${java.version}</source>
-					<target>${java.version}</target>
-				</configuration>
-				<dependencies>
-					<dependency>
-						<groupId>org.aspectj</groupId>
-						<artifactId>aspectjtools</artifactId>
-						<version>${aspectj.version}</version>
-					</dependency>
-				</dependencies>
-				<executions>
-					<execution>
-						<phase>process-sources</phase>
-						<goals>
-							<goal>compile</goal>
-							<goal>test-compile</goal>
-						</goals>
-					</execution>
-				</executions>
 			</plugin>
 
 			<plugin>
@@ -207,6 +177,26 @@
 			</plugin>
 		</plugins>
 	</build>
+	
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>com.amazon</groupId>
+				<artifactId>amazon-sns-java-messaging-lib-resources</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.amazon</groupId>
+				<artifactId>amazon-sns-java-messaging-lib-v1</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.amazon</groupId>
+				<artifactId>amazon-sns-java-messaging-lib-v2</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
 	<dependencies>
 		<dependency>
@@ -351,4 +341,11 @@
 			</build>
 		</profile>
 	</profiles>
+	
+	<modules>
+		<module>amazon-sns-java-messaging-lib-resources</module>
+		<module>amazon-sns-java-messaging-lib-v1</module>
+		<module>amazon-sns-java-messaging-lib-v2</module>
+	</modules>
+
 </project>
