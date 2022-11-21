@@ -182,7 +182,7 @@
 		<dependencies>
 			<dependency>
 				<groupId>com.amazon</groupId>
-				<artifactId>amazon-sns-java-messaging-lib-resources</artifactId>
+				<artifactId>amazon-sns-java-messaging-lib-template</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
@@ -199,6 +199,11 @@
 	</dependencyManagement>
 
 	<dependencies>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-collections4</artifactId>
+			<version>4.4</version>
+		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
@@ -354,7 +359,7 @@
 	</profiles>
 	
 	<modules>
-		<module>amazon-sns-java-messaging-lib-resources</module>
+		<module>amazon-sns-java-messaging-lib-template</module>
 		<module>amazon-sns-java-messaging-lib-v1</module>
 		<module>amazon-sns-java-messaging-lib-v2</module>
 	</modules>

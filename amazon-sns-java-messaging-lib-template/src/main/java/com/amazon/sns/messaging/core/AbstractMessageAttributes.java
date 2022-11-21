@@ -5,16 +5,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.stream.Collectors;
 
+// @formatter:off
 abstract class AbstractMessageAttributes<V> {
-
-  private static final Set<String> skipHeader = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-
-  static {
-    skipHeader.addAll(Set.of("message-group-id", "message-deduplication-id"));
-  }
 
   protected static final String BINARY = "Binary";
 
@@ -30,10 +24,6 @@ abstract class AbstractMessageAttributes<V> {
     for (final Entry<String, Object> messageHeader : messageHeaders.entrySet()) {
       final String key = messageHeader.getKey();
       final Object value = messageHeader.getValue();
-
-      if (skipHeader.contains(key)) {
-        continue;
-      }
 
       if (value instanceof Enum) {
         messageAttributes.put(key, getEnumMessageAttribute(Enum.class.cast(value)));
@@ -51,6 +41,15 @@ abstract class AbstractMessageAttributes<V> {
     return messageAttributes;
   }
 
+  protected static String stringArray(final List<?> values) {
+    final List<String> collect = values.stream()
+      .filter(String.class::isInstance)
+      .map(String.class::cast)
+      .map(value -> "\"" + value + "\"")
+      .collect(Collectors.toList());
+    return "[ " + String.join(", ", collect) + " ]";
+  }
+
   protected abstract V getEnumMessageAttribute(final Enum<?> value);
 
   protected abstract V getStringMessageAttribute(final String value);
@@ -62,3 +61,4 @@ abstract class AbstractMessageAttributes<V> {
   protected abstract V getStringArrayMessageAttribute(final List<?> value);
 
 }
+// @formatter:on

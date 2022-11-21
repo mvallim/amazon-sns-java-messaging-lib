@@ -2,7 +2,6 @@ package com.amazon.sns.messaging.core;
 
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import com.amazonaws.services.sns.model.MessageAttributeValue;
 
@@ -34,12 +33,7 @@ public class MessageAttributes extends AbstractMessageAttributes<MessageAttribut
   @Override
   @SneakyThrows
   protected MessageAttributeValue getStringArrayMessageAttribute(final List<?> values) {
-    final List<String> collect = values.stream()
-      .filter(String.class::isInstance)
-      .map(String.class::cast)
-      .map(value -> "\"" + value + "\"")
-      .collect(Collectors.toList());
-    return new MessageAttributeValue().withDataType(STRING_ARRAY).withStringValue("[ " + String.join(", ", collect) + " ]");
+    return new MessageAttributeValue().withDataType(STRING_ARRAY).withStringValue(stringArray(values));
   }
 
 }

@@ -11,6 +11,6 @@
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 	
-	<artifactId>amazon-sns-java-messaging-lib-resources</artifactId>
+	<artifactId>amazon-sns-java-messaging-lib-template</artifactId>
 	
 </project>

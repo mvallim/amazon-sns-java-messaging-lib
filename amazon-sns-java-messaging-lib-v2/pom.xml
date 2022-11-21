@@ -32,7 +32,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>com.amazon</groupId>
-			<artifactId>amazon-sns-java-messaging-lib-resources</artifactId>
+			<artifactId>amazon-sns-java-messaging-lib-template</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
