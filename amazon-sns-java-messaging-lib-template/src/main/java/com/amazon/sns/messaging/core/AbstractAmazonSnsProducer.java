@@ -43,7 +43,7 @@ abstract class AbstractAmazonSnsProducer<R, O, E> extends Thread implements Runn
 
   private final Condition empty = reentrantLock.newCondition();
 
-  private final boolean isRunning = true;
+  private boolean isRunning = true;
 
   protected abstract void publishBatch(final R publishBatchRequest);
 
