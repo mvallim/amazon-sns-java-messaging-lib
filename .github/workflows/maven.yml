@@ -30,6 +30,7 @@ jobs:
       with:
         java-version: ${{ matrix.java-version }}
         distribution: 'corretto'
+        cache: 'maven'
     - name: Compile with Maven
       run: mvn -T 1C clean generate-sources compile --file pom.xml
       
@@ -46,6 +47,7 @@ jobs:
       with:
         java-version: ${{ matrix.java-version }}
         distribution: 'corretto'
+        cache: 'maven'
     - name: Test with Maven
       run: mvn -T 1C test-compile test --file pom.xml
   
@@ -60,6 +62,7 @@ jobs:
       with:
         java-version: 11
         distribution: 'corretto'
+        cache: 'maven'
     - name: SonarCloud Scan
       run: mvn clean test jacoco:report org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar -Dsonar.projectKey=amazon-sns-java-messaging-lib -Dsonar.organization=mvallim -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONAR_TOKEN
       env:
