@@ -11,6 +11,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.amazon.sns.messaging.model.RequestEntry;
 import com.amazon.sns.messaging.model.ResponseFailEntry;
 import com.amazon.sns.messaging.model.ResponseSuccessEntry;
@@ -58,6 +60,9 @@ class AmazonSnsProducer<E> extends AbstractAmazonSnsProducer<PublishBatchRequest
       final List<PublishBatchRequestEntry> entries = requestEntries.stream()
         .map(entry -> new PublishBatchRequestEntry()
           .withId(entry.getId())
+          .withSubject(StringUtils.isNotBlank(entry.getSubject()) ? entry.getSubject() : null)
+          .withMessageGroupId(StringUtils.isNotBlank(entry.getGroupId()) ? entry.getGroupId() : null)
+          .withMessageDeduplicationId(StringUtils.isNotBlank(entry.getDeduplicationId()) ? entry.getDeduplicationId() : null)
           .withMessageAttributes(messageAttributes.messageAttributes(entry.getMessageHeaders()))
           .withMessage(convertPayload(entry.getValue())))
         .collect(Collectors.toList());
