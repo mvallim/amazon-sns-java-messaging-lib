@@ -15,9 +15,11 @@
 		<sonar.coverage.exclusions>
 			**/package-info.**,
 			**/generated-sources/**,
-			**/generated-test-sources/**,
+			**/generated-test-sources/**
+		</sonar.coverage.exclusions>
+		<sonar.tests>
 			**/test/**
-		</sonar.coverage.exclusions>		
+		</sonar.tests>
 	</properties>
 
 	<scm>
