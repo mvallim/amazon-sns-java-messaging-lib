@@ -22,16 +22,17 @@ import com.amazonaws.services.sns.model.PublishBatchRequestEntry;
 import com.amazonaws.services.sns.model.PublishBatchResult;
 
 // @formatter:off
-public class AmazonSnsProducer<E> extends AbstractAmazonSnsProducer<PublishBatchRequest, PublishBatchResult, E> {
+class AmazonSnsProducer<E> extends AbstractAmazonSnsProducer<PublishBatchRequest, PublishBatchResult, E> {
+
+  private final ExecutorService executorService;
 
   private static final MessageAttributes messageAttributes = new MessageAttributes();
-
-  private final ExecutorService executorService = new ThreadPoolExecutor(2, Integer.MAX_VALUE, 60, TimeUnit.SECONDS, new SynchronousQueue<>(), new BlockingSubmissionPolicy(30000));
 
   private final AmazonSNS amazonSNS;
 
   public AmazonSnsProducer(final AmazonSNS amazonSNS, final TopicProperty topicProperty, final Map<String, ListenableFutureRegistry> pendingRequests, final Queue<RequestEntry<E>> topicRequests) {
-    super(supplierPublishRequest(), pendingRequests, topicRequests, topicProperty);
+    super(topicProperty, supplierPublishRequest(), pendingRequests, topicRequests);
+    this.executorService = new ThreadPoolExecutor(2, topicProperty.getMaximumPoolSize(), 60, TimeUnit.SECONDS, new SynchronousQueue<>(), new BlockingSubmissionPolicy(30000));
     this.amazonSNS = amazonSNS;
   }
 

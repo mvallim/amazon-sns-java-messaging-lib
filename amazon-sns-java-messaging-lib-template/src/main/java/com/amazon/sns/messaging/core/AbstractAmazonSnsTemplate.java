@@ -10,17 +10,14 @@ import com.amazon.sns.messaging.model.RequestEntry;
 import com.amazon.sns.messaging.model.ResponseFailEntry;
 import com.amazon.sns.messaging.model.ResponseSuccessEntry;
 
-import lombok.RequiredArgsConstructor;
-
 // @formatter:off
-@RequiredArgsConstructor
 abstract class AbstractAmazonSnsTemplate<R, O, E> {
 
-  private final Map<String, ListenableFutureRegistry> pendingRequests = new ConcurrentHashMap<>();
+  protected final Map<String, ListenableFutureRegistry> pendingRequests = new ConcurrentHashMap<>();
 
-  private final Queue<RequestEntry<E>> topicRequests = new LinkedBlockingQueue<>();
+  protected final Queue<RequestEntry<E>> topicRequests = new LinkedBlockingQueue<>();
 
-  private final AbstractAmazonSnsProducer<R, O, E> amazonSnsProducer;
+  protected AbstractAmazonSnsProducer<R, O, E> amazonSnsProducer;
 
   public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry) {
     try {

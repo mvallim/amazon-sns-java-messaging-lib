@@ -9,6 +9,8 @@ public class TopicProperty {
 
   private final boolean fifo;
 
+  private final Integer maximumPoolSize;
+
   private final String topicArn;
 
   private final long linger;

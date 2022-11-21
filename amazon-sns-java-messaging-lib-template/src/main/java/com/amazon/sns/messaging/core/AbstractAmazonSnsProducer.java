@@ -31,6 +31,8 @@ abstract class AbstractAmazonSnsProducer<R, O, E> extends Thread implements Runn
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
+  protected final TopicProperty topicProperty;
+
   private final BiFunction<String, List<RequestEntry<E>>, R> supplierPublishRequest;
 
   protected final Map<String, ListenableFutureRegistry> pendingRequests;
@@ -42,8 +44,6 @@ abstract class AbstractAmazonSnsProducer<R, O, E> extends Thread implements Runn
   private final Condition empty = reentrantLock.newCondition();
 
   private final boolean isRunning = true;
-
-  protected final TopicProperty topicProperty;
 
   protected abstract void publishBatch(final R publishBatchRequest);
 
