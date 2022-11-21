@@ -5,8 +5,6 @@ import java.util.List;
 
 import com.amazonaws.services.sns.model.MessageAttributeValue;
 
-import lombok.SneakyThrows;
-
 // @formatter:off
 public class MessageAttributes extends AbstractMessageAttributes<MessageAttributeValue> {
 
@@ -31,7 +29,6 @@ public class MessageAttributes extends AbstractMessageAttributes<MessageAttribut
   }
 
   @Override
-  @SneakyThrows
   protected MessageAttributeValue getStringArrayMessageAttribute(final List<?> values) {
     return new MessageAttributeValue().withDataType(STRING_ARRAY).withStringValue(stringArray(values));
   }

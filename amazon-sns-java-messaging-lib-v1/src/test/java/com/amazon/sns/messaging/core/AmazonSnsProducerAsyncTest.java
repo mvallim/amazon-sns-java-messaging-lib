@@ -4,10 +4,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -74,7 +73,9 @@ public class AmazonSnsProducerAsyncTest {
       assertThat(result.getId(), is(id));
     });
 
-    snsTemplate.await().thenAccept(result -> verify(amazonSNS, times(1)).publishBatch(any())).join();
+    snsTemplate.await().join();
+
+    verify(amazonSNS, timeout(10000).times(1)).publishBatch(any());
   }
 
   @Test
@@ -94,7 +95,9 @@ public class AmazonSnsProducerAsyncTest {
       assertThat(result.getId(), is(id));
     });
 
-    snsTemplate.await().thenAccept(result -> verify(amazonSNS, times(1)).publishBatch(any())).join();
+    snsTemplate.await().join();
+
+    verify(amazonSNS, timeout(10000).times(1)).publishBatch(any());
   }
 
   @Test
@@ -127,10 +130,10 @@ public class AmazonSnsProducerAsyncTest {
       snsTemplate.send(entry).addCallback(successCallback);
     });
 
-    snsTemplate.await().thenAccept(result -> {
-      verify(successCallback, atLeast(299)).accept(any());
-      verify(amazonSNS, atLeastOnce()).publishBatch(any());
-    }).join();
+    snsTemplate.await().join();
+
+    verify(successCallback, timeout(10000).times(300)).accept(any());
+    verify(amazonSNS, atLeastOnce()).publishBatch(any());
   }
 
   @Test
@@ -163,10 +166,10 @@ public class AmazonSnsProducerAsyncTest {
       snsTemplate.send(entry).addCallback(null, failureCallback);
     });
 
-    snsTemplate.await().thenAccept(result -> {
-      verify(failureCallback, atLeast(299)).accept(any());
-      verify(amazonSNS, atLeastOnce()).publishBatch(any());
-    }).join();
+    snsTemplate.await().join();
+
+    verify(failureCallback, timeout(10000).times(300)).accept(any());
+    verify(amazonSNS, atLeastOnce()).publishBatch(any());
   }
 
   private List<RequestEntry<Object>> entries(final int amount) {

@@ -4,10 +4,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,6 +29,8 @@ import com.amazon.sns.messaging.model.ResponseFailEntry;
 import com.amazon.sns.messaging.model.ResponseSuccessEntry;
 import com.amazon.sns.messaging.model.TopicProperty;
 
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.BatchResultErrorEntry;
 import software.amazon.awssdk.services.sns.model.PublishBatchRequest;
@@ -75,7 +76,9 @@ public class AmazonSnsProducerSyncTest {
       assertThat(result.getId(), is(id));
     });
 
-    snsTemplate.await().thenAccept(result -> verify(amazonSNS, times(1)).publishBatch(any(PublishBatchRequest.class))).join();
+    snsTemplate.await().join();
+
+    verify(amazonSNS, timeout(10000).times(1)).publishBatch(any(PublishBatchRequest.class));
   }
 
   @Test
@@ -95,7 +98,9 @@ public class AmazonSnsProducerSyncTest {
       assertThat(result.getId(), is(id));
     });
 
-    snsTemplate.await().thenAccept(result -> verify(amazonSNS, times(1)).publishBatch(any(PublishBatchRequest.class))).join();
+    snsTemplate.await().join();
+
+    verify(amazonSNS, timeout(10000).times(1)).publishBatch(any(PublishBatchRequest.class));
   }
 
   @Test
@@ -128,10 +133,10 @@ public class AmazonSnsProducerSyncTest {
       snsTemplate.send(entry).addCallback(successCallback);
     });
 
-    snsTemplate.await().thenAccept(result -> {
-      verify(successCallback, atLeast(299)).accept(any());
-      verify(amazonSNS, atLeastOnce()).publishBatch(any(PublishBatchRequest.class));
-    }).join();
+    snsTemplate.await().join();
+
+    verify(successCallback, timeout(10000).times(300)).accept(any());
+    verify(amazonSNS, atLeastOnce()).publishBatch(any(PublishBatchRequest.class));
   }
 
   @Test
@@ -164,17 +169,53 @@ public class AmazonSnsProducerSyncTest {
       snsTemplate.send(entry).addCallback(null, failureCallback);
     });
 
-    snsTemplate.await().thenAccept(result -> {
-      verify(failureCallback, atLeast(299)).accept(any());
-      verify(amazonSNS, atLeastOnce()).publishBatch(any(PublishBatchRequest.class));
-    }).join();
+    snsTemplate.await().join();
+
+    verify(failureCallback, timeout(10000).times(300)).accept(any());
+    verify(amazonSNS, atLeastOnce()).publishBatch(any(PublishBatchRequest.class));
+  }
+
+  @Test
+  public void testFailRiseRuntimeException() {
+    final String id = UUID.randomUUID().toString();
+
+    when(amazonSNS.publishBatch(any(PublishBatchRequest.class))).thenThrow(RuntimeException.class);
+
+    snsTemplate.send(RequestEntry.builder().id(id).build()).addCallback(result -> {
+      assertThat(result, notNullValue());
+      assertThat(result.getId(), is(id));
+    });
+
+    snsTemplate.await().join();
+
+    verify(amazonSNS, timeout(10000).times(1)).publishBatch(any(PublishBatchRequest.class));
+  }
+
+  @Test
+  public void testFailRiseAwsServiceException() {
+    final String id = UUID.randomUUID().toString();
+
+    when(amazonSNS.publishBatch(any(PublishBatchRequest.class))).thenThrow(AwsServiceException.builder().awsErrorDetails(AwsErrorDetails.builder().build()).build());
+
+    snsTemplate.send(RequestEntry.builder().id(id).build()).addCallback(result -> {
+      assertThat(result, notNullValue());
+      assertThat(result.getId(), is(id));
+    });
+
+    snsTemplate.await().join();
+
+    verify(amazonSNS, timeout(10000).times(1)).publishBatch(any(PublishBatchRequest.class));
   }
 
   private List<RequestEntry<Object>> entries(final int amount) {
     final LinkedList<RequestEntry<Object>> entries = new LinkedList<>();
 
     for (int i = 0; i < amount; i++) {
-      entries.add(new RequestEntry<>());
+      entries.add(RequestEntry.builder()
+        .subject("subject")
+        .groupId(UUID.randomUUID().toString())
+        .deduplicationId(UUID.randomUUID().toString())
+        .build());
     }
 
     return entries;

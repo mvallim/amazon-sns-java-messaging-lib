@@ -3,7 +3,6 @@ package com.amazon.sns.messaging.core;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import lombok.SneakyThrows;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
 
@@ -31,7 +30,6 @@ public class MessageAttributes extends AbstractMessageAttributes<MessageAttribut
   }
 
   @Override
-  @SneakyThrows
   protected MessageAttributeValue getStringArrayMessageAttribute(final List<?> values) {
     return MessageAttributeValue.builder().dataType(STRING_ARRAY).stringValue(stringArray(values)).build();
   }

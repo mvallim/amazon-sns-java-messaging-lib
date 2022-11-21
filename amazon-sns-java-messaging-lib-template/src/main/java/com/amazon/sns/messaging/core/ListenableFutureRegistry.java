@@ -35,7 +35,7 @@ class ListenableFutureRegistry implements ListenableFuture<ResponseSuccessEntry,
     completableFutureFailure.complete(entry);
   }
 
-  public CompletableFuture<?> completable() {
+  public CompletableFuture<Object> completable() {
     return CompletableFuture.anyOf(completableFutureSuccess, completableFutureFailure);
   }
 
