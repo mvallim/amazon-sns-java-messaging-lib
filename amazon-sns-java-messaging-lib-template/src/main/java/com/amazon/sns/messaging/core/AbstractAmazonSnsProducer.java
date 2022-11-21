@@ -50,7 +50,7 @@ abstract class AbstractAmazonSnsProducer<R, O, E> extends Thread implements Runn
   protected abstract void handleError(final R publishBatchRequest, final Exception ex);
 
   protected abstract void handleResponse(final O publishBatchResult);
-
+  
   @Override
   @SneakyThrows
   public void run() {

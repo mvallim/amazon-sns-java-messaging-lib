@@ -10,6 +10,7 @@ public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<PublishBatch
 
   public AmazonSnsTemplate(final SnsClient amazonSNS, final TopicProperty topicProperty) {
     super.amazonSnsProducer = new AmazonSnsProducer<>(amazonSNS, topicProperty, super.pendingRequests, super.topicRequests);
+    super.amazonSnsProducer.start();
   }
 
 }

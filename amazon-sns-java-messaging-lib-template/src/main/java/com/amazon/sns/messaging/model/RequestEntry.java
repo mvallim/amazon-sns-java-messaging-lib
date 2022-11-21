@@ -1,29 +1,35 @@
 package com.amazon.sns.messaging.model;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import lombok.NoArgsConstructor;
 
 @Getter
 @Builder
-@RequiredArgsConstructor
+@NoArgsConstructor
+@AllArgsConstructor
 public class RequestEntry<T> {
 
-  private final long createTime = System.nanoTime();
+  @Builder.Default
+  private long createTime = System.nanoTime();
 
-  private final String id = UUID.randomUUID().toString();
+  @Builder.Default
+  private String id = UUID.randomUUID().toString();
 
-  private final T value;
+  private T value;
 
-  private final Map<String, Object> messageHeaders;
+  @Builder.Default
+  private Map<String, Object> messageHeaders = Collections.emptyMap();
 
-  private final String subject;
+  private String subject;
 
-  private final String groupId;
+  private String groupId;
 
-  private final String deduplicationId;
+  private String deduplicationId;
 
 }
