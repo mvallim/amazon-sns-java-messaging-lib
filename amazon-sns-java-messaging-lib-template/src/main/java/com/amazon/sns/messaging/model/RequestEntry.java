@@ -18,27 +18,20 @@ import lombok.ToString;
 public class RequestEntry<T> {
 
   @Builder.Default
-  @ToString.Include
-  private final long createTime = System.nanoTime();
+  private long createTime = System.nanoTime();
 
   @Builder.Default
-  @ToString.Include
-  private final String id = UUID.randomUUID().toString();
+  private String id = UUID.randomUUID().toString();
 
-  @ToString.Include
   private T value;
 
   @Builder.Default
-  @ToString.Include
-  private final Map<String, Object> messageHeaders = Collections.emptyMap();
+  private Map<String, Object> messageHeaders = Collections.emptyMap();
 
-  @ToString.Include
   private String subject;
 
-  @ToString.Include
   private String groupId;
 
-  @ToString.Include
   private String deduplicationId;
 
 }
