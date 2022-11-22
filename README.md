@@ -1,4 +1,4 @@
-# Amazon ANA Java Messaging Lib
+# Amazon SNS Java Messaging Lib
 
 ![Java CI with Maven](https://github.com/mvallim/amazon-sns-java-messaging-lib/workflows/Java%20CI%20with%20Maven/badge.svg?branch=master)
 ![CodeQL](https://github.com/mvallim/amazon-sns-java-messaging-lib/workflows/CodeQL/badge.svg?branch=master)
