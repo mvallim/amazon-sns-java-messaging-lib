@@ -20,6 +20,11 @@
 			**/generated-sources/**,
 			**/generated-test-sources/**
 		</sonar.coverage.exclusions>
+		<sonar.coverage.jacoco.xmlReportPaths>
+			${project.build.directory}/amazon-sns-java-messaging-lib-template/target/site/jacoco-aggregate/jacoco.xml,
+			${project.build.directory}/amazon-sns-java-messaging-lib-v1/target/site/jacoco-aggregate/jacoco.xml,
+			${project.build.directory}/amazon-sns-java-messaging-lib-v2/target/site/jacoco-aggregate/jacoco.xml
+		</sonar.coverage.jacoco.xmlReportPaths>
 	</properties>
 
 	<scm>
@@ -94,7 +99,6 @@
 				<executions>
 					<execution>
 						<id>prepare-agent</id>
-						<phase>test-compile</phase>
 						<goals>
 							<goal>prepare-agent</goal>
 						</goals>
@@ -106,7 +110,7 @@
 						<id>report</id>
 						<phase>test</phase>
 						<goals>
-							<goal>report</goal>
+							<goal>report-aggregate</goal>
 						</goals>
 					</execution>
 				</executions>
