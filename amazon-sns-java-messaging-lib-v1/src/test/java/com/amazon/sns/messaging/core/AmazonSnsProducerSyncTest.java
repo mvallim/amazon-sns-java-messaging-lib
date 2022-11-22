@@ -69,7 +69,7 @@ public class AmazonSnsProducerSyncTest {
 
     when(amazonSNS.publishBatch(any())).thenReturn(publishBatchResult);
 
-    snsTemplate.send(RequestEntry.builder().id(id).build()).addCallback(result -> {
+    snsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(result -> {
       assertThat(result, notNullValue());
       assertThat(result.getId(), is(id));
     });
@@ -91,7 +91,7 @@ public class AmazonSnsProducerSyncTest {
 
     when(amazonSNS.publishBatch(any())).thenReturn(publishBatchResult);
 
-    snsTemplate.send(RequestEntry.builder().id(id).build()).addCallback(null, result -> {
+    snsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(null, result -> {
       assertThat(result, notNullValue());
       assertThat(result.getId(), is(id));
     });
@@ -179,7 +179,7 @@ public class AmazonSnsProducerSyncTest {
 
     when(amazonSNS.publishBatch(any(PublishBatchRequest.class))).thenThrow(new RuntimeException());
 
-    snsTemplate.send(RequestEntry.builder().id(id).build()).addCallback(result -> {
+    snsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(result -> {
       assertThat(result, notNullValue());
       assertThat(result.getId(), is(id));
     });
@@ -195,7 +195,7 @@ public class AmazonSnsProducerSyncTest {
 
     when(amazonSNS.publishBatch(any(PublishBatchRequest.class))).thenThrow(new AmazonServiceException("error"));
 
-    snsTemplate.send(RequestEntry.builder().id(id).build()).addCallback(result -> {
+    snsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(result -> {
       assertThat(result, notNullValue());
       assertThat(result.getId(), is(id));
     });
@@ -210,9 +210,9 @@ public class AmazonSnsProducerSyncTest {
 
     for (int i = 0; i < amount; i++) {
       entries.add(RequestEntry.builder()
-        .subject("subject")
-        .groupId(UUID.randomUUID().toString())
-        .deduplicationId(UUID.randomUUID().toString())
+        .withSubject("subject")
+        .withGroupId(UUID.randomUUID().toString())
+        .withDeduplicationId(UUID.randomUUID().toString())
         .build());
     }
 

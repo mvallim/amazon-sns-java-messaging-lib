@@ -11,22 +11,22 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 @Getter
-@Builder
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder(setterPrefix = "with")
 public class RequestEntry<T> {
 
   @Builder.Default
-  private long createTime = System.nanoTime();
+  private final long createTime = System.nanoTime();
 
   @Builder.Default
-  private String id = UUID.randomUUID().toString();
+  private final String id = UUID.randomUUID().toString();
 
   private T value;
 
   @Builder.Default
-  private Map<String, Object> messageHeaders = Collections.emptyMap();
+  private final Map<String, Object> messageHeaders = Collections.emptyMap();
 
   private String subject;
 
