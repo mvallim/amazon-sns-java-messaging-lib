@@ -21,7 +21,10 @@
 			**/generated-test-sources/**
 		</sonar.coverage.exclusions>
 		<sonar.coverage.jacoco.xmlReportPaths>
-			${project.basedir}/target/site/jacoco-aggregate/jacoco.xml
+			${project.basedir}../amazon-sns-java-messaging-lib-v1/target/site/jacoco/jacoco.xml,
+			${project.basedir}../amazon-sns-java-messaging-lib-v1/target/site/jacoco-aggregate/jacoco.xml,
+			${project.basedir}../amazon-sns-java-messaging-lib-v2/target/site/jacoco/jacoco.xml,
+			${project.basedir}../amazon-sns-java-messaging-lib-v2/target/site/jacoco-aggregate/jacoco.xml
 		</sonar.coverage.jacoco.xmlReportPaths>
 	</properties>
 
@@ -108,6 +111,7 @@
 						<id>report-aggregate</id>
 						<phase>verify</phase>
 						<goals>
+							<goal>report</goal>
 							<goal>report-aggregate</goal>
 						</goals>
 					</execution>
