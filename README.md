@@ -15,6 +15,10 @@ Article [Martin Fowler](https://martinfowler.com) [Request Batch](https://martin
 
 _**Compatible JDK 8, 11, 15, 16 and 17**_
 
+_**Compatible AWS JDK v1 >= 1.12.346**_
+
+_**Compatible AWS JDK v2 >= 2.18.21**_
+
 This library supports **`Kotlin`** aswell
 
 # 1. Quick Start
@@ -25,10 +29,20 @@ In order to use Amazon SNS Java Messaging Lib within a Maven project, simply add
 
 You can pull it from the central Maven repositories:
 
+### For AWS SDK v1
 ```xml
 <dependency>
     <groupId>com.amazon.sns.messaging.lib</groupId>
-    <artifactId>amazon-sns-java-messaging-lib</artifactId>
+    <artifactId>amazon-sns-java-messaging-lib-v1</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
+
+### For AWS SDK v2
+```xml
+<dependency>
+    <groupId>com.amazon.sns.messaging.lib</groupId>
+    <artifactId>amazon-sns-java-messaging-lib-v2</artifactId>
     <version>1.0.0</version>
 </dependency>
 ```
@@ -48,8 +62,14 @@ If you want to try a snapshot version, add the following repository:
 
 #### Gradle
 
+### For AWS SDK v1
 ```groovy
-implementation 'com.amazon.sns.messaging.lib:amazon-sns-java-messaging-lib:1.10.0'
+implementation 'com.amazon.sns.messaging.lib:amazon-sns-java-messaging-lib-v1:1.10.0'
+```
+
+### For AWS SDK v2
+```groovy
+implementation 'com.amazon.sns.messaging.lib:amazon-sns-java-messaging-lib-v2:1.10.0'
 ```
 
 If you want to try a snapshot version, add the following repository:
