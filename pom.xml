@@ -2,7 +2,7 @@
 
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.amazon</groupId>
+	<groupId>com.amazon.sns.messaging.lib</groupId>
 	<artifactId>amazon-sns-java-messaging-lib</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
@@ -197,17 +197,17 @@
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
-				<groupId>com.amazon</groupId>
+				<groupId>com.amazon.sns.messaging.lib</groupId>
 				<artifactId>amazon-sns-java-messaging-lib-template</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
-				<groupId>com.amazon</groupId>
+				<groupId>com.amazon.sns.messaging.lib</groupId>
 				<artifactId>amazon-sns-java-messaging-lib-v1</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
-				<groupId>com.amazon</groupId>
+				<groupId>com.amazon.sns.messaging.lib</groupId>
 				<artifactId>amazon-sns-java-messaging-lib-v2</artifactId>
 				<version>${project.version}</version>
 			</dependency>

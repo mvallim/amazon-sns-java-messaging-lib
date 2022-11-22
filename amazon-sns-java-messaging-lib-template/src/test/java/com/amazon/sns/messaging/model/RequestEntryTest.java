@@ -25,6 +25,8 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import com.amazon.sns.messaging.lib.model.RequestEntry;
+
 // @formatter:off
 public class RequestEntryTest {
 
