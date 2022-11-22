@@ -30,6 +30,7 @@
 		<tag>HEAD</tag>
 	</scm>
 
+	<description>Request Batch combine multiple requests to optimally utilise the network.</description>
 	<url>https://github.com/mvallim/amazon-sns-java-messaging-lib</url>
 	<inceptionYear>2022</inceptionYear>
 
