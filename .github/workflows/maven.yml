@@ -54,6 +54,12 @@ jobs:
         java-version: ${{ matrix.java-version }}
         distribution: 'corretto'
         cache: 'maven'
+    - name: Cache Maven packages
+      uses: actions/cache@v3.0.11
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
     - name: Test with Maven
       run: mvn -T 1C test-compile test --file pom.xml
   
