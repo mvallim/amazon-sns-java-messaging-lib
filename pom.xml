@@ -9,6 +9,8 @@
 	<version>1.0.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
+	<name>amazon-sns-java-messaging-lib</name>
+	
 	<properties>
 		<java.version>1.8</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -20,6 +22,9 @@
 			**/generated-sources/**,
 			**/generated-test-sources/**
 		</sonar.coverage.exclusions>
+		<sonar.projectKey>${project.name}}</sonar.projectKey>
+		<sonar.organization>mvallim</sonar.organization>
+		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
 	</properties>
 
 	<scm>
@@ -29,8 +34,6 @@
 		<tag>HEAD</tag>
 	</scm>
 
-	<name>amazon-sns-java-messaging-lib</name>
-	<description></description>
 	<url>https://github.com/mvallim/amazon-sns-java-messaging-lib</url>
 	<inceptionYear>2022</inceptionYear>
 
