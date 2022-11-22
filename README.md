@@ -82,6 +82,58 @@ repositories {
 }
 ```
 
+## 1.2 Usage
+
+### Standard SNS
+
+```java
+final TopicProperty topicProperty = TopicProperty.builder()
+  .fifo(false)
+  .linger(100)
+  .maxBatchSize(10)
+  .maximumPoolSize(20)
+  .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
+  .build();
+
+final AmazonSnsTemplate<MyMessage> snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty);
+
+final RequestEntry<MyMessage> requestEntry = RequestEntry.builder()
+  .withValue(new MyMessage())
+  .withMessageHeaders(Map.of())
+  .build();
+
+snsTemplate.send(requestEntry).addCallback(result -> {
+  successCallback -> LOGGER.info("{}", successCallback), 
+  failureCallback -> LOGGER.error("{}", failureCallback)
+});
+```
+
+### FIFO SNS
+
+```java
+final TopicProperty topicProperty = TopicProperty.builder()
+  .fifo(true)
+  .linger(100)
+  .maxBatchSize(10)
+  .maximumPoolSize(20)
+  .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
+  .build();
+
+final AmazonSnsTemplate<MyMessage> snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty);
+
+final RequestEntry<MyMessage> requestEntry = RequestEntry.builder()
+  .withValue(new MyMessage())
+  .withMessageHeaders(Map.of())
+  .withGroupId(UUID.randomUUID().toString())
+  .withDeduplicationId(UUID.randomUUID().toString())
+  .build();
+
+snsTemplate.send(requestEntry).addCallback(result -> {
+  successCallback -> LOGGER.info("{}", successCallback), 
+  failureCallback -> LOGGER.error("{}", failureCallback)
+});
+```
+
 ## Contributing
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
