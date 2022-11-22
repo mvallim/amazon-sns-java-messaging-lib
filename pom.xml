@@ -4,7 +4,7 @@
 
 	<groupId>com.github.mvallim</groupId>
 	<artifactId>amazon-sns-java-messaging-lib</artifactId>
-	<version>1.0.0</version>
+	<version>1.0.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<name>amazon-sns-java-messaging-lib</name>
@@ -27,7 +27,7 @@
 		<url>scm:git:git@github.com:mvallim/amazon-sns-java-messaging-lib</url>
 		<connection>scm:git:git@github.com:mvallim/amazon-sns-java-messaging-lib</connection>
 		<developerConnection>scm:git:git@github.com:mvallim/amazon-sns-java-messaging-lib</developerConnection>
-		<tag>amazon-sns-java-messaging-lib-1.0.0</tag>
+		<tag>HEAD</tag>
 	</scm>
 
 	<url>https://github.com/mvallim/amazon-sns-java-messaging-lib</url>
