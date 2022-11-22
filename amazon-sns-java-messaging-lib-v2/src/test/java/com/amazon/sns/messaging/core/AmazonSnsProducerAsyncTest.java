@@ -76,7 +76,7 @@ public class AmazonSnsProducerAsyncTest {
       assertThat(result.getId(), is(id));
     });
 
-    snsTemplate.await().join();
+    snsTemplate.await().thenAccept(result -> snsTemplate.shutdown()).join();
 
     verify(amazonSNS, timeout(10000).times(1)).publishBatch(any(PublishBatchRequest.class));
   }
@@ -98,7 +98,7 @@ public class AmazonSnsProducerAsyncTest {
       assertThat(result.getId(), is(id));
     });
 
-    snsTemplate.await().join();
+    snsTemplate.await().thenAccept(result -> snsTemplate.shutdown()).join();
 
     verify(amazonSNS, timeout(10000).times(1)).publishBatch(any(PublishBatchRequest.class));
   }
@@ -133,7 +133,7 @@ public class AmazonSnsProducerAsyncTest {
       snsTemplate.send(entry).addCallback(successCallback);
     });
 
-    snsTemplate.await().join();
+    snsTemplate.await().thenAccept(result -> snsTemplate.shutdown()).join();
 
     verify(successCallback, timeout(10000).times(300)).accept(any());
     verify(amazonSNS, atLeastOnce()).publishBatch(any(PublishBatchRequest.class));
@@ -169,7 +169,7 @@ public class AmazonSnsProducerAsyncTest {
       snsTemplate.send(entry).addCallback(null, failureCallback);
     });
 
-    snsTemplate.await().join();
+    snsTemplate.await().thenAccept(result -> snsTemplate.shutdown()).join();
 
     verify(failureCallback, timeout(10000).times(300)).accept(any());
     verify(amazonSNS, atLeastOnce()).publishBatch(any(PublishBatchRequest.class));
@@ -179,14 +179,14 @@ public class AmazonSnsProducerAsyncTest {
   public void testFailRiseRuntimeException() {
     final String id = UUID.randomUUID().toString();
 
-    when(amazonSNS.publishBatch(any(PublishBatchRequest.class))).thenThrow(RuntimeException.class);
+    when(amazonSNS.publishBatch(any(PublishBatchRequest.class))).thenThrow(new RuntimeException());
 
     snsTemplate.send(RequestEntry.builder().id(id).build()).addCallback(result -> {
       assertThat(result, notNullValue());
       assertThat(result.getId(), is(id));
     });
 
-    snsTemplate.await().join();
+    snsTemplate.await().thenAccept(result -> snsTemplate.shutdown()).join();
 
     verify(amazonSNS, timeout(10000).times(1)).publishBatch(any(PublishBatchRequest.class));
   }
@@ -202,7 +202,7 @@ public class AmazonSnsProducerAsyncTest {
       assertThat(result.getId(), is(id));
     });
 
-    snsTemplate.await().join();
+    snsTemplate.await().thenAccept(result -> snsTemplate.shutdown()).join();
 
     verify(amazonSNS, timeout(10000).times(1)).publishBatch(any(PublishBatchRequest.class));
   }

@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -27,15 +26,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 // @formatter:off
 class AmazonSnsProducer<E> extends AbstractAmazonSnsProducer<PublishBatchRequest, PublishBatchResult, E> {
 
-  private final ExecutorService executorService;
-
   private static final MessageAttributes messageAttributes = new MessageAttributes();
 
   private final AmazonSNS amazonSNS;
 
   public AmazonSnsProducer(final AmazonSNS amazonSNS, final TopicProperty topicProperty, final ObjectMapper objectMapper, final Map<String, ListenableFutureRegistry> pendingRequests, final Queue<RequestEntry<E>> topicRequests) {
-    super(topicProperty, objectMapper, pendingRequests, topicRequests);
-    this.executorService = new ThreadPoolExecutor(2, topicProperty.getMaximumPoolSize(), 60, TimeUnit.SECONDS, new SynchronousQueue<>(), new BlockingSubmissionPolicy(30000));
+    super(topicProperty, objectMapper, pendingRequests, topicRequests, new ThreadPoolExecutor(2, topicProperty.getMaximumPoolSize(), 60, TimeUnit.SECONDS, new SynchronousQueue<>(), new BlockingSubmissionPolicy(30000)));
     this.amazonSNS = amazonSNS;
   }
 
@@ -45,12 +41,6 @@ class AmazonSnsProducer<E> extends AbstractAmazonSnsProducer<PublishBatchRequest
     } catch (final Exception ex) {
       handleError(publishBatchRequest, ex);
     }
-  }
-
-  @Override
-  public void shutdown() {
-    super.shutdown();
-    executorService.shutdown();
   }
 
   @Override

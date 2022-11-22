@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -43,6 +44,8 @@ abstract class AbstractAmazonSnsProducer<R, O, E> extends Thread implements Runn
   protected final Map<String, ListenableFutureRegistry> pendingRequests;
 
   private final Queue<RequestEntry<E>> topicRequests;
+
+  protected final ExecutorService executorService;
 
   private final ReentrantLock reentrantLock = new ReentrantLock();
 
@@ -86,8 +89,16 @@ abstract class AbstractAmazonSnsProducer<R, O, E> extends Thread implements Runn
     }
   }
 
+  @SneakyThrows
   public void shutdown() {
+    LOGGER.warn("Shutdown producer {}", getClass().getSimpleName());
     setRunning(false);
+    executorService.shutdown();
+    if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+      LOGGER.warn("Executor did not terminate in the specified time.");
+      final List<Runnable> droppedTasks = executorService.shutdownNow();
+      LOGGER.warn("Executor was abruptly shut down. {} tasks will not be executed.", droppedTasks.size());
+    }
   }
 
   private boolean requestsWaitedFor(final Queue<RequestEntry<E>> requests, final long batchingWindowInMs) {

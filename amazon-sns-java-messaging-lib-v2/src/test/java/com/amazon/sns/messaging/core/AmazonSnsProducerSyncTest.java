@@ -179,7 +179,7 @@ public class AmazonSnsProducerSyncTest {
   public void testFailRiseRuntimeException() {
     final String id = UUID.randomUUID().toString();
 
-    when(amazonSNS.publishBatch(any(PublishBatchRequest.class))).thenThrow(RuntimeException.class);
+    when(amazonSNS.publishBatch(any(PublishBatchRequest.class))).thenThrow(new RuntimeException());
 
     snsTemplate.send(RequestEntry.builder().id(id).build()).addCallback(result -> {
       assertThat(result, notNullValue());
