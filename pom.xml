@@ -20,10 +20,6 @@
 			**/generated-sources/**,
 			**/generated-test-sources/**
 		</sonar.coverage.exclusions>
-		<sonar.coverage.jacoco.xmlReportPaths>
-			${project.basedir}/target/site/jacoco/jacoco.xml,
-			${project.basedir}/target/site/jacoco-aggregate/jacoco.xml
-		</sonar.coverage.jacoco.xmlReportPaths>
 	</properties>
 
 	<scm>
