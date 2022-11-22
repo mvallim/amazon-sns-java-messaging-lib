@@ -22,7 +22,7 @@
 			**/generated-sources/**,
 			**/generated-test-sources/**
 		</sonar.coverage.exclusions>
-		<sonar.projectKey>${project.name}</sonar.projectKey>
+		<sonar.projectKey>amazon-sns-java-messaging-lib</sonar.projectKey>
 		<sonar.organization>mvallim</sonar.organization>
 		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
 	</properties>
