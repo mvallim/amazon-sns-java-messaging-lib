@@ -7,6 +7,12 @@
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.mvallim/amazon-sns-java-messaging-lib/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.mvallim/amazon-sns-java-messaging-lib)
 [![Hex.pm](https://img.shields.io/hexpm/l/plug.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
+# Request Batch
+
+Combine multiple requests to optimally utilise the network.
+
+Article [Martin Fowler](https://martinfowler.com) [Request Batch](https://martinfowler.com/articles/patterns-of-distributed-systems/request-batch.html)
+
 _**Compatible JDK 8, 11, 15, 16 and 17**_
 
 This library supports **`Kotlin`** aswell
