@@ -15,12 +15,12 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<lombok.version>1.18.24</lombok.version>
 		<sonar.coverage.exclusions>
+			**/amazon-sns-java-messaging-lib-template/**,
 			**/package-info.**,
 			**/ConsumerHelper.**,
 			**/generated-sources/**,
 			**/generated-test-sources/**
 		</sonar.coverage.exclusions>
-		<sonar.jacoco.reportPath>${project.basedir}/target/aggregate.exec</sonar.jacoco.reportPath>
 	</properties>
 
 	<scm>
@@ -104,51 +104,8 @@
 						<id>report</id>
 						<phase>verify</phase>
 						<goals>
-							<goal>report-aggregate</goal>
+							<goal>report</goal>
 						</goals>
-					</execution>
-					<execution>
-						<id>merge-results</id>
-						<phase>verify</phase>
-						<goals>
-							<goal>merge</goal>
-						</goals>
-						<configuration>
-							<fileSets>
-								<fileSet>
-									<directory>${basedir}</directory>
-									<includes>
-										<include>**/target/jacoco.exec</include>
-									</includes>
-								</fileSet>
-							</fileSets>
-							<destFile>${basedir}/target/aggregate.exec</destFile>
-						</configuration>
-					</execution>
-					<execution>
-						<id>check</id>
-						<phase>verify</phase>
-						<goals>
-							<goal>check</goal>
-						</goals>
-						<configuration>
-							<includes>
-								<include>${basedir}/target/classes</include>
-							</includes>
-							<rules>
-								<rule>
-									<element>BUNDLE</element>
-									<limits>
-										<limit>
-											<counter>INSTRUCTION</counter>
-											<value>COVEREDRATIO</value>
-											<minimum>100%</minimum>
-										</limit>
-									</limits>
-								</rule>
-							</rules>
-							<dataFile>${basedir}/target/aggregate.exec</dataFile>
-						</configuration>
 					</execution>
 				</executions>
 			</plugin>
@@ -437,6 +394,7 @@
 		<module>amazon-sns-java-messaging-lib-template</module>
 		<module>amazon-sns-java-messaging-lib-v1</module>
 		<module>amazon-sns-java-messaging-lib-v2</module>
+		
 	</modules>
 
 </project>
