@@ -15,7 +15,7 @@ This library supports **`Kotlin`** aswell
 
 ## 1.1 Prerequisite
 
-In order to use Amazon ANA Java Messaging Lib within a Maven project, simply add the following dependency to your pom.xml. There are no other dependencies for Amazon ANA Java Messaging Lib, which means other unwanted libraries will not overwhelm your project.
+In order to use Amazon SNS Java Messaging Lib within a Maven project, simply add the following dependency to your pom.xml. There are no other dependencies for Amazon SNS Java Messaging Lib, which means other unwanted libraries will not overwhelm your project.
 
 You can pull it from the central Maven repositories:
 
