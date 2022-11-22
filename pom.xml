@@ -2,9 +2,9 @@
 
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.amazon.sns.messaging.lib</groupId>
+	<groupId>com.github.mvallim</groupId>
 	<artifactId>amazon-sns-java-messaging-lib</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<packaging>pom</packaging>
 
 	<name>amazon-sns-java-messaging-lib</name>
@@ -27,7 +27,7 @@
 		<url>scm:git:git@github.com:mvallim/amazon-sns-java-messaging-lib</url>
 		<connection>scm:git:git@github.com:mvallim/amazon-sns-java-messaging-lib</connection>
 		<developerConnection>scm:git:git@github.com:mvallim/amazon-sns-java-messaging-lib</developerConnection>
-		<tag>HEAD</tag>
+		<tag>amazon-sns-java-messaging-lib-1.0.0</tag>
 	</scm>
 
 	<url>https://github.com/mvallim/amazon-sns-java-messaging-lib</url>
@@ -197,17 +197,17 @@
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
-				<groupId>com.amazon.sns.messaging.lib</groupId>
+				<groupId>com.github.mvallim</groupId>
 				<artifactId>amazon-sns-java-messaging-lib-template</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
-				<groupId>com.amazon.sns.messaging.lib</groupId>
+				<groupId>com.github.mvallim</groupId>
 				<artifactId>amazon-sns-java-messaging-lib-v1</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
-				<groupId>com.amazon.sns.messaging.lib</groupId>
+				<groupId>com.github.mvallim</groupId>
 				<artifactId>amazon-sns-java-messaging-lib-v2</artifactId>
 				<version>${project.version}</version>
 			</dependency>
