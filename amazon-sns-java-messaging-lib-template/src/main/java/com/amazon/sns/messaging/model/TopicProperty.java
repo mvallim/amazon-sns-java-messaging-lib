@@ -2,9 +2,11 @@ package com.amazon.sns.messaging.model;
 
 import lombok.Builder;
 import lombok.Getter;
+import lombok.ToString;
 
 @Getter
 @Builder
+@ToString
 public class TopicProperty {
 
   private final boolean fifo;

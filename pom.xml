@@ -16,6 +16,7 @@
 		<lombok.version>1.18.24</lombok.version>
 		<sonar.coverage.exclusions>
 			**/package-info.**,
+			**/ConsumerHelper.**,
 			**/generated-sources/**,
 			**/generated-test-sources/**
 		</sonar.coverage.exclusions>
@@ -84,6 +85,7 @@
 				<configuration>
 					<excludes>
 						<exclude>**/package-info.**</exclude>
+						<exclude>**/ConsumerHelper.**</exclude>
 						<exclude>**/generated-sources/**</exclude>
 						<exclude>**/generated-test-sources/**</exclude>
 						<exclude>**/test/**</exclude>
@@ -216,6 +218,11 @@
 
 	<dependencies>
 		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>2.0.4</version>
+		</dependency>
+		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-collections4</artifactId>
 			<version>4.4</version>
@@ -257,7 +264,13 @@
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
-			<version>1.2.3</version>
+			<version>1.4.5</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-core</artifactId>
+			<version>1.4.5</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>

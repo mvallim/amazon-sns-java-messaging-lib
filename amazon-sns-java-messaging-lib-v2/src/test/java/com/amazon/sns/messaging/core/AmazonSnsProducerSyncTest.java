@@ -23,7 +23,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
-import com.amazon.sns.messaging.helper.ConsumerTest;
+import com.amazon.sns.messaging.helper.ConsumerHelper;
 import com.amazon.sns.messaging.model.RequestEntry;
 import com.amazon.sns.messaging.model.ResponseFailEntry;
 import com.amazon.sns.messaging.model.ResponseSuccessEntry;
@@ -117,7 +117,7 @@ public class AmazonSnsProducerSyncTest {
       }
     });
 
-    final ConsumerTest<ResponseSuccessEntry> successCallback = spy(new ConsumerTest<>(result -> {
+    final ConsumerHelper<ResponseSuccessEntry> successCallback = spy(new ConsumerHelper<>(result -> {
       assertThat(result, notNullValue());
     }));
 
@@ -153,7 +153,7 @@ public class AmazonSnsProducerSyncTest {
       }
     });
 
-    final ConsumerTest<ResponseFailEntry> failureCallback = spy(new ConsumerTest<>(result -> {
+    final ConsumerHelper<ResponseFailEntry> failureCallback = spy(new ConsumerHelper<>(result -> {
       assertThat(result, notNullValue());
     }));
 

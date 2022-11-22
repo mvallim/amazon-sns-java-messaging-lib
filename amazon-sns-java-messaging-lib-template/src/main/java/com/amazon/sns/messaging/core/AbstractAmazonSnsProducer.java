@@ -16,24 +16,29 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.amazon.sns.messaging.model.PublishRequestBuilder;
 import com.amazon.sns.messaging.model.RequestEntry;
 import com.amazon.sns.messaging.model.TopicProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.SneakyThrows;
 
 // @formatter:off
 @RequiredArgsConstructor
 abstract class AbstractAmazonSnsProducer<R, O, E> extends Thread implements Runnable {
 
-  private static final ObjectMapper objectMapper = new ObjectMapper();
+  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAmazonSnsProducer.class);
 
   protected final TopicProperty topicProperty;
 
-  private final BiFunction<String, List<RequestEntry<E>>, R> supplierPublishRequest;
+  private final ObjectMapper objectMapper;
 
   protected final Map<String, ListenableFutureRegistry> pendingRequests;
 
@@ -43,18 +48,22 @@ abstract class AbstractAmazonSnsProducer<R, O, E> extends Thread implements Runn
 
   private final Condition empty = reentrantLock.newCondition();
 
-  private boolean isRunning = true;
+  @Getter
+  @Setter(value = AccessLevel.PRIVATE)
+  private boolean running = true;
 
   protected abstract void publishBatch(final R publishBatchRequest);
 
   protected abstract void handleError(final R publishBatchRequest, final Exception ex);
 
   protected abstract void handleResponse(final O publishBatchResult);
-  
+
+  protected abstract BiFunction<String, List<RequestEntry<E>>, R> supplierPublishRequest();
+
   @Override
   @SneakyThrows
   public void run() {
-    while (isRunning) {
+    while (isRunning()) {
       try {
         reentrantLock.lock();
 
@@ -69,11 +78,16 @@ abstract class AbstractAmazonSnsProducer<R, O, E> extends Thread implements Runn
           createBatch(topicRequests).ifPresent(this::publishBatch);
         }
       } catch (final Exception ex) {
-        // Stub
+        LOGGER.error(ex.getMessage(), ex);
+        Thread.currentThread().interrupt();
       } finally {
         reentrantLock.unlock();
       }
     }
+  }
+
+  public void shutdown() {
+    setRunning(false);
   }
 
   private boolean requestsWaitedFor(final Queue<RequestEntry<E>> requests, final long batchingWindowInMs) {
@@ -100,7 +114,7 @@ abstract class AbstractAmazonSnsProducer<R, O, E> extends Thread implements Runn
     }
 
     return Optional.of(PublishRequestBuilder.<R, RequestEntry<E>>builder()
-      .supplier(supplierPublishRequest)
+      .supplier(supplierPublishRequest())
       .entries(requestEntries)
       .topicArn(topicProperty.getTopicArn())
       .build());
@@ -133,7 +147,7 @@ abstract class AbstractAmazonSnsProducer<R, O, E> extends Thread implements Runn
   }
 
   @SneakyThrows
-  protected static <E> String convertPayload(final E payload) {
+  protected String convertPayload(final E payload) {
     return payload instanceof String ? payload.toString() : objectMapper.writeValueAsString(payload);
   }
 

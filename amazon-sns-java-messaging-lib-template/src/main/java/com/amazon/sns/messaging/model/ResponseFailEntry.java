@@ -4,8 +4,10 @@ import java.io.Serializable;
 
 import lombok.Builder;
 import lombok.Getter;
+import lombok.ToString;
 
 @Getter
+@ToString
 @Builder(setterPrefix = "with")
 public class ResponseFailEntry implements Serializable {
 

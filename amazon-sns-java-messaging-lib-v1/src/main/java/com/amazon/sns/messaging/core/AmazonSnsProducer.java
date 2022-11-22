@@ -22,6 +22,7 @@ import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.model.PublishBatchRequest;
 import com.amazonaws.services.sns.model.PublishBatchRequestEntry;
 import com.amazonaws.services.sns.model.PublishBatchResult;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 // @formatter:off
 class AmazonSnsProducer<E> extends AbstractAmazonSnsProducer<PublishBatchRequest, PublishBatchResult, E> {
@@ -32,8 +33,8 @@ class AmazonSnsProducer<E> extends AbstractAmazonSnsProducer<PublishBatchRequest
 
   private final AmazonSNS amazonSNS;
 
-  public AmazonSnsProducer(final AmazonSNS amazonSNS, final TopicProperty topicProperty, final Map<String, ListenableFutureRegistry> pendingRequests, final Queue<RequestEntry<E>> topicRequests) {
-    super(topicProperty, supplierPublishRequest(), pendingRequests, topicRequests);
+  public AmazonSnsProducer(final AmazonSNS amazonSNS, final TopicProperty topicProperty, final ObjectMapper objectMapper, final Map<String, ListenableFutureRegistry> pendingRequests, final Queue<RequestEntry<E>> topicRequests) {
+    super(topicProperty, objectMapper, pendingRequests, topicRequests);
     this.executorService = new ThreadPoolExecutor(2, topicProperty.getMaximumPoolSize(), 60, TimeUnit.SECONDS, new SynchronousQueue<>(), new BlockingSubmissionPolicy(30000));
     this.amazonSNS = amazonSNS;
   }
@@ -47,6 +48,12 @@ class AmazonSnsProducer<E> extends AbstractAmazonSnsProducer<PublishBatchRequest
   }
 
   @Override
+  public void shutdown() {
+    super.shutdown();
+    executorService.shutdown();
+  }
+
+  @Override
   protected void publishBatch(final PublishBatchRequest publishBatchRequest) {
     if (topicProperty.isFifo()) {
       publish(publishBatchRequest);
@@ -55,7 +62,8 @@ class AmazonSnsProducer<E> extends AbstractAmazonSnsProducer<PublishBatchRequest
     }
   }
 
-  private static <E> BiFunction<String, List<RequestEntry<E>>, PublishBatchRequest> supplierPublishRequest() {
+  @Override
+  protected BiFunction<String, List<RequestEntry<E>>, PublishBatchRequest> supplierPublishRequest() {
     return (topicArn, requestEntries) -> {
       final List<PublishBatchRequestEntry> entries = requestEntries.stream()
         .map(entry -> new PublishBatchRequestEntry()

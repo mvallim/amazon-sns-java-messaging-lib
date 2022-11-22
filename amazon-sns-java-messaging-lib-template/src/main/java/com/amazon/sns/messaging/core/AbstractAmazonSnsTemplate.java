@@ -27,6 +27,10 @@ abstract class AbstractAmazonSnsTemplate<R, O, E> {
     }
   }
 
+  public void shutdown() {
+    amazonSnsProducer.shutdown();
+  }
+
   public CompletableFuture<Void> await() {
     return amazonSnsProducer.await();
   }
