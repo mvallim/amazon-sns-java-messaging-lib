@@ -85,7 +85,6 @@ repositories {
 ## 1.2 Usage
 
 ### Standard SNS
-
 ```java
 final TopicProperty topicProperty = TopicProperty.builder()
   .fifo(false)
@@ -106,7 +105,6 @@ snsTemplate.send(requestEntry);
 ```
 
 ### FIFO SNS
-
 ```java
 final TopicProperty topicProperty = TopicProperty.builder()
   .fifo(true)
@@ -129,17 +127,7 @@ snsTemplate.send(requestEntry);
 ```
 
 ### Send With Callback
-
-| Interface        | Description                                         |
-|------------------|-----------------------------------------------------|
-| ListenableFuture | The listener interface for receiving action events. |
-
-| Modifier and Type | Method                                                                                                                   |
-|-------------------|--------------------------------------------------------------------------------------------------------------------------|
-| void              | addCallback(Consumer<? super ResponseSuccessEntry> successCallback, Consumer<? super ResponseFailEntry> failureCallback) |
-| void              | addCallback(Consumer<? super ResponseSuccessEntry> successCallback)                                                      |
-
-```
+```java
 final TopicProperty topicProperty = TopicProperty.builder()
   .fifo(true)
   .linger(100)
@@ -161,6 +149,64 @@ snsTemplate.send(requestEntry).addCallback(result -> {
   successCallback -> LOGGER.info("{}", successCallback), 
   failureCallback -> LOGGER.error("{}", failureCallback)
 });
+
+snsTemplate.send(requestEntry).addCallback(result -> {
+  successCallback -> LOGGER.info("{}", successCallback)
+});
+```
+
+### Send And Wait
+```java
+final TopicProperty topicProperty = TopicProperty.builder()
+  .fifo(true)
+  .linger(100)
+  .maxBatchSize(10)
+  .maximumPoolSize(20)
+  .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
+  .build();
+
+final AmazonSnsTemplate<MyMessage> snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty);
+
+final RequestEntry<MyMessage> requestEntry = RequestEntry.builder()
+  .withValue(new MyMessage())
+  .withMessageHeaders(Map.of())
+  .withGroupId(UUID.randomUUID().toString())
+  .withDeduplicationId(UUID.randomUUID().toString())
+  .build();
+
+snsTemplate.send(requestEntry).addCallback(result -> {
+  successCallback -> LOGGER.info("{}", successCallback), 
+  failureCallback -> LOGGER.error("{}", failureCallback)
+});
+
+snsTemplate.await().join();
+```
+
+### Send And Shutdown
+```java
+final TopicProperty topicProperty = TopicProperty.builder()
+  .fifo(true)
+  .linger(100)
+  .maxBatchSize(10)
+  .maximumPoolSize(20)
+  .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
+  .build();
+
+final AmazonSnsTemplate<MyMessage> snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty);
+
+final RequestEntry<MyMessage> requestEntry = RequestEntry.builder()
+  .withValue(new MyMessage())
+  .withMessageHeaders(Map.of())
+  .withGroupId(UUID.randomUUID().toString())
+  .withDeduplicationId(UUID.randomUUID().toString())
+  .build();
+
+snsTemplate.send(requestEntry).addCallback(result -> {
+  successCallback -> LOGGER.info("{}", successCallback), 
+  failureCallback -> LOGGER.error("{}", failureCallback)
+});
+
+snsTemplate.shutdown();
 ```
 
 ## Contributing
