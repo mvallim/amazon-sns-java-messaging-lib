@@ -20,9 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
@@ -39,6 +36,8 @@ import com.amazonaws.services.sns.model.PublishBatchRequestEntry;
 import com.amazonaws.services.sns.model.PublishBatchResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import lombok.SneakyThrows;
+
 // @formatter:off
 class AmazonSnsProducer<E> extends AbstractAmazonSnsProducer<PublishBatchRequest, PublishBatchResult, E> {
 
@@ -47,7 +46,7 @@ class AmazonSnsProducer<E> extends AbstractAmazonSnsProducer<PublishBatchRequest
   private final AmazonSNS amazonSNS;
 
   public AmazonSnsProducer(final AmazonSNS amazonSNS, final TopicProperty topicProperty, final ObjectMapper objectMapper, final Map<String, ListenableFutureRegistry> pendingRequests, final Queue<RequestEntry<E>> topicRequests) {
-    super(topicProperty, objectMapper, pendingRequests, topicRequests, new ThreadPoolExecutor(2, topicProperty.getMaximumPoolSize(), 60, TimeUnit.SECONDS, new SynchronousQueue<>(), new BlockingSubmissionPolicy(30000)));
+    super(topicProperty, objectMapper, pendingRequests, topicRequests, new AmazonSnsThreadPoolExecutor(topicProperty.getMaximumPoolSize()));
     this.amazonSNS = amazonSNS;
   }
 
@@ -85,6 +84,7 @@ class AmazonSnsProducer<E> extends AbstractAmazonSnsProducer<PublishBatchRequest
   }
 
   @Override
+  @SneakyThrows
   protected void handleError(final PublishBatchRequest publishBatchRequest, final Exception ex) {
     final String code = ex instanceof AmazonServiceException ? AmazonServiceException.class.cast(ex).getErrorCode() : "000";
     final String message = ex instanceof AmazonServiceException ? AmazonServiceException.class.cast(ex).getErrorMessage() : ex.getMessage();
@@ -101,6 +101,7 @@ class AmazonSnsProducer<E> extends AbstractAmazonSnsProducer<PublishBatchRequest
   }
 
   @Override
+  @SneakyThrows
   protected void handleResponse(final PublishBatchResult publishBatchResult) {
     publishBatchResult.getSuccessful().forEach(entry -> {
       final ListenableFutureRegistry listenableFuture = pendingRequests.remove(entry.getId());

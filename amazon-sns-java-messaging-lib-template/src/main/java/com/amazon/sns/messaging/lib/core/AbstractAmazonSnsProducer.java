@@ -24,7 +24,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -61,7 +60,7 @@ abstract class AbstractAmazonSnsProducer<R, O, E> extends Thread implements Runn
 
   private final Queue<RequestEntry<E>> topicRequests;
 
-  protected final ExecutorService executorService;
+  protected final AmazonSnsThreadPoolExecutor executorService;
 
   private final ReentrantLock reentrantLock = new ReentrantLock();
 
@@ -161,7 +160,7 @@ abstract class AbstractAmazonSnsProducer<R, O, E> extends Thread implements Runn
   }
 
   public CompletableFuture<Void> await() {
-    while (MapUtils.isNotEmpty(pendingRequests) || CollectionUtils.isNotEmpty(topicRequests)) {
+    while (MapUtils.isNotEmpty(pendingRequests) || CollectionUtils.isNotEmpty(topicRequests) || executorService.getActiveTaskCount() > 0) {
       final List<?> futures = pendingRequests.entrySet().stream()
         .map(Entry::getValue)
         .map(ListenableFutureRegistry::completable)
