@@ -98,7 +98,21 @@ repositories {
 | **`linger`**          | **int**     | refers to the time to wait before sending messages out to SNS.                 |
 | **`maxBatchSize`**    | **int**     | refers to the maximum amount of data to be collected before sending the batch. |
 
-**NOTICE**: the buffer of message store in memory is calculate using **`maximumPoolSize`** * **`maxBatchSize`** huge values demand huge memory
+**NOTICE**: the buffer of message store in memory is calculate using **`maximumPoolSize`** * **`maxBatchSize`** huge values demand huge memory.
+
+#### Determining the type of `BlockingQueue` with its maximum capacity
+
+```java
+final TopicProperty topicProperty = TopicProperty.builder()
+  .fifo(false)
+  .linger(100)
+  .maxBatchSize(10)
+  .maximumPoolSize(20)
+  .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
+  .build();
+  
+final AmazonSnsTemplate<MyMessage> snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty, new LinkedBlockingQueue<>(10));
+```
 
 ### Standard SNS
 ```java
