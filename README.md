@@ -115,6 +115,36 @@ final AmazonSnsTemplate<MyMessage> snsTemplate = new AmazonSnsTemplate<>(
 	amazonSNS, topicProperty, new LinkedBlockingQueue<>(100));
 ```
 
+#### Usando um `ObjectMapper` e uma `BlockingQueue` diferente da default
+
+```java
+final TopicProperty topicProperty = TopicProperty.builder()
+  .fifo(false)
+  .linger(100)
+  .maxBatchSize(10)
+  .maximumPoolSize(20)
+  .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
+  .build();
+  
+final AmazonSnsTemplate<MyMessage> snsTemplate = new AmazonSnsTemplate<>(
+	amazonSNS, topicProperty, new ObjectMapper<>());
+```
+
+#### Using an `ObjectMapper` and a `BlockingQueue` other than the default
+
+```java
+final TopicProperty topicProperty = TopicProperty.builder()
+  .fifo(false)
+  .linger(100)
+  .maxBatchSize(10)
+  .maximumPoolSize(20)
+  .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
+  .build();
+  
+final AmazonSnsTemplate<MyMessage> snsTemplate = new AmazonSnsTemplate<>(
+	amazonSNS, topicProperty, new LinkedBlockingQueue<>(100), new ObjectMapper<>());
+```
+
 ### Standard SNS
 ```java
 final TopicProperty topicProperty = TopicProperty.builder()
