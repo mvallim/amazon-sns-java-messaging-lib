@@ -115,7 +115,7 @@ final AmazonSnsTemplate<MyMessage> snsTemplate = new AmazonSnsTemplate<>(
 	amazonSNS, topicProperty, new LinkedBlockingQueue<>(100));
 ```
 
-#### Usando um `ObjectMapper` e uma `BlockingQueue` diferente da default
+#### Using an `ObjectMapper` other than the default
 
 ```java
 final TopicProperty topicProperty = TopicProperty.builder()
