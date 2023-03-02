@@ -38,7 +38,7 @@ You can pull it from the central Maven repositories:
 <dependency>
     <groupId>com.github.mvallim</groupId>
     <artifactId>amazon-sns-java-messaging-lib-v1</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
 </dependency>
 ```
 
@@ -47,7 +47,7 @@ You can pull it from the central Maven repositories:
 <dependency>
     <groupId>com.github.mvallim</groupId>
     <artifactId>amazon-sns-java-messaging-lib-v2</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
 </dependency>
 ```
 
@@ -68,12 +68,12 @@ If you want to try a snapshot version, add the following repository:
 
 ### For AWS SDK v1
 ```groovy
-implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v1:1.0.1'
+implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v1:1.0.2'
 ```
 
 ### For AWS SDK v2
 ```groovy
-implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v2:1.0.1'
+implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v2:1.0.2'
 ```
 
 If you want to try a snapshot version, add the following repository:
@@ -87,6 +87,18 @@ repositories {
 ```
 
 ## 1.2 Usage
+
+### Properties `TopicProperty`
+
+| Property              | Type        | Description                                                                    |
+|-----------------------|-------------|--------------------------------------------------------------------------------|
+| **`fifo`**            | **boolean** | refers if SNS is fifo or not.                                                  |
+| **`maximumPoolSize`** | **int**     | refers maximum threads for producer.                                           |
+| **`topicArn`**        | **string**  | refers topic arn name.                                                         |
+| **`linger`**          | **int**     | refers to the time to wait before sending messages out to SNS.                 |
+| **`maxBatchSize`**    | **int**     | refers to the maximum amount of data to be collected before sending the batch. |
+
+**NOTICE**: the buffer of message store in memory is calculate using **`maximumPoolSize`** * **`maxBatchSize`** huge values demand huge memory
 
 ### Standard SNS
 ```java
