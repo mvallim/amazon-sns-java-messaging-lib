@@ -111,7 +111,8 @@ final TopicProperty topicProperty = TopicProperty.builder()
   .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
   .build();
   
-final AmazonSnsTemplate<MyMessage> snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty, new LinkedBlockingQueue<>(10));
+final AmazonSnsTemplate<MyMessage> snsTemplate = new AmazonSnsTemplate<>(
+	amazonSNS, topicProperty, new LinkedBlockingQueue<>(10));
 ```
 
 ### Standard SNS
