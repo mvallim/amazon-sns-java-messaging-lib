@@ -112,7 +112,7 @@ final TopicProperty topicProperty = TopicProperty.builder()
   .build();
   
 final AmazonSnsTemplate<MyMessage> snsTemplate = new AmazonSnsTemplate<>(
-	amazonSNS, topicProperty, new LinkedBlockingQueue<>(10));
+	amazonSNS, topicProperty, new LinkedBlockingQueue<>(100));
 ```
 
 ### Standard SNS
