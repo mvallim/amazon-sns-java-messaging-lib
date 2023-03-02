@@ -17,21 +17,22 @@
 package com.amazon.sns.messaging.lib.core;
 
 import java.util.Map;
-import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
+
+import lombok.SneakyThrows;
 
 // @formatter:off
 abstract class AbstractAmazonSnsTemplate<R, O, E> {
 
   protected final Map<String, ListenableFutureRegistry> pendingRequests = new ConcurrentHashMap<>();
 
-  protected final Queue<RequestEntry<E>> topicRequests = new LinkedBlockingQueue<>();
+  protected BlockingQueue<RequestEntry<E>> topicRequests;
 
   protected AbstractAmazonSnsProducer<R, O, E> amazonSnsProducer;
 
@@ -51,8 +52,9 @@ abstract class AbstractAmazonSnsTemplate<R, O, E> {
     return amazonSnsProducer.await();
   }
 
+  @SneakyThrows
   private String enqueueRequest(final RequestEntry<E> requestEntry) {
-    topicRequests.add(requestEntry);
+    topicRequests.put(requestEntry);
     return requestEntry.getId();
   }
 

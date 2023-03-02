@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
 import org.junit.Before;
@@ -70,10 +71,10 @@ public class AmazonSnsProducerAsyncTest {
   public void before() throws Exception {
     when(topicProperty.isFifo()).thenReturn(true);
     when(topicProperty.getTopicArn()).thenReturn("arn:aws:sns:us-east-2:000000000000:topic");
-    when(topicProperty.getMaximumPoolSize()).thenReturn(2);
+    when(topicProperty.getMaximumPoolSize()).thenReturn(10);
     when(topicProperty.getLinger()).thenReturn(50L);
     when(topicProperty.getMaxBatchSize()).thenReturn(10);
-    snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty);
+    snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty, new LinkedBlockingQueue<>(10));
   }
 
   @Test
