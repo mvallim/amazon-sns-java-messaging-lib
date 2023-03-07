@@ -177,9 +177,6 @@
 				<artifactId>maven-deploy-plugin</artifactId>
 				<version>3.1.0</version>
 				<inherited>true</inherited>
-				<configuration>
-					<updateReleaseInfo>true</updateReleaseInfo>
-				</configuration>
 			</plugin>
 
 			<plugin>
@@ -269,7 +266,7 @@
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-core</artifactId>
-			<version>1.2.9</version>
+			<version>1.4.5</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
