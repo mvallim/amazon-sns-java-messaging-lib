@@ -12,7 +12,7 @@
 	<artifactId>amazon-sns-java-messaging-lib-v1</artifactId>
 	
 	<properties>
-		<aws-java-sdk-bom.version>1.12.420</aws-java-sdk-bom.version>
+		<aws-java-sdk-bom.version>1.12.425</aws-java-sdk-bom.version>
 	</properties>
 	
 	<dependencyManagement>
