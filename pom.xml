@@ -4,7 +4,7 @@
 
 	<groupId>com.github.mvallim</groupId>
 	<artifactId>amazon-sns-java-messaging-lib</artifactId>
-	<version>1.0.3-SNAPSHOT</version>
+	<version>1.0.4-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<name>amazon-sns-java-messaging-lib</name>
@@ -260,13 +260,13 @@
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
-			<version>1.4.5</version>
+			<version>1.3.6</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-core</artifactId>
-			<version>1.4.5</version>
+			<version>1.3.6</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -392,7 +392,6 @@
 		<module>amazon-sns-java-messaging-lib-template</module>
 		<module>amazon-sns-java-messaging-lib-v1</module>
 		<module>amazon-sns-java-messaging-lib-v2</module>
-		
 	</modules>
 
 </project>

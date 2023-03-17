@@ -16,10 +16,10 @@
 
 package com.amazon.sns.messaging.lib.core;
 
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
@@ -30,7 +30,7 @@ import lombok.SneakyThrows;
 // @formatter:off
 abstract class AbstractAmazonSnsTemplate<R, O, E> {
 
-  protected final Map<String, ListenableFutureRegistry> pendingRequests = new ConcurrentHashMap<>();
+  protected final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests = new ConcurrentHashMap<>();
 
   protected BlockingQueue<RequestEntry<E>> topicRequests;
 
@@ -38,7 +38,9 @@ abstract class AbstractAmazonSnsTemplate<R, O, E> {
 
   public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry) {
     try {
-      return trackPendingRequest(enqueueRequest(requestEntry));
+      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> trackPendingRequest = trackPendingRequest(requestEntry.getId());
+      enqueueRequest(requestEntry);
+      return trackPendingRequest;
     } finally {
       amazonSnsProducer.wakeup();
     }
@@ -53,9 +55,8 @@ abstract class AbstractAmazonSnsTemplate<R, O, E> {
   }
 
   @SneakyThrows
-  private String enqueueRequest(final RequestEntry<E> requestEntry) {
+  private void enqueueRequest(final RequestEntry<E> requestEntry) {
     topicRequests.put(requestEntry);
-    return requestEntry.getId();
   }
 
   private ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> trackPendingRequest(final String correlationId) {

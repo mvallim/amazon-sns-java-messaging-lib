@@ -17,13 +17,15 @@
 package com.amazon.sns.messaging.lib.core;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
@@ -41,11 +43,13 @@ import lombok.SneakyThrows;
 // @formatter:off
 class AmazonSnsProducer<E> extends AbstractAmazonSnsProducer<PublishBatchRequest, PublishBatchResult, E> {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(AmazonSnsProducer.class);
+
   private static final MessageAttributes messageAttributes = new MessageAttributes();
 
   private final AmazonSNS amazonSNS;
 
-  public AmazonSnsProducer(final AmazonSNS amazonSNS, final TopicProperty topicProperty, final ObjectMapper objectMapper, final Map<String, ListenableFutureRegistry> pendingRequests, final Queue<RequestEntry<E>> topicRequests) {
+  public AmazonSnsProducer(final AmazonSNS amazonSNS, final TopicProperty topicProperty, final ObjectMapper objectMapper, final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests, final BlockingQueue<RequestEntry<E>> topicRequests) {
     super(topicProperty, objectMapper, pendingRequests, topicRequests, new AmazonSnsThreadPoolExecutor(topicProperty.getMaximumPoolSize()));
     this.amazonSNS = amazonSNS;
   }
@@ -84,10 +88,11 @@ class AmazonSnsProducer<E> extends AbstractAmazonSnsProducer<PublishBatchRequest
   }
 
   @Override
-  @SneakyThrows
   protected void handleError(final PublishBatchRequest publishBatchRequest, final Exception ex) {
     final String code = ex instanceof AmazonServiceException ? AmazonServiceException.class.cast(ex).getErrorCode() : "000";
     final String message = ex instanceof AmazonServiceException ? AmazonServiceException.class.cast(ex).getErrorMessage() : ex.getMessage();
+
+    LOGGER.error(ex.getMessage(), ex);
 
     publishBatchRequest.getPublishBatchRequestEntries().forEach(entry -> {
       final ListenableFutureRegistry listenableFuture = pendingRequests.remove(entry.getId());

@@ -18,12 +18,12 @@ package com.amazon.sns.messaging.lib.core;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -56,9 +56,9 @@ abstract class AbstractAmazonSnsProducer<R, O, E> extends Thread implements Runn
 
   private final ObjectMapper objectMapper;
 
-  protected final Map<String, ListenableFutureRegistry> pendingRequests;
+  protected final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests;
 
-  private final Queue<RequestEntry<E>> topicRequests;
+  private final BlockingQueue<RequestEntry<E>> topicRequests;
 
   protected final AmazonSnsThreadPoolExecutor executorService;
 
@@ -89,11 +89,13 @@ abstract class AbstractAmazonSnsProducer<R, O, E> extends Thread implements Runn
           empty.await();
         }
 
-        final boolean maxWaitTimeElapsed = requestsWaitedFor(topicRequests, topicProperty.getLinger());
-        final boolean maxBatchSizeReached = maxBatchSizeReached(topicRequests);
+        while (CollectionUtils.isNotEmpty(topicRequests)) {
+          final boolean maxWaitTimeElapsed = requestsWaitedFor(topicRequests, topicProperty.getLinger());
+          final boolean maxBatchSizeReached = maxBatchSizeReached(topicRequests);
 
-        if (maxWaitTimeElapsed || maxBatchSizeReached) {
-          createBatch(topicRequests).ifPresent(this::publishBatch);
+          if (maxWaitTimeElapsed || maxBatchSizeReached) {
+            createBatch(topicRequests).ifPresent(this::publishBatch);
+          }
         }
       } catch (final Exception ex) {
         LOGGER.error(ex.getMessage(), ex);
@@ -116,22 +118,23 @@ abstract class AbstractAmazonSnsProducer<R, O, E> extends Thread implements Runn
     }
   }
 
-  private boolean requestsWaitedFor(final Queue<RequestEntry<E>> requests, final long batchingWindowInMs) {
+  private boolean requestsWaitedFor(final BlockingQueue<RequestEntry<E>> requests, final long batchingWindowInMs) {
     return Optional.ofNullable(requests.peek()).map(oldestPendingRequest -> {
       final long oldestEntryWaitTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - oldestPendingRequest.getCreateTime());
       return oldestEntryWaitTime > batchingWindowInMs;
     }).orElse(false);
   }
 
-  private boolean maxBatchSizeReached(final Queue<RequestEntry<E>> requests) {
+  private boolean maxBatchSizeReached(final BlockingQueue<RequestEntry<E>> requests) {
     return requests.size() > topicProperty.getMaxBatchSize();
   }
 
-  private Optional<R> createBatch(final Queue<RequestEntry<E>> requests) {
+  @SneakyThrows
+  private Optional<R> createBatch(final BlockingQueue<RequestEntry<E>> requests) {
     final List<RequestEntry<E>> requestEntries = new LinkedList<>();
 
     while (requestEntries.size() < topicProperty.getMaxBatchSize() && Objects.nonNull(requests.peek())) {
-      final RequestEntry<E> requestEntry = requests.poll();
+      final RequestEntry<E> requestEntry = requests.take();
       requestEntries.add(requestEntry);
     }
 
