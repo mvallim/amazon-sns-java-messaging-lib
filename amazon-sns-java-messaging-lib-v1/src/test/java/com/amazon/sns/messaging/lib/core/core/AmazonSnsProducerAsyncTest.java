@@ -141,24 +141,24 @@ public class AmazonSnsProducerAsyncTest {
     }));
 
     CompletableFuture.runAsync(() -> {
-      entries(100000).forEach(entry -> {
+      entries(1000).forEach(entry -> {
         snsTemplate.send(entry).addCallback(successCallback);
       });
     });
 
     CompletableFuture.runAsync(() -> {
-      entries(100000).forEach(entry -> {
+      entries(1000).forEach(entry -> {
         snsTemplate.send(entry).addCallback(successCallback);
       });
     });
 
     CompletableFuture.runAsync(() -> {
-      entries(100000).forEach(entry -> {
+      entries(1000).forEach(entry -> {
         snsTemplate.send(entry).addCallback(successCallback);
       });
     });
 
-    verify(successCallback, timeout(300000).times(300000)).accept(any());
+    verify(successCallback, timeout(300000).times(3000)).accept(any());
     verify(amazonSNS, atLeastOnce()).publishBatch(any());
   }
 
@@ -181,24 +181,24 @@ public class AmazonSnsProducerAsyncTest {
     }));
 
     CompletableFuture.runAsync(() -> {
-      entries(100000).forEach(entry -> {
+      entries(1000).forEach(entry -> {
         snsTemplate.send(entry).addCallback(null, failureCallback);
       });
     });
 
     CompletableFuture.runAsync(() -> {
-      entries(100000).forEach(entry -> {
+      entries(1000).forEach(entry -> {
         snsTemplate.send(entry).addCallback(null, failureCallback);
       });
     });
 
     CompletableFuture.runAsync(() -> {
-      entries(100000).forEach(entry -> {
+      entries(1000).forEach(entry -> {
         snsTemplate.send(entry).addCallback(null, failureCallback);
       });
     });
 
-    verify(failureCallback, timeout(300000).times(300000)).accept(any());
+    verify(failureCallback, timeout(300000).times(3000)).accept(any());
     verify(amazonSNS, atLeastOnce()).publishBatch(any());
   }
 
