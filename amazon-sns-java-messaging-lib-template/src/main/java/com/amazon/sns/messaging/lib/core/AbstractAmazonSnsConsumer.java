@@ -91,7 +91,7 @@ abstract class AbstractAmazonSnsConsumer<R, O, E> extends Thread implements Runn
       try {
 
         if (topicRequests.isEmpty()) {
-          Thread.sleep(10);
+          Thread.sleep(topicProperty.getLinger());
         }
 
         final boolean maxWaitTimeElapsed = requestsWaitedFor(topicRequests, topicProperty.getLinger());
