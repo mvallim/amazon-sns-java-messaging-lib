@@ -20,12 +20,11 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Semaphore;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
-
-import lombok.SneakyThrows;
 
 // @formatter:off
 abstract class AbstractAmazonSnsTemplate<R, O, E> {
@@ -34,35 +33,24 @@ abstract class AbstractAmazonSnsTemplate<R, O, E> {
 
   protected BlockingQueue<RequestEntry<E>> topicRequests;
 
-  protected AbstractAmazonSnsProducer<R, O, E> amazonSnsProducer;
+  protected Semaphore semaphoreProducer;
+
+  protected Semaphore semaphoreConsumer;
+
+  protected AbstractAmazonSnsProducer<E> amazonSnsProducer;
+
+  protected AbstractAmazonSnsConsumer<R, O, E> amazonSnsConsumer;
 
   public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry) {
-    try {
-      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> trackPendingRequest = trackPendingRequest(requestEntry.getId());
-      enqueueRequest(requestEntry);
-      return trackPendingRequest;
-    } finally {
-      amazonSnsProducer.wakeup();
-    }
+    return amazonSnsProducer.send(requestEntry);
   }
 
   public void shutdown() {
-    amazonSnsProducer.shutdown();
+    amazonSnsConsumer.shutdown();
   }
 
   public CompletableFuture<Void> await() {
-    return amazonSnsProducer.await();
-  }
-
-  @SneakyThrows
-  private void enqueueRequest(final RequestEntry<E> requestEntry) {
-    topicRequests.put(requestEntry);
-  }
-
-  private ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> trackPendingRequest(final String correlationId) {
-    final ListenableFutureRegistry listenableFuture = new ListenableFutureRegistry();
-    pendingRequests.put(correlationId, listenableFuture);
-    return listenableFuture;
+    return amazonSnsConsumer.await();
   }
 
 }
