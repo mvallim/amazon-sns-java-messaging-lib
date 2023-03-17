@@ -26,12 +26,18 @@ import com.amazonaws.services.sns.model.PublishBatchRequest;
 import com.amazonaws.services.sns.model.PublishBatchResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+// @formatter:off
 public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<PublishBatchRequest, PublishBatchResult, E> {
 
-  public AmazonSnsTemplate(final AmazonSNS amazonSNS, final TopicProperty topicProperty, final BlockingQueue<RequestEntry<E>> topicRequests, final ObjectMapper objectMapper) {
+  public AmazonSnsTemplate(
+      final AmazonSNS amazonSNS,
+      final TopicProperty topicProperty,
+      final BlockingQueue<RequestEntry<E>> topicRequests,
+      final ObjectMapper objectMapper) {
     super.topicRequests = topicRequests;
-    super.amazonSnsProducer = new AmazonSnsProducer<>(amazonSNS, topicProperty, objectMapper, super.pendingRequests, super.topicRequests);
-    super.amazonSnsProducer.start();
+    super.amazonSnsConsumer = new AmazonSnsConsumer<>(amazonSNS, topicProperty, objectMapper, super.pendingRequests, super.topicRequests);
+    super.amazonSnsProducer = new AmazonSnsProducer<>(pendingRequests, topicRequests);
+    super.amazonSnsConsumer.start();
   }
 
   public AmazonSnsTemplate(final AmazonSNS amazonSNS, final TopicProperty topicProperty, final BlockingQueue<RequestEntry<E>> topicRequests) {
@@ -47,3 +53,4 @@ public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<PublishBatch
   }
 
 }
+// @formatter:on

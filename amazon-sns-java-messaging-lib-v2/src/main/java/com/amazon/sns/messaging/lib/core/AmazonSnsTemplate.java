@@ -18,6 +18,7 @@ package com.amazon.sns.messaging.lib.core;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.TopicProperty;
@@ -27,12 +28,20 @@ import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.PublishBatchRequest;
 import software.amazon.awssdk.services.sns.model.PublishBatchResponse;
 
+// @formatter:off
 public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<PublishBatchRequest, PublishBatchResponse, E> {
 
-  public AmazonSnsTemplate(final SnsClient amazonSNS, final TopicProperty topicProperty, final BlockingQueue<RequestEntry<E>> topicRequests, final ObjectMapper objectMapper) {
+  public AmazonSnsTemplate(
+      final SnsClient amazonSNS,
+      final TopicProperty topicProperty,
+      final BlockingQueue<RequestEntry<E>> topicRequests,
+      final ObjectMapper objectMapper) {
+    super.semaphoreProducer = new Semaphore(1);
+    super.semaphoreConsumer = new Semaphore(0);
     super.topicRequests = topicRequests;
-    super.amazonSnsProducer = new AmazonSnsProducer<>(amazonSNS, topicProperty, objectMapper, super.pendingRequests, super.topicRequests);
-    super.amazonSnsProducer.start();
+    super.amazonSnsConsumer = new AmazonSnsConsumer<>(amazonSNS, topicProperty, objectMapper, super.pendingRequests, super.topicRequests);
+    super.amazonSnsProducer = new AmazonSnsProducer<>(pendingRequests, topicRequests);
+    super.amazonSnsConsumer.start();
   }
 
   public AmazonSnsTemplate(final SnsClient amazonSNS, final TopicProperty topicProperty, final BlockingQueue<RequestEntry<E>> topicRequests) {
@@ -48,3 +57,4 @@ public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<PublishBatch
   }
 
 }
+// @formatter:on
