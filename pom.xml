@@ -392,7 +392,6 @@
 		<module>amazon-sns-java-messaging-lib-template</module>
 		<module>amazon-sns-java-messaging-lib-v1</module>
 		<module>amazon-sns-java-messaging-lib-v2</module>
-		
 	</modules>
 
 </project>
