@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
@@ -74,7 +75,7 @@ public class AmazonSnsProducerAsyncTest {
     when(topicProperty.getMaximumPoolSize()).thenReturn(10);
     when(topicProperty.getLinger()).thenReturn(50L);
     when(topicProperty.getMaxBatchSize()).thenReturn(10);
-    snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty, new LinkedBlockingQueue<>(10));
+    snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty, new LinkedBlockingQueue<>(1024));
   }
 
   @Test
@@ -141,23 +142,26 @@ public class AmazonSnsProducerAsyncTest {
       assertThat(result, notNullValue());
     }));
 
-    entries(100).forEach(entry -> {
-      snsTemplate.send(entry).addCallback(successCallback);
+    CompletableFuture.runAsync(() -> {
+      entries(100000).forEach(entry -> {
+        snsTemplate.send(entry).addCallback(successCallback);
+      });
     });
 
-    entries(100).forEach(entry -> {
-      snsTemplate.send(entry).addCallback(successCallback);
+    CompletableFuture.runAsync(() -> {
+      entries(100000).forEach(entry -> {
+        snsTemplate.send(entry).addCallback(successCallback);
+      });
     });
 
-    entries(100).forEach(entry -> {
-      snsTemplate.send(entry).addCallback(successCallback);
+    CompletableFuture.runAsync(() -> {
+      entries(100000).forEach(entry -> {
+        snsTemplate.send(entry).addCallback(successCallback);
+      });
     });
 
-    snsTemplate.await().thenAccept(result -> {
-      verify(successCallback, timeout(10000).times(300)).accept(any());
-      verify(amazonSNS, atLeastOnce()).publishBatch(any(PublishBatchRequest.class));
-    }).join();
-
+    verify(successCallback, timeout(300000).times(300000)).accept(any());
+    verify(amazonSNS, atLeastOnce()).publishBatch(any(PublishBatchRequest.class));
   }
 
   @Test
@@ -178,23 +182,26 @@ public class AmazonSnsProducerAsyncTest {
       assertThat(result, notNullValue());
     }));
 
-    entries(100).forEach(entry -> {
-      snsTemplate.send(entry).addCallback(null, failureCallback);
+    CompletableFuture.runAsync(() -> {
+      entries(100000).forEach(entry -> {
+        snsTemplate.send(entry).addCallback(null, failureCallback);
+      });
     });
 
-    entries(100).forEach(entry -> {
-      snsTemplate.send(entry).addCallback(null, failureCallback);
+    CompletableFuture.runAsync(() -> {
+      entries(100000).forEach(entry -> {
+        snsTemplate.send(entry).addCallback(null, failureCallback);
+      });
     });
 
-    entries(100).forEach(entry -> {
-      snsTemplate.send(entry).addCallback(null, failureCallback);
+    CompletableFuture.runAsync(() -> {
+      entries(100000).forEach(entry -> {
+        snsTemplate.send(entry).addCallback(null, failureCallback);
+      });
     });
 
-    snsTemplate.await().thenAccept(result -> {
-      verify(failureCallback, timeout(10000).times(300)).accept(any());
-      verify(amazonSNS, atLeastOnce()).publishBatch(any(PublishBatchRequest.class));
-    }).join();
-
+    verify(failureCallback, timeout(300000).times(300000)).accept(any());
+    verify(amazonSNS, atLeastOnce()).publishBatch(any(PublishBatchRequest.class));
   }
 
   @Test

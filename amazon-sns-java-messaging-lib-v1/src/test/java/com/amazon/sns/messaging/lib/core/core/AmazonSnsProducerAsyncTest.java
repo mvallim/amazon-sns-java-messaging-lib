@@ -29,9 +29,11 @@ import static org.mockito.Mockito.when;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -67,12 +69,12 @@ public class AmazonSnsProducerAsyncTest {
 
   @Before
   public void before() throws Exception {
-    when(topicProperty.isFifo()).thenReturn(true);
+    when(topicProperty.isFifo()).thenReturn(false);
     when(topicProperty.getTopicArn()).thenReturn("arn:aws:sns:us-east-2:000000000000:topic");
-    when(topicProperty.getMaximumPoolSize()).thenReturn(10);
+    when(topicProperty.getMaximumPoolSize()).thenReturn(100);
     when(topicProperty.getLinger()).thenReturn(50L);
     when(topicProperty.getMaxBatchSize()).thenReturn(10);
-    snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty, new LinkedBlockingQueue<>(10));
+    snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty, new LinkedBlockingQueue<>(1024));
   }
 
   @Test
@@ -138,23 +140,26 @@ public class AmazonSnsProducerAsyncTest {
       assertThat(result, notNullValue());
     }));
 
-    entries(100).forEach(entry -> {
-      snsTemplate.send(entry).addCallback(successCallback);
+    CompletableFuture.runAsync(() -> {
+      entries(100000).forEach(entry -> {
+        snsTemplate.send(entry).addCallback(successCallback);
+      });
     });
 
-    entries(100).forEach(entry -> {
-      snsTemplate.send(entry).addCallback(successCallback);
+    CompletableFuture.runAsync(() -> {
+      entries(100000).forEach(entry -> {
+        snsTemplate.send(entry).addCallback(successCallback);
+      });
     });
 
-    entries(100).forEach(entry -> {
-      snsTemplate.send(entry).addCallback(successCallback);
+    CompletableFuture.runAsync(() -> {
+      entries(100000).forEach(entry -> {
+        snsTemplate.send(entry).addCallback(successCallback);
+      });
     });
 
-    snsTemplate.await().thenAccept(result -> {
-      verify(successCallback, timeout(10000).times(300)).accept(any());
-      verify(amazonSNS, atLeastOnce()).publishBatch(any());
-    }).join();
-
+    verify(successCallback, timeout(300000).times(300000)).accept(any());
+    verify(amazonSNS, atLeastOnce()).publishBatch(any());
   }
 
   @Test
@@ -175,23 +180,26 @@ public class AmazonSnsProducerAsyncTest {
       assertThat(result, notNullValue());
     }));
 
-    entries(100).forEach(entry -> {
-      snsTemplate.send(entry).addCallback(null, failureCallback);
+    CompletableFuture.runAsync(() -> {
+      entries(100000).forEach(entry -> {
+        snsTemplate.send(entry).addCallback(null, failureCallback);
+      });
     });
 
-    entries(100).forEach(entry -> {
-      snsTemplate.send(entry).addCallback(null, failureCallback);
+    CompletableFuture.runAsync(() -> {
+      entries(100000).forEach(entry -> {
+        snsTemplate.send(entry).addCallback(null, failureCallback);
+      });
     });
 
-    entries(100).forEach(entry -> {
-      snsTemplate.send(entry).addCallback(null, failureCallback);
+    CompletableFuture.runAsync(() -> {
+      entries(100000).forEach(entry -> {
+        snsTemplate.send(entry).addCallback(null, failureCallback);
+      });
     });
 
-    snsTemplate.await().thenAccept(result -> {
-      verify(failureCallback, timeout(10000).times(300)).accept(any());
-      verify(amazonSNS, atLeastOnce()).publishBatch(any());
-    }).join();
-
+    verify(failureCallback, timeout(300000).times(300000)).accept(any());
+    verify(amazonSNS, atLeastOnce()).publishBatch(any());
   }
 
   @Test
@@ -233,6 +241,7 @@ public class AmazonSnsProducerAsyncTest {
 
     for (int i = 0; i < amount; i++) {
       entries.add(RequestEntry.builder()
+        .withId(RandomStringUtils.randomAlphabetic(36))
         .withSubject("subject")
         .withGroupId(UUID.randomUUID().toString())
         .withDeduplicationId(UUID.randomUUID().toString())
