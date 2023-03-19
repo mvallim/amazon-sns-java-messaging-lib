@@ -42,9 +42,8 @@ abstract class AbstractAmazonSnsProducer<E> {
   }
 
   @SneakyThrows
-  private String enqueueRequest(final RequestEntry<E> requestEntry) {
+  private void enqueueRequest(final RequestEntry<E> requestEntry) {
     topicRequests.put(requestEntry);
-    return requestEntry.getId();
   }
 
   private ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> trackPendingRequest(final String correlationId) {
