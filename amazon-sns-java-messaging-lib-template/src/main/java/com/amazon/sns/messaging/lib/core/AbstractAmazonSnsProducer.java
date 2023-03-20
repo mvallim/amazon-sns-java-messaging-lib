@@ -29,18 +29,10 @@ abstract class AbstractAmazonSnsProducer<E> {
 
   private final BlockingQueue<RequestEntry<E>> topicRequests;
 
-  private Integer maxTopicRequests = 0;
-
-  private Integer maxPendingRequests = 0;
-
   @SneakyThrows
   public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry) {
     final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> trackPendingRequest = trackPendingRequest(requestEntry.getId());
     enqueueRequest(requestEntry);
-    maxTopicRequests = Math.max(maxTopicRequests, topicRequests.size());
-    maxPendingRequests = Math.max(maxPendingRequests, pendingRequests.size());
-    System.out.println("topicRequests : " + maxTopicRequests);
-    System.out.println("pendingRequests : " + maxPendingRequests);
     return trackPendingRequest;
   }
 
