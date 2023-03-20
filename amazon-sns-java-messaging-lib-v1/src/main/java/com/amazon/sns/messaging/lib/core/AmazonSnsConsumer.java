@@ -50,7 +50,7 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<PublishBatchRequest
     final ObjectMapper objectMapper,
     final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
     final BlockingQueue<RequestEntry<E>> topicRequests) {
-    super(topicProperty, objectMapper, pendingRequests, topicRequests, new AmazonSnsThreadPoolExecutor(topicProperty.getMaximumPoolSize()));
+    super(topicProperty, objectMapper, pendingRequests, topicRequests, getAmazonSnsThreadPoolExecutor(topicProperty));
     this.amazonSNS = amazonSNS;
   }
 

@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
@@ -49,7 +50,7 @@ abstract class AbstractAmazonSnsConsumer<R, O, E> extends Thread implements Runn
 
   private final BlockingQueue<RequestEntry<E>> topicRequests;
 
-  protected final AmazonSnsThreadPoolExecutor executorService;
+  protected final ExecutorService executorService;
 
   protected AbstractAmazonSnsConsumer(
       final TopicProperty topicProperty,
@@ -150,8 +151,7 @@ abstract class AbstractAmazonSnsConsumer<R, O, E> extends Thread implements Runn
     return CompletableFuture.runAsync(() -> {
       while (
         MapUtils.isNotEmpty(this.pendingRequests) ||
-        CollectionUtils.isNotEmpty(this.topicRequests) ||
-        this.executorService.getActiveTaskCount() > 0) {
+        CollectionUtils.isNotEmpty(this.topicRequests)) {
         sleep(1);
       }
     });
@@ -160,6 +160,14 @@ abstract class AbstractAmazonSnsConsumer<R, O, E> extends Thread implements Runn
   @SneakyThrows
   protected String convertPayload(final E payload) {
     return payload instanceof String ? payload.toString() : objectMapper.writeValueAsString(payload);
+  }
+
+  protected static AmazonSnsThreadPoolExecutor getAmazonSnsThreadPoolExecutor(final TopicProperty topicProperty) {
+    if (topicProperty.isFifo()) {
+      return new AmazonSnsThreadPoolExecutor(1);
+    } else {
+      return new AmazonSnsThreadPoolExecutor(topicProperty.getMaximumPoolSize());
+    }
   }
 
   @SneakyThrows

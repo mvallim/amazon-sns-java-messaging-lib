@@ -19,7 +19,7 @@ public class AmazonSnsThreadPoolExecutorTest {
     assertThat(amazonSnsThreadPoolExecutor.getActiveTaskCount(), is(0));
     assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
     assertThat(amazonSnsThreadPoolExecutor.getFailedTaskCount(), is(0));
-    assertThat(amazonSnsThreadPoolExecutor.getCorePoolSize(), is(2));
+    assertThat(amazonSnsThreadPoolExecutor.getCorePoolSize(), is(0));
   }
 
   @Test
@@ -29,7 +29,13 @@ public class AmazonSnsThreadPoolExecutorTest {
     assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
 
     for(int i = 0; i < 300; i++) {
-      amazonSnsThreadPoolExecutor.execute(() -> { });
+      amazonSnsThreadPoolExecutor.execute(() -> {
+        try {
+          Thread.sleep(1);
+        } catch (final InterruptedException e) {
+          e.printStackTrace();
+        }
+      });
     }
 
     amazonSnsThreadPoolExecutor.shutdown();
@@ -71,7 +77,15 @@ public class AmazonSnsThreadPoolExecutorTest {
     assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
 
     for(int i = 0; i < 10; i++) {
-      amazonSnsThreadPoolExecutor.execute(() -> { while(true); });
+      amazonSnsThreadPoolExecutor.execute(() -> {
+        while(true) {
+          try {
+            Thread.sleep(1);
+          } catch (final InterruptedException e) {
+            e.printStackTrace();
+          }
+        }
+      });
     }
 
     amazonSnsThreadPoolExecutor.shutdown();
