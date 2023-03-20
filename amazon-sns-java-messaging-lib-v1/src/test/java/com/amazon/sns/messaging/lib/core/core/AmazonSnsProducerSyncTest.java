@@ -1,12 +1,17 @@
 /*
- * Copyright 2022 the original author or authors.
+ * Copyright 2023 the original author or authors.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * https://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language
- * governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.amazon.sns.messaging.lib.core.core;
@@ -60,12 +65,12 @@ public class AmazonSnsProducerSyncTest {
 
   @Before
   public void before() throws Exception {
-    when(this.topicProperty.isFifo()).thenReturn(true);
-    when(this.topicProperty.getTopicArn()).thenReturn("arn:aws:sns:us-east-2:000000000000:topic");
-    when(this.topicProperty.getMaximumPoolSize()).thenReturn(10);
-    when(this.topicProperty.getLinger()).thenReturn(50L);
-    when(this.topicProperty.getMaxBatchSize()).thenReturn(10);
-    this.snsTemplate = new AmazonSnsTemplate<>(this.amazonSNS, this.topicProperty);
+    when(topicProperty.isFifo()).thenReturn(true);
+    when(topicProperty.getTopicArn()).thenReturn("arn:aws:sns:us-east-2:000000000000:topic");
+    when(topicProperty.getMaximumPoolSize()).thenReturn(10);
+    when(topicProperty.getLinger()).thenReturn(50L);
+    when(topicProperty.getMaxBatchSize()).thenReturn(10);
+    snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty);
   }
 
   @Test
@@ -78,15 +83,15 @@ public class AmazonSnsProducerSyncTest {
     final PublishBatchResult publishBatchResult = new PublishBatchResult();
     publishBatchResult.getSuccessful().add(publishBatchResultEntry);
 
-    when(this.amazonSNS.publishBatch(any())).thenReturn(publishBatchResult);
+    when(amazonSNS.publishBatch(any())).thenReturn(publishBatchResult);
 
-    this.snsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(result -> {
+    snsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(result -> {
       assertThat(result, notNullValue());
       assertThat(result.getId(), is(id));
     });
 
-    this.snsTemplate.await().thenAccept(result -> {
-      verify(this.amazonSNS, timeout(10000).times(1)).publishBatch(any());
+    snsTemplate.await().thenAccept(result -> {
+      verify(amazonSNS, timeout(10000).times(1)).publishBatch(any());
     }).join();
 
   }
@@ -101,15 +106,15 @@ public class AmazonSnsProducerSyncTest {
     final PublishBatchResult publishBatchResult = new PublishBatchResult();
     publishBatchResult.getFailed().add(batchResultErrorEntry);
 
-    when(this.amazonSNS.publishBatch(any())).thenReturn(publishBatchResult);
+    when(amazonSNS.publishBatch(any())).thenReturn(publishBatchResult);
 
-    this.snsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(null, result -> {
+    snsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(null, result -> {
       assertThat(result, notNullValue());
       assertThat(result.getId(), is(id));
     });
 
-    this.snsTemplate.await().thenAccept(result -> {
-      verify(this.amazonSNS, timeout(10000).times(1)).publishBatch(any());
+    snsTemplate.await().thenAccept(result -> {
+      verify(amazonSNS, timeout(10000).times(1)).publishBatch(any());
     }).join();
 
   }
@@ -117,7 +122,7 @@ public class AmazonSnsProducerSyncTest {
   @Test
   public void testSuccessMultipleEntry() {
 
-    when(this.amazonSNS.publishBatch(any())).thenAnswer(invocation -> {
+    when(amazonSNS.publishBatch(any())).thenAnswer(invocation -> {
       final PublishBatchRequest request = invocation.getArgumentAt(0, PublishBatchRequest.class);
       final List<PublishBatchResultEntry> resultEntries = request.getPublishBatchRequestEntries().stream()
         .map(entry -> new PublishBatchResultEntry().withId(entry.getId()))
@@ -131,32 +136,32 @@ public class AmazonSnsProducerSyncTest {
 
     CompletableFuture.runAsync(() -> {
       entries(10000).forEach(entry -> {
-        this.snsTemplate.send(entry).addCallback(successCallback);
+        snsTemplate.send(entry).addCallback(successCallback);
       });
     });
 
     CompletableFuture.runAsync(() -> {
       entries(10000).forEach(entry -> {
-        this.snsTemplate.send(entry).addCallback(successCallback);
+        snsTemplate.send(entry).addCallback(successCallback);
       });
     });
 
     CompletableFuture.runAsync(() -> {
       entries(10000).forEach(entry -> {
-        this.snsTemplate.send(entry).addCallback(successCallback);
+        snsTemplate.send(entry).addCallback(successCallback);
       });
     });
 
-    this.snsTemplate.await().thenAccept(result -> {
+    snsTemplate.await().thenAccept(result -> {
       verify(successCallback, timeout(300000).times(30000)).accept(any());
-      verify(this.amazonSNS, atLeastOnce()).publishBatch(any());
+      verify(amazonSNS, atLeastOnce()).publishBatch(any());
     }).join();
   }
 
   @Test
   public void testFailureMultipleEntry() {
 
-    when(this.amazonSNS.publishBatch(any())).thenAnswer(invocation -> {
+    when(amazonSNS.publishBatch(any())).thenAnswer(invocation -> {
       final PublishBatchRequest request = invocation.getArgumentAt(0, PublishBatchRequest.class);
       final List<BatchResultErrorEntry> resultEntries = request.getPublishBatchRequestEntries().stream()
         .map(entry -> new BatchResultErrorEntry().withId(entry.getId()))
@@ -170,25 +175,25 @@ public class AmazonSnsProducerSyncTest {
 
     CompletableFuture.runAsync(() -> {
       entries(10000).forEach(entry -> {
-        this.snsTemplate.send(entry).addCallback(null, failureCallback);
+        snsTemplate.send(entry).addCallback(null, failureCallback);
       });
     });
 
     CompletableFuture.runAsync(() -> {
       entries(10000).forEach(entry -> {
-        this.snsTemplate.send(entry).addCallback(null, failureCallback);
+        snsTemplate.send(entry).addCallback(null, failureCallback);
       });
     });
 
     CompletableFuture.runAsync(() -> {
       entries(10000).forEach(entry -> {
-        this.snsTemplate.send(entry).addCallback(null, failureCallback);
+        snsTemplate.send(entry).addCallback(null, failureCallback);
       });
     });
 
-    this.snsTemplate.await().thenAccept(result -> {
+    snsTemplate.await().thenAccept(result -> {
       verify(failureCallback, timeout(300000).times(30000)).accept(any());
-      verify(this.amazonSNS, atLeastOnce()).publishBatch(any());
+      verify(amazonSNS, atLeastOnce()).publishBatch(any());
     }).join();
   }
 
@@ -196,15 +201,15 @@ public class AmazonSnsProducerSyncTest {
   public void testFailRiseRuntimeException() {
     final String id = UUID.randomUUID().toString();
 
-    when(this.amazonSNS.publishBatch(any(PublishBatchRequest.class))).thenThrow(new RuntimeException());
+    when(amazonSNS.publishBatch(any(PublishBatchRequest.class))).thenThrow(new RuntimeException());
 
-    this.snsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(result -> {
+    snsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(result -> {
       assertThat(result, notNullValue());
       assertThat(result.getId(), is(id));
     });
 
-    this.snsTemplate.await().thenAccept(result -> {
-      verify(this.amazonSNS, timeout(10000).times(1)).publishBatch(any(PublishBatchRequest.class));
+    snsTemplate.await().thenAccept(result -> {
+      verify(amazonSNS, timeout(10000).times(1)).publishBatch(any(PublishBatchRequest.class));
     }).join();
 
   }
@@ -213,15 +218,15 @@ public class AmazonSnsProducerSyncTest {
   public void testFailRiseAwsServiceException() {
     final String id = UUID.randomUUID().toString();
 
-    when(this.amazonSNS.publishBatch(any(PublishBatchRequest.class))).thenThrow(new AmazonServiceException("error"));
+    when(amazonSNS.publishBatch(any(PublishBatchRequest.class))).thenThrow(new AmazonServiceException("error"));
 
-    this.snsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(result -> {
+    snsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(result -> {
       assertThat(result, notNullValue());
       assertThat(result.getId(), is(id));
     });
 
-    this.snsTemplate.await().thenAccept(result -> {
-      verify(this.amazonSNS, timeout(10000).times(1)).publishBatch(any(PublishBatchRequest.class));
+    snsTemplate.await().thenAccept(result -> {
+      verify(amazonSNS, timeout(10000).times(1)).publishBatch(any(PublishBatchRequest.class));
     }).join();
 
   }
