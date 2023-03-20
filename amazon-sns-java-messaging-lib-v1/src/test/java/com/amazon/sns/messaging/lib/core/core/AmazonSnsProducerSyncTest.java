@@ -63,7 +63,7 @@ public class AmazonSnsProducerSyncTest {
     when(this.topicProperty.isFifo()).thenReturn(true);
     when(this.topicProperty.getTopicArn()).thenReturn("arn:aws:sns:us-east-2:000000000000:topic");
     when(this.topicProperty.getMaximumPoolSize()).thenReturn(10);
-    when(this.topicProperty.getLinger()).thenReturn(1000L);
+    when(this.topicProperty.getLinger()).thenReturn(50L);
     when(this.topicProperty.getMaxBatchSize()).thenReturn(10);
     this.snsTemplate = new AmazonSnsTemplate<>(this.amazonSNS, this.topicProperty);
   }

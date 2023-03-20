@@ -1,17 +1,12 @@
 /*
  * Copyright 2022 the original author or authors.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
  *
- *      https://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language
+ * governing permissions and limitations under the License.
  */
 
 package com.amazon.sns.messaging.lib.core;
@@ -60,7 +55,7 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<PublishBatchRequest
 
   private void publish(final PublishBatchRequest publishBatchRequest) {
     try {
-      handleResponse(amazonSNS.publishBatch(publishBatchRequest));
+      handleResponse(this.amazonSNS.publishBatch(publishBatchRequest));
     } catch (final Exception ex) {
       handleError(publishBatchRequest, ex);
     }
@@ -68,10 +63,10 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<PublishBatchRequest
 
   @Override
   protected void publishBatch(final PublishBatchRequest publishBatchRequest) {
-    if (topicProperty.isFifo()) {
+    if (this.topicProperty.isFifo()) {
       publish(publishBatchRequest);
     } else {
-      CompletableFuture.runAsync(() -> publish(publishBatchRequest), executorService);
+      CompletableFuture.runAsync(() -> publish(publishBatchRequest), this.executorService);
     }
   }
 
@@ -100,7 +95,7 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<PublishBatchRequest
     LOGGER.error(ex.getMessage(), ex);
 
     publishBatchRequest.publishBatchRequestEntries().forEach(entry -> {
-      final ListenableFutureRegistry listenableFuture = pendingRequests.remove(entry.id());
+      final ListenableFutureRegistry listenableFuture = this.pendingRequests.remove(entry.id());
       listenableFuture.fail(ResponseFailEntry.builder()
         .withId(entry.id())
         .withCode(code)
@@ -113,7 +108,7 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<PublishBatchRequest
   @Override
   protected void handleResponse(final PublishBatchResponse publishBatchResult) {
     publishBatchResult.successful().forEach(entry -> {
-      final ListenableFutureRegistry listenableFuture = pendingRequests.remove(entry.id());
+      final ListenableFutureRegistry listenableFuture = this.pendingRequests.remove(entry.id());
       listenableFuture.success(ResponseSuccessEntry.builder()
         .withId(entry.id())
         .withMessageId(entry.messageId())
@@ -122,7 +117,7 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<PublishBatchRequest
     });
 
     publishBatchResult.failed().forEach(entry -> {
-      final ListenableFutureRegistry listenableFuture = pendingRequests.remove(entry.id());
+      final ListenableFutureRegistry listenableFuture = this.pendingRequests.remove(entry.id());
       listenableFuture.fail(ResponseFailEntry.builder()
         .withId(entry.id())
         .withCode(entry.code())

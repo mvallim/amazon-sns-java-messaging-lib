@@ -74,7 +74,7 @@
 				<version>2.22.2</version>
 				<configuration>
 					<useSystemClassLoader>false</useSystemClassLoader>
-					<argLine>${jacoco.argLine} -Dfile.encoding=${project.build.sourceEncoding}</argLine>
+					<argLine>${jacoco.argLine} -Dfile.encoding=${project.build.sourceEncoding} -Xms1024m -Xmx1024m</argLine>
 				</configuration>
 			</plugin>
 

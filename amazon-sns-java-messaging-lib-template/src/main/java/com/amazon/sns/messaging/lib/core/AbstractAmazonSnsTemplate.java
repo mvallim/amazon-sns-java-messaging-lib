@@ -15,7 +15,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Semaphore;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
@@ -27,10 +26,6 @@ abstract class AbstractAmazonSnsTemplate<R, O, E> {
   protected final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests = new ConcurrentHashMap<>();
 
   protected BlockingQueue<RequestEntry<E>> topicRequests;
-
-  protected Semaphore semaphoreProducer;
-
-  protected Semaphore semaphoreConsumer;
 
   protected AbstractAmazonSnsProducer<E> amazonSnsProducer;
 
