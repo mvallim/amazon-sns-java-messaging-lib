@@ -23,11 +23,12 @@ import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
 
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 
 // @formatter:off
-@RequiredArgsConstructor
+@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 abstract class AbstractAmazonSnsProducer<E> {
 
   private final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests;

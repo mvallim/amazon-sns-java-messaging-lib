@@ -29,7 +29,6 @@ import static org.mockito.Mockito.when;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import org.junit.Before;
@@ -134,22 +133,8 @@ public class AmazonSnsProducerSyncTest {
       assertThat(result, notNullValue());
     }));
 
-    CompletableFuture.runAsync(() -> {
-      entries(10000).forEach(entry -> {
-        snsTemplate.send(entry).addCallback(successCallback);
-      });
-    });
-
-    CompletableFuture.runAsync(() -> {
-      entries(10000).forEach(entry -> {
-        snsTemplate.send(entry).addCallback(successCallback);
-      });
-    });
-
-    CompletableFuture.runAsync(() -> {
-      entries(10000).forEach(entry -> {
-        snsTemplate.send(entry).addCallback(successCallback);
-      });
+    entries(30000).forEach(entry -> {
+      snsTemplate.send(entry).addCallback(successCallback);
     });
 
     snsTemplate.await().thenAccept(result -> {
@@ -173,22 +158,8 @@ public class AmazonSnsProducerSyncTest {
       assertThat(result, notNullValue());
     }));
 
-    CompletableFuture.runAsync(() -> {
-      entries(10000).forEach(entry -> {
-        snsTemplate.send(entry).addCallback(null, failureCallback);
-      });
-    });
-
-    CompletableFuture.runAsync(() -> {
-      entries(10000).forEach(entry -> {
-        snsTemplate.send(entry).addCallback(null, failureCallback);
-      });
-    });
-
-    CompletableFuture.runAsync(() -> {
-      entries(10000).forEach(entry -> {
-        snsTemplate.send(entry).addCallback(null, failureCallback);
-      });
+    entries(30000).forEach(entry -> {
+      snsTemplate.send(entry).addCallback(null, failureCallback);
     });
 
     snsTemplate.await().thenAccept(result -> {

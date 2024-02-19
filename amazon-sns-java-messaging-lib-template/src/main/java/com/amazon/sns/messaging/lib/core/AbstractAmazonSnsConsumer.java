@@ -24,6 +24,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
@@ -38,14 +40,16 @@ import com.amazon.sns.messaging.lib.model.TopicProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 
 // @formatter:off
-abstract class AbstractAmazonSnsConsumer<R, O, E> extends Thread implements Runnable {
+@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
+abstract class AbstractAmazonSnsConsumer<R, O, E> implements Runnable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAmazonSnsConsumer.class);
+
+  private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
   protected final TopicProperty topicProperty;
 
@@ -57,24 +61,6 @@ abstract class AbstractAmazonSnsConsumer<R, O, E> extends Thread implements Runn
 
   protected final ExecutorService executorService;
 
-  protected AbstractAmazonSnsConsumer(
-      final TopicProperty topicProperty,
-      final ObjectMapper objectMapper,
-      final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
-      final BlockingQueue<RequestEntry<E>> topicRequests,
-      final AmazonSnsThreadPoolExecutor executorService) {
-    super(String.format("amazon-sns-consumer-%s", topicProperty.getTopicArn()));
-    this.topicProperty = topicProperty;
-    this.objectMapper = objectMapper;
-    this.pendingRequests = pendingRequests;
-    this.topicRequests = topicRequests;
-    this.executorService = executorService;
-  }
-
-  @Getter
-  @Setter(value = AccessLevel.PRIVATE)
-  private boolean running = true;
-
   protected abstract void publishBatch(final R publishBatchRequest);
 
   protected abstract void handleError(final R publishBatchRequest, final Throwable throwable);
@@ -83,38 +69,38 @@ abstract class AbstractAmazonSnsConsumer<R, O, E> extends Thread implements Runn
 
   protected abstract BiFunction<String, List<RequestEntry<E>>, R> supplierPublishRequest();
 
+  protected void start() {
+    scheduledExecutorService.scheduleAtFixedRate(this, 0, topicProperty.getLinger(), TimeUnit.MILLISECONDS);
+  }
+
   @Override
   @SneakyThrows
   public void run() {
-    while (isRunning()) {
-      try {
-
-        if (topicRequests.isEmpty()) {
-          sleep(1);
-        }
-
-        final boolean maxWaitTimeElapsed = requestsWaitedFor(topicRequests, topicProperty.getLinger());
-        final boolean maxBatchSizeReached = maxBatchSizeReached(topicRequests);
-
-        if (maxWaitTimeElapsed || maxBatchSizeReached) {
-          createBatch(topicRequests).ifPresent(this::publishBatch);
-        }
-
-      } catch (final Exception ex) {
-        LOGGER.error(ex.getMessage(), ex);
+    try {
+      while (requestsWaitedFor(topicRequests, topicProperty.getLinger()) || maxBatchSizeReached(topicRequests)) {
+        createBatch(topicRequests).ifPresent(this::publishBatch);
       }
+    } catch (final Exception ex) {
+      LOGGER.error(ex.getMessage(), ex);
     }
   }
 
   @SneakyThrows
   public void shutdown() {
-    LOGGER.warn("Shutdown producer {}", getClass().getSimpleName());
-    setRunning(false);
+    LOGGER.warn("Shutdown consumer {}", getClass().getSimpleName());
+
+    scheduledExecutorService.shutdown();
+    if (!scheduledExecutorService.awaitTermination(60, TimeUnit.SECONDS)) {
+      LOGGER.warn("Scheduled executor service did not terminate in the specified time.");
+      final List<Runnable> droppedTasks = executorService.shutdownNow();
+      LOGGER.warn("Scheduled executor service was abruptly shut down. {} tasks will not be executed.", droppedTasks.size());
+    }
+
     executorService.shutdown();
     if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
-      LOGGER.warn("Executor did not terminate in the specified time.");
+      LOGGER.warn("Executor service did not terminate in the specified time.");
       final List<Runnable> droppedTasks = executorService.shutdownNow();
-      LOGGER.warn("Executor was abruptly shut down. {} tasks will not be executed.", droppedTasks.size());
+      LOGGER.warn("Executor service was abruptly shut down. {} tasks will not be executed.", droppedTasks.size());
     }
   }
 
@@ -157,7 +143,7 @@ abstract class AbstractAmazonSnsConsumer<R, O, E> extends Thread implements Runn
       while (
         MapUtils.isNotEmpty(this.pendingRequests) ||
         CollectionUtils.isNotEmpty(this.topicRequests)) {
-        sleep(1);
+        sleep(topicProperty.getLinger());
       }
     });
   }
@@ -176,7 +162,7 @@ abstract class AbstractAmazonSnsConsumer<R, O, E> extends Thread implements Runn
   }
 
   @SneakyThrows
-  private static void sleep(final int millis) {
+  private static void sleep(final long millis) {
     Thread.sleep(millis);
   }
 
