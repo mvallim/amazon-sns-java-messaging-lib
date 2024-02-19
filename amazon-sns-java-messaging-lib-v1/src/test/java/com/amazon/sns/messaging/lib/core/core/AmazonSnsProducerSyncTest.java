@@ -59,16 +59,16 @@ public class AmazonSnsProducerSyncTest {
   @Mock
   private AmazonSNS amazonSNS;
 
-  @Mock
-  private TopicProperty topicProperty;
-
   @Before
   public void before() throws Exception {
-    when(topicProperty.isFifo()).thenReturn(true);
-    when(topicProperty.getTopicArn()).thenReturn("arn:aws:sns:us-east-2:000000000000:topic");
-    when(topicProperty.getMaximumPoolSize()).thenReturn(10);
-    when(topicProperty.getLinger()).thenReturn(50L);
-    when(topicProperty.getMaxBatchSize()).thenReturn(10);
+    final TopicProperty topicProperty = TopicProperty.builder()
+      .fifo(true)
+      .linger(50L)
+      .maxBatchSize(10)
+      .maximumPoolSize(10)
+      .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
+      .build();
+
     snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty);
   }
 
