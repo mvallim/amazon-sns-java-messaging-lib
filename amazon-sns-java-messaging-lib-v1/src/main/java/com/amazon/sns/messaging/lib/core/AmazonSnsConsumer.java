@@ -18,7 +18,6 @@ package com.amazon.sns.messaging.lib.core;
 
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiFunction;
@@ -42,44 +41,25 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 
 // @formatter:off
-class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<PublishBatchRequest, PublishBatchResult, E> {
+class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishBatchRequest, PublishBatchResult, E> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AmazonSnsConsumer.class);
 
   private static final MessageAttributes messageAttributes = new MessageAttributes();
 
-  private final AmazonSNS amazonSNS;
-
   public AmazonSnsConsumer(
-    final AmazonSNS amazonSNS,
+    final AmazonSNS amazonSnsClient,
     final TopicProperty topicProperty,
     final ObjectMapper objectMapper,
     final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
     final BlockingQueue<RequestEntry<E>> topicRequests,
     final ExecutorService executorService) {
-    super(topicProperty, objectMapper, pendingRequests, topicRequests, executorService);
-    this.amazonSNS = amazonSNS;
-  }
-
-  private void publish(final PublishBatchRequest publishBatchRequest) {
-    try {
-      handleResponse(amazonSNS.publishBatch(publishBatchRequest));
-    } catch (final Exception ex) {
-      handleError(publishBatchRequest, ex);
-    }
+    super(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, executorService);
   }
 
   @Override
-  protected void publishBatch(final PublishBatchRequest publishBatchRequest) {
-    if (topicProperty.isFifo()) {
-      publish(publishBatchRequest);
-    } else {
-      try {
-        CompletableFuture.runAsync(() -> publish(publishBatchRequest), executorService);
-      } catch (final Exception ex) {
-        handleError(publishBatchRequest, ex);
-      }
-    }
+  protected PublishBatchResult publish(final PublishBatchRequest publishBatchRequest) {
+    return amazonSnsClient.publishBatch(publishBatchRequest);
   }
 
   @Override

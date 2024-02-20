@@ -29,17 +29,17 @@ import com.amazonaws.services.sns.model.PublishBatchResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 // @formatter:off
-public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<PublishBatchRequest, PublishBatchResult, E> {
+public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<AmazonSNS, PublishBatchRequest, PublishBatchResult, E> {
 
   public AmazonSnsTemplate(
-      final AmazonSNS amazonSNS,
+      final AmazonSNS amazonSnsClient,
       final TopicProperty topicProperty,
       final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
       final BlockingQueue<RequestEntry<E>> topicRequests,
       final ObjectMapper objectMapper) {
     super(
       new AmazonSnsProducer<>(pendingRequests, topicRequests, getAmazonSnsThreadPoolExecutor(topicProperty)),
-      new AmazonSnsConsumer<>(amazonSNS, topicProperty, objectMapper, pendingRequests, topicRequests, getAmazonSnsThreadPoolExecutor(topicProperty))
+      new AmazonSnsConsumer<>(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, getAmazonSnsThreadPoolExecutor(topicProperty))
     );
   }
 

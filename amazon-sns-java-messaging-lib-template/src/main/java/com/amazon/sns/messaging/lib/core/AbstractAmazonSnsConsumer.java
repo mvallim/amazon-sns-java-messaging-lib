@@ -43,13 +43,15 @@ import lombok.SneakyThrows;
 
 // @formatter:off
 //@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
-abstract class AbstractAmazonSnsConsumer<R, O, E> implements Runnable {
+abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAmazonSnsConsumer.class);
 
   private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
-  protected final TopicProperty topicProperty;
+  protected final C amazonSnsClient;
+
+  private final TopicProperty topicProperty;
 
   private final ObjectMapper objectMapper;
 
@@ -57,23 +59,17 @@ abstract class AbstractAmazonSnsConsumer<R, O, E> implements Runnable {
 
   private final BlockingQueue<RequestEntry<E>> topicRequests;
 
-  protected final ExecutorService executorService;
-
-  protected abstract void publishBatch(final R publishBatchRequest);
-
-  protected abstract void handleError(final R publishBatchRequest, final Throwable throwable);
-
-  protected abstract void handleResponse(final O publishBatchResult);
-
-  protected abstract BiFunction<String, List<RequestEntry<E>>, R> supplierPublishRequest();
+  private final ExecutorService executorService;
 
   protected AbstractAmazonSnsConsumer(
+      final C amazonSnsClient,
       final TopicProperty topicProperty,
       final ObjectMapper objectMapper,
       final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
       final BlockingQueue<RequestEntry<E>> topicRequests,
       final ExecutorService executorService) {
 
+    this.amazonSnsClient = amazonSnsClient;
     this.topicProperty = topicProperty;
     this.objectMapper = objectMapper;
     this.pendingRequests = pendingRequests;
@@ -81,6 +77,34 @@ abstract class AbstractAmazonSnsConsumer<R, O, E> implements Runnable {
     this.executorService = executorService;
 
     scheduledExecutorService.scheduleAtFixedRate(this, 0, topicProperty.getLinger(), TimeUnit.MILLISECONDS);
+  }
+
+  protected abstract O publish(final R publishBatchRequest);
+
+  protected abstract void handleError(final R publishBatchRequest, final Throwable throwable);
+
+  protected abstract void handleResponse(final O publishBatchResult);
+
+  protected abstract BiFunction<String, List<RequestEntry<E>>, R> supplierPublishRequest();
+
+  private void doPublish(final R publishBatchRequest) {
+    try {
+      handleResponse(publish(publishBatchRequest));
+    } catch (final Exception ex) {
+      handleError(publishBatchRequest, ex);
+    }
+  }
+
+  private void publishBatch(final R publishBatchRequest) {
+    if (topicProperty.isFifo()) {
+      doPublish(publishBatchRequest);
+    } else {
+      try {
+        CompletableFuture.runAsync(() -> doPublish(publishBatchRequest), executorService);
+      } catch (final Exception ex) {
+        handleError(publishBatchRequest, ex);
+      }
+    }
   }
 
   @Override

@@ -30,17 +30,17 @@ import software.amazon.awssdk.services.sns.model.PublishBatchRequest;
 import software.amazon.awssdk.services.sns.model.PublishBatchResponse;
 
 // @formatter:off
-public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<PublishBatchRequest, PublishBatchResponse, E> {
+public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<SnsClient, PublishBatchRequest, PublishBatchResponse, E> {
 
   public AmazonSnsTemplate(
-      final SnsClient amazonSNS,
+      final SnsClient amazonSnsClient,
       final TopicProperty topicProperty,
       final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
       final BlockingQueue<RequestEntry<E>> topicRequests,
       final ObjectMapper objectMapper) {
     super(
       new AmazonSnsProducer<>(pendingRequests, topicRequests, getAmazonSnsThreadPoolExecutor(topicProperty)),
-      new AmazonSnsConsumer<>(amazonSNS, topicProperty, objectMapper, pendingRequests, topicRequests, getAmazonSnsThreadPoolExecutor(topicProperty))
+      new AmazonSnsConsumer<>(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, getAmazonSnsThreadPoolExecutor(topicProperty))
     );
   }
 

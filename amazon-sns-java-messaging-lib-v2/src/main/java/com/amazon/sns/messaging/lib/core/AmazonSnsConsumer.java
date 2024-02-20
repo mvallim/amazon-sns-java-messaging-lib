@@ -18,7 +18,6 @@ package com.amazon.sns.messaging.lib.core;
 
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiFunction;
@@ -41,44 +40,25 @@ import software.amazon.awssdk.services.sns.model.PublishBatchRequestEntry;
 import software.amazon.awssdk.services.sns.model.PublishBatchResponse;
 
 // @formatter:off
-class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<PublishBatchRequest, PublishBatchResponse, E> {
+class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<SnsClient, PublishBatchRequest, PublishBatchResponse, E> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AmazonSnsConsumer.class);
 
   private static final MessageAttributes messageAttributes = new MessageAttributes();
 
-  private final SnsClient amazonSNS;
-
   public AmazonSnsConsumer(
-      final SnsClient amazonSNS,
+      final SnsClient amazonSnsClient,
       final TopicProperty topicProperty,
       final ObjectMapper objectMapper,
       final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
       final BlockingQueue<RequestEntry<E>> topicRequests,
       final ExecutorService executorService) {
-    super(topicProperty, objectMapper, pendingRequests, topicRequests, executorService);
-    this.amazonSNS = amazonSNS;
-  }
-
-  private void publish(final PublishBatchRequest publishBatchRequest) {
-    try {
-      handleResponse(amazonSNS.publishBatch(publishBatchRequest));
-    } catch (final Exception ex) {
-      handleError(publishBatchRequest, ex);
-    }
+    super(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, executorService);
   }
 
   @Override
-  protected void publishBatch(final PublishBatchRequest publishBatchRequest) {
-    if (topicProperty.isFifo()) {
-      publish(publishBatchRequest);
-    } else {
-      try {
-        CompletableFuture.runAsync(() -> publish(publishBatchRequest), executorService);
-      } catch (final Exception ex) {
-        handleError(publishBatchRequest, ex);
-      }
-    }
+  protected PublishBatchResponse publish(final PublishBatchRequest publishBatchRequest) {
+    return amazonSnsClient.publishBatch(publishBatchRequest);
   }
 
   @Override

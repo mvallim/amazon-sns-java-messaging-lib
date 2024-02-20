@@ -28,11 +28,11 @@ import lombok.RequiredArgsConstructor;
 
 // @formatter:off
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
-abstract class AbstractAmazonSnsTemplate<R, O, E> {
+abstract class AbstractAmazonSnsTemplate<C, R, O, E> {
 
   private final AbstractAmazonSnsProducer<E> amazonSnsProducer;
 
-  private final AbstractAmazonSnsConsumer<R, O, E> amazonSnsConsumer;
+  private final AbstractAmazonSnsConsumer<C, R, O, E> amazonSnsConsumer;
 
   public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry) {
     return amazonSnsProducer.send(requestEntry);
