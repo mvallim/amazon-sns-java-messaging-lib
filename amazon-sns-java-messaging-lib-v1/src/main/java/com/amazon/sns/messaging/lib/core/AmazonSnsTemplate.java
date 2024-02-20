@@ -19,6 +19,7 @@ package com.amazon.sns.messaging.lib.core;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
@@ -38,7 +39,7 @@ public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<AmazonSNS, P
       final BlockingQueue<RequestEntry<E>> topicRequests,
       final ObjectMapper objectMapper) {
     super(
-      new AmazonSnsProducer<>(pendingRequests, topicRequests, getAmazonSnsThreadPoolExecutor(topicProperty)),
+      new AmazonSnsProducer<>(pendingRequests, topicRequests, Executors.newSingleThreadExecutor()),
       new AmazonSnsConsumer<>(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, getAmazonSnsThreadPoolExecutor(topicProperty))
     );
   }
