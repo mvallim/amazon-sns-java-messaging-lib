@@ -19,7 +19,7 @@ package com.amazon.sns.messaging.lib.core.core;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.timeout;
@@ -33,11 +33,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.amazon.sns.messaging.lib.core.AmazonSnsTemplate;
 import com.amazon.sns.messaging.lib.core.helper.ConsumerHelper;
@@ -53,15 +53,15 @@ import com.amazonaws.services.sns.model.PublishBatchResult;
 import com.amazonaws.services.sns.model.PublishBatchResultEntry;
 
 // @formatter:off
-@RunWith(MockitoJUnitRunner.class)
-public class AmazonSnsProducerAsyncTest {
+@ExtendWith(MockitoExtension.class)
+class AmazonSnsProducerAsyncTest {
 
   private AmazonSnsTemplate<Object> snsTemplate;
 
   @Mock
   private AmazonSNS amazonSNS;
 
-  @Before
+  @BeforeEach
   public void before() throws Exception {
     final TopicProperty topicProperty = TopicProperty.builder()
       .fifo(false)
@@ -74,7 +74,7 @@ public class AmazonSnsProducerAsyncTest {
   }
 
   @Test
-  public void testSuccess() {
+  void testSuccess() {
     final String id = UUID.randomUUID().toString();
 
     final PublishBatchResultEntry publishBatchResultEntry = new PublishBatchResultEntry();
@@ -98,7 +98,7 @@ public class AmazonSnsProducerAsyncTest {
   }
 
   @Test
-  public void testFailure() {
+  void testFailure() {
     final String id = UUID.randomUUID().toString();
 
     final BatchResultErrorEntry batchResultErrorEntry = new BatchResultErrorEntry();
@@ -121,10 +121,10 @@ public class AmazonSnsProducerAsyncTest {
   }
 
   @Test
-  public void testSuccessMultipleEntry() {
+  void testSuccessMultipleEntry() {
 
     when(amazonSNS.publishBatch(any())).thenAnswer(invocation -> {
-      final PublishBatchRequest request = invocation.getArgumentAt(0, PublishBatchRequest.class);
+      final PublishBatchRequest request = invocation.getArgument(0, PublishBatchRequest.class);
       final List<PublishBatchResultEntry> resultEntries = request.getPublishBatchRequestEntries().stream()
         .map(entry -> new PublishBatchResultEntry().withId(entry.getId()))
         .collect(Collectors.toList());
@@ -146,10 +146,10 @@ public class AmazonSnsProducerAsyncTest {
   }
 
   @Test
-  public void testFailureMultipleEntry() {
+  void testFailureMultipleEntry() {
 
     when(amazonSNS.publishBatch(any())).thenAnswer(invocation -> {
-      final PublishBatchRequest request = invocation.getArgumentAt(0, PublishBatchRequest.class);
+      final PublishBatchRequest request = invocation.getArgument(0, PublishBatchRequest.class);
       final List<BatchResultErrorEntry> resultEntries = request.getPublishBatchRequestEntries().stream()
         .map(entry -> new BatchResultErrorEntry().withId(entry.getId()))
         .collect(Collectors.toList());
@@ -171,7 +171,7 @@ public class AmazonSnsProducerAsyncTest {
   }
 
   @Test
-  public void testFailRiseRuntimeException() {
+  void testFailRiseRuntimeException() {
     final String id = UUID.randomUUID().toString();
 
     when(amazonSNS.publishBatch(any(PublishBatchRequest.class))).thenThrow(new RuntimeException());
@@ -188,7 +188,7 @@ public class AmazonSnsProducerAsyncTest {
   }
 
   @Test
-  public void testFailRiseAwsServiceException() {
+  void testFailRiseAwsServiceException() {
     final String id = UUID.randomUUID().toString();
 
     when(amazonSNS.publishBatch(any(PublishBatchRequest.class))).thenThrow(new AmazonServiceException("error"));
@@ -205,7 +205,7 @@ public class AmazonSnsProducerAsyncTest {
   }
 
   @Test
-  public void testSuccessBlockingSubmissionPolicy() {
+  void testSuccessBlockingSubmissionPolicy() {
     final TopicProperty topicProperty = TopicProperty.builder()
         .fifo(false)
         .linger(50L)

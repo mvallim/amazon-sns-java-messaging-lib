@@ -23,15 +23,15 @@ import static org.hamcrest.Matchers.is;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.amazon.sns.messaging.lib.core.AmazonSnsThreadPoolExecutor;
 
 // @formatter:off
-public class AmazonSnsThreadPoolExecutorTest {
+class AmazonSnsThreadPoolExecutorTest {
 
   @Test
-  public void testSuccessCounters() {
+  void testSuccessCounters() {
     final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10);
 
     assertThat(amazonSnsThreadPoolExecutor.getActiveTaskCount(), is(0));
@@ -41,7 +41,7 @@ public class AmazonSnsThreadPoolExecutorTest {
   }
 
   @Test
-  public void testSuccessSucceededTaskCount() throws InterruptedException {
+  void testSuccessSucceededTaskCount() throws InterruptedException {
     final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10);
 
     assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
@@ -68,7 +68,7 @@ public class AmazonSnsThreadPoolExecutorTest {
   }
 
   @Test
-  public void testSuccessFailedTaskCount() throws InterruptedException {
+  void testSuccessFailedTaskCount() throws InterruptedException {
     final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10);
 
     assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
@@ -89,7 +89,7 @@ public class AmazonSnsThreadPoolExecutorTest {
   }
 
   @Test
-  public void testSuccessActiveTaskCount() throws InterruptedException {
+  void testSuccessActiveTaskCount() throws InterruptedException {
     final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10);
 
     assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
@@ -118,7 +118,7 @@ public class AmazonSnsThreadPoolExecutorTest {
   }
 
   @Test
-  public void testSuccessBlockingSubmissionPolicy() throws InterruptedException {
+  void testSuccessBlockingSubmissionPolicy() throws InterruptedException {
     final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(1);
 
     amazonSnsThreadPoolExecutor.execute(() -> {
