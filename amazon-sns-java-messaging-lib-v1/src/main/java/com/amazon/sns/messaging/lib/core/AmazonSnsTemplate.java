@@ -17,6 +17,8 @@
 package com.amazon.sns.messaging.lib.core;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
@@ -32,20 +34,21 @@ public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<PublishBatch
   public AmazonSnsTemplate(
       final AmazonSNS amazonSNS,
       final TopicProperty topicProperty,
+      final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
       final BlockingQueue<RequestEntry<E>> topicRequests,
       final ObjectMapper objectMapper) {
-    super.topicRequests = topicRequests;
-    super.amazonSnsConsumer = new AmazonSnsConsumer<>(amazonSNS, topicProperty, objectMapper, super.pendingRequests, super.topicRequests);
-    super.amazonSnsProducer = new AmazonSnsProducer<>(super.pendingRequests, super.topicRequests);
-    super.amazonSnsConsumer.start();
+    super(
+      new AmazonSnsProducer<>(pendingRequests, topicRequests, getAmazonSnsThreadPoolExecutor(topicProperty)),
+      new AmazonSnsConsumer<>(amazonSNS, topicProperty, objectMapper, pendingRequests, topicRequests, getAmazonSnsThreadPoolExecutor(topicProperty))
+    );
   }
 
   public AmazonSnsTemplate(final AmazonSNS amazonSNS, final TopicProperty topicProperty, final BlockingQueue<RequestEntry<E>> topicRequests) {
-    this(amazonSNS, topicProperty, topicRequests, new ObjectMapper());
+    this(amazonSNS, topicProperty, new ConcurrentHashMap<>(), topicRequests, new ObjectMapper());
   }
 
   public AmazonSnsTemplate(final AmazonSNS amazonSNS, final TopicProperty topicProperty, final ObjectMapper objectMapper) {
-    this(amazonSNS, topicProperty, new LinkedBlockingQueue<>(topicProperty.getMaximumPoolSize() * topicProperty.getMaxBatchSize()), objectMapper);
+    this(amazonSNS, topicProperty, new ConcurrentHashMap<>(), new LinkedBlockingQueue<>(topicProperty.getMaximumPoolSize() * topicProperty.getMaxBatchSize()), objectMapper);
   }
 
   public AmazonSnsTemplate(final AmazonSNS amazonSNS, final TopicProperty topicProperty) {

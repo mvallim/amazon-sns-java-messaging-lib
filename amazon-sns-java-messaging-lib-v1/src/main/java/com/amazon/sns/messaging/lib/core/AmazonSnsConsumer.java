@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
@@ -54,8 +55,9 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<PublishBatchRequest
     final TopicProperty topicProperty,
     final ObjectMapper objectMapper,
     final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
-    final BlockingQueue<RequestEntry<E>> topicRequests) {
-    super(topicProperty, objectMapper, pendingRequests, topicRequests, getAmazonSnsThreadPoolExecutor(topicProperty));
+    final BlockingQueue<RequestEntry<E>> topicRequests,
+    final ExecutorService executorService) {
+    super(topicProperty, objectMapper, pendingRequests, topicRequests, executorService);
     this.amazonSNS = amazonSNS;
   }
 

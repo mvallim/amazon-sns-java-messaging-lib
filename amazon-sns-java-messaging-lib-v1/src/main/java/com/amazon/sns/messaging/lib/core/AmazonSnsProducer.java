@@ -18,6 +18,7 @@ package com.amazon.sns.messaging.lib.core;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 
@@ -26,8 +27,9 @@ class AmazonSnsProducer<E> extends AbstractAmazonSnsProducer<E> {
 
   public AmazonSnsProducer(
       final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
-      final BlockingQueue<RequestEntry<E>> topicRequests) {
-    super(pendingRequests, topicRequests);
+      final BlockingQueue<RequestEntry<E>> topicRequests,
+      final ExecutorService executorService) {
+    super(pendingRequests, topicRequests, executorService);
   }
 
 }

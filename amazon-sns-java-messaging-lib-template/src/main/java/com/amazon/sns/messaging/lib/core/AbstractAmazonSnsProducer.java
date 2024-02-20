@@ -17,7 +17,9 @@
 package com.amazon.sns.messaging.lib.core;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
@@ -35,10 +37,12 @@ abstract class AbstractAmazonSnsProducer<E> {
 
   private final BlockingQueue<RequestEntry<E>> topicRequests;
 
+  private final ExecutorService executorService;
+
   @SneakyThrows
   public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry) {
     final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> trackPendingRequest = trackPendingRequest(requestEntry.getId());
-    enqueueRequest(requestEntry);
+    CompletableFuture.runAsync(() -> enqueueRequest(requestEntry), executorService);
     return trackPendingRequest;
   }
 

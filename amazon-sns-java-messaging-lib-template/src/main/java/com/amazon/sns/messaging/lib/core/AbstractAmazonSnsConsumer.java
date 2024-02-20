@@ -39,12 +39,10 @@ import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.TopicProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 
 // @formatter:off
-@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
+//@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 abstract class AbstractAmazonSnsConsumer<R, O, E> implements Runnable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAmazonSnsConsumer.class);
@@ -69,7 +67,19 @@ abstract class AbstractAmazonSnsConsumer<R, O, E> implements Runnable {
 
   protected abstract BiFunction<String, List<RequestEntry<E>>, R> supplierPublishRequest();
 
-  protected void start() {
+  protected AbstractAmazonSnsConsumer(
+      final TopicProperty topicProperty,
+      final ObjectMapper objectMapper,
+      final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
+      final BlockingQueue<RequestEntry<E>> topicRequests,
+      final ExecutorService executorService) {
+
+    this.topicProperty = topicProperty;
+    this.objectMapper = objectMapper;
+    this.pendingRequests = pendingRequests;
+    this.topicRequests = topicRequests;
+    this.executorService = executorService;
+
     scheduledExecutorService.scheduleAtFixedRate(this, 0, topicProperty.getLinger(), TimeUnit.MILLISECONDS);
   }
 
@@ -151,14 +161,6 @@ abstract class AbstractAmazonSnsConsumer<R, O, E> implements Runnable {
   @SneakyThrows
   protected String convertPayload(final E payload) {
     return payload instanceof String ? payload.toString() : objectMapper.writeValueAsString(payload);
-  }
-
-  protected static AmazonSnsThreadPoolExecutor getAmazonSnsThreadPoolExecutor(final TopicProperty topicProperty) {
-    if (topicProperty.isFifo()) {
-      return new AmazonSnsThreadPoolExecutor(1);
-    } else {
-      return new AmazonSnsThreadPoolExecutor(topicProperty.getMaximumPoolSize());
-    }
   }
 
   @SneakyThrows

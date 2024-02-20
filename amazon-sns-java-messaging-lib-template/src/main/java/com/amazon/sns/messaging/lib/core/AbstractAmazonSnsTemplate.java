@@ -16,25 +16,23 @@
 
 package com.amazon.sns.messaging.lib.core;
 
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
+import com.amazon.sns.messaging.lib.model.TopicProperty;
+
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 
 // @formatter:off
+@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 abstract class AbstractAmazonSnsTemplate<R, O, E> {
 
-  protected final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests = new ConcurrentHashMap<>();
+  private final AbstractAmazonSnsProducer<E> amazonSnsProducer;
 
-  protected BlockingQueue<RequestEntry<E>> topicRequests;
-
-  protected AbstractAmazonSnsProducer<E> amazonSnsProducer;
-
-  protected AbstractAmazonSnsConsumer<R, O, E> amazonSnsConsumer;
+  private final AbstractAmazonSnsConsumer<R, O, E> amazonSnsConsumer;
 
   public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry) {
     return amazonSnsProducer.send(requestEntry);
@@ -46,6 +44,14 @@ abstract class AbstractAmazonSnsTemplate<R, O, E> {
 
   public CompletableFuture<Void> await() {
     return amazonSnsConsumer.await();
+  }
+
+  protected static AmazonSnsThreadPoolExecutor getAmazonSnsThreadPoolExecutor(final TopicProperty topicProperty) {
+    if (topicProperty.isFifo()) {
+      return new AmazonSnsThreadPoolExecutor(1);
+    } else {
+      return new AmazonSnsThreadPoolExecutor(topicProperty.getMaximumPoolSize());
+    }
   }
 
 }
