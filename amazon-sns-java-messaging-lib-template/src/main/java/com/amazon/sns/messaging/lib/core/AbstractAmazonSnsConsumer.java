@@ -126,7 +126,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
     scheduledExecutorService.shutdown();
     if (!scheduledExecutorService.awaitTermination(60, TimeUnit.SECONDS)) {
       LOGGER.warn("Scheduled executor service did not terminate in the specified time.");
-      final List<Runnable> droppedTasks = executorService.shutdownNow();
+      final List<Runnable> droppedTasks = scheduledExecutorService.shutdownNow();
       LOGGER.warn("Scheduled executor service was abruptly shut down. {} tasks will not be executed.", droppedTasks.size());
     }
 
