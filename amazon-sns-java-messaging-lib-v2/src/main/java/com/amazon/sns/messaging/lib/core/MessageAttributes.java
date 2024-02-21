@@ -23,7 +23,7 @@ import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
 
 // @formatter:off
-public class MessageAttributes extends AbstractMessageAttributes<MessageAttributeValue> {
+class MessageAttributes extends AbstractMessageAttributes<MessageAttributeValue> {
 
   @Override
   protected MessageAttributeValue getEnumMessageAttribute(final Enum<?> value) {

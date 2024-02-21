@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.amazon.sns.messaging.model;
+package com.amazon.sns.messaging.lib.model;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -23,8 +23,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
-
-import com.amazon.sns.messaging.lib.model.RequestEntry;
 
 // @formatter:off
 class RequestEntryTest {

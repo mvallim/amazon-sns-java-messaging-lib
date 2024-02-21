@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.amazon.sns.messaging.core;
+package com.amazon.sns.messaging.lib.core;
 
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -24,8 +24,6 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
-
-import com.amazon.sns.messaging.lib.core.AmazonSnsThreadPoolExecutor;
 
 // @formatter:off
 class AmazonSnsThreadPoolExecutorTest {
