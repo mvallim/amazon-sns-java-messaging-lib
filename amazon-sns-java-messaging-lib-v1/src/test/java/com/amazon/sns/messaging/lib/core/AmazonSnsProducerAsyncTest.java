@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.amazon.sns.messaging.lib.core.core;
+package com.amazon.sns.messaging.lib.core;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -29,8 +29,10 @@ import static org.mockito.Mockito.when;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,7 +54,7 @@ import com.amazonaws.services.sns.model.PublishBatchResultEntry;
 
 // @formatter:off
 @ExtendWith(MockitoExtension.class)
-class AmazonSnsProducerSyncTest {
+class AmazonSnsProducerAsyncTest {
 
   private AmazonSnsTemplate<Object> snsTemplate;
 
@@ -62,14 +64,13 @@ class AmazonSnsProducerSyncTest {
   @BeforeEach
   public void before() throws Exception {
     final TopicProperty topicProperty = TopicProperty.builder()
-      .fifo(true)
+      .fifo(false)
       .linger(50L)
       .maxBatchSize(10)
       .maximumPoolSize(10)
       .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
       .build();
-
-    snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty);
+    snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty, new LinkedBlockingQueue<>(1024));
   }
 
   @Test
@@ -90,6 +91,7 @@ class AmazonSnsProducerSyncTest {
     });
 
     snsTemplate.await().thenAccept(result -> {
+      snsTemplate.shutdown();
       verify(amazonSNS, timeout(10000).times(1)).publishBatch(any());
     }).join();
 
@@ -202,11 +204,42 @@ class AmazonSnsProducerSyncTest {
 
   }
 
+  @Test
+  void testSuccessBlockingSubmissionPolicy() {
+    final TopicProperty topicProperty = TopicProperty.builder()
+        .fifo(false)
+        .linger(50L)
+        .maxBatchSize(1)
+        .maximumPoolSize(1)
+        .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
+        .build();
+
+    final AmazonSnsTemplate<Object> snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty);
+
+    when(amazonSNS.publishBatch(any())).thenAnswer(invocation -> {
+      while (true) {
+        Thread.sleep(1);
+      }
+    });
+
+    final ConsumerHelper<ResponseFailEntry> failureCallback = spy(new ConsumerHelper<>(result -> {
+      assertThat(result, notNullValue());
+    }));
+
+    entries(2).forEach(entry -> {
+      snsTemplate.send(entry).addCallback(null, failureCallback);;
+    });
+
+    verify(failureCallback, timeout(40000).times(1)).accept(any());
+    verify(amazonSNS, atLeastOnce()).publishBatch(any());
+  }
+
   private List<RequestEntry<Object>> entries(final int amount) {
     final LinkedList<RequestEntry<Object>> entries = new LinkedList<>();
 
     for (int i = 0; i < amount; i++) {
       entries.add(RequestEntry.builder()
+        .withId(RandomStringUtils.randomAlphabetic(36))
         .withSubject("subject")
         .withGroupId(UUID.randomUUID().toString())
         .withDeduplicationId(UUID.randomUUID().toString())
