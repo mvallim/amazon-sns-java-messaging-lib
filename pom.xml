@@ -4,7 +4,7 @@
 	
 	<groupId>com.github.mvallim</groupId>
 	<artifactId>amazon-sns-java-messaging-lib</artifactId>
-	<version>1.0.6-SNAPSHOT</version>
+	<version>1.0.6</version>
 	<packaging>pom</packaging>
 	
 	<name>amazon-sns-java-messaging-lib</name>
@@ -57,7 +57,7 @@
 		<url>scm:git:git@github.com:mvallim/amazon-sns-java-messaging-lib</url>
 		<connection>scm:git:git@github.com:mvallim/amazon-sns-java-messaging-lib</connection>
 		<developerConnection>scm:git:git@github.com:mvallim/amazon-sns-java-messaging-lib</developerConnection>
-		<tag>HEAD</tag>
+		<tag>amazon-sns-java-messaging-lib-1.0.6</tag>
 	</scm>
 	
 	<description>Request Batch combine multiple requests to optimally utilise the network.</description>
