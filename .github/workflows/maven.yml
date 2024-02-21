@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java-version: [8, 11, 15, 16, 17]
+        java-version: [8, 11, 17, 21]
     steps:
       - uses: actions/checkout@v3
       - name: Set up JDK
@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java-version: [8, 11, 15, 16, 17]
+        java-version: [8, 11, 17, 21]
     needs: [build]
     steps:
       - uses: actions/checkout@v3
@@ -91,7 +91,7 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
       - name: Build and analyze
-        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=amazon-sns-java-messaging-lib -Dsonar.organization=mvallim -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONAR_TOKEN
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=amazon-sns-java-messaging-lib -Dsonar.organization=mvallim -Dsonar.host.url=https://sonarcloud.io -Dssonar.token=$SONAR_TOKEN
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

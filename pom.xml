@@ -38,7 +38,10 @@
 		<jacoco-maven-plugin.version>0.8.8</jacoco-maven-plugin.version>
 		
 		<sonar.coverage.exclusions>
-			**/amazon-sns-java-messaging-lib-template/**,
+			**/AbstractAmazonSnsConsumer.**,
+			**/AbstractAmazonSnsProducer.**,
+			**/ListenableFuture.**,
+			**/ListenableFutureRegistry.**,
 			**/package-info.**,
 			**/ConsumerHelper.**,
 			**/generated-sources/**,
@@ -311,7 +314,10 @@
 						<format>XML</format>
 					</formats>
 					<excludes>
-						<exclude>**/amazon-sns-java-messaging-lib-template/**</exclude>
+						<exclude>**/AbstractAmazonSnsConsumer.**</exclude>
+						<exclude>**/AbstractAmazonSnsProducer.**</exclude>
+						<exclude>**/ListenableFuture.**</exclude>
+						<exclude>**/ListenableFutureRegistry.**</exclude>
 						<exclude>**/package-info.**</exclude>
 						<exclude>**/ConsumerHelper.**</exclude>
 						<exclude>**/generated-sources/**</exclude>

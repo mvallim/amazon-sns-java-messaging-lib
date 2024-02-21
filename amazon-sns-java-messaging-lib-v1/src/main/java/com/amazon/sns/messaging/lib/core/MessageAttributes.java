@@ -22,7 +22,7 @@ import java.util.List;
 import com.amazonaws.services.sns.model.MessageAttributeValue;
 
 // @formatter:off
-public class MessageAttributes extends AbstractMessageAttributes<MessageAttributeValue> {
+class MessageAttributes extends AbstractMessageAttributes<MessageAttributeValue> {
 
   @Override
   protected MessageAttributeValue getEnumMessageAttribute(final Enum<?> value) {
