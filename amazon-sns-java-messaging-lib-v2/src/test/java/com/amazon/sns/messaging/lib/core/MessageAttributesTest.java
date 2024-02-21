@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.amazon.sns.messaging.lib.core.core;
+package com.amazon.sns.messaging.lib.core;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -26,8 +26,8 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import com.amazon.sns.messaging.lib.core.MessageAttributes;
-import com.amazonaws.services.sns.model.MessageAttributeValue;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
 
 class MessageAttributesTest {
 
@@ -41,8 +41,8 @@ class MessageAttributesTest {
     final Map<String, MessageAttributeValue> attributes = messageAttributes.messageAttributes(messageHeaders);
 
     assertThat(attributes.containsKey("string"), is(true));
-    assertThat(attributes.get("string").getDataType(), is("String"));
-    assertThat(attributes.get("string").getStringValue(), is("string"));
+    assertThat(attributes.get("string").dataType(), is("String"));
+    assertThat(attributes.get("string").stringValue(), is("string"));
   }
 
   @Test
@@ -53,8 +53,8 @@ class MessageAttributesTest {
     final Map<String, MessageAttributeValue> attributes = messageAttributes.messageAttributes(messageHeaders);
 
     assertThat(attributes.containsKey("enum"), is(true));
-    assertThat(attributes.get("enum").getDataType(), is("String"));
-    assertThat(attributes.get("enum").getStringValue(), is("A"));
+    assertThat(attributes.get("enum").dataType(), is("String"));
+    assertThat(attributes.get("enum").stringValue(), is("A"));
   }
 
   @Test
@@ -65,8 +65,8 @@ class MessageAttributesTest {
     final Map<String, MessageAttributeValue> attributes = messageAttributes.messageAttributes(messageHeaders);
 
     assertThat(attributes.containsKey("number"), is(true));
-    assertThat(attributes.get("number").getDataType(), is("Number.java.lang.Integer"));
-    assertThat(attributes.get("number").getStringValue(), is("1"));
+    assertThat(attributes.get("number").dataType(), is("Number.java.lang.Integer"));
+    assertThat(attributes.get("number").stringValue(), is("1"));
   }
 
   @Test
@@ -77,8 +77,8 @@ class MessageAttributesTest {
     final Map<String, MessageAttributeValue> attributes = messageAttributes.messageAttributes(messageHeaders);
 
     assertThat(attributes.containsKey("binary"), is(true));
-    assertThat(attributes.get("binary").getDataType(), is("Binary"));
-    assertThat(attributes.get("binary").getBinaryValue(), is(ByteBuffer.wrap(new byte[0])));
+    assertThat(attributes.get("binary").dataType(), is("Binary"));
+    assertThat(attributes.get("binary").binaryValue(), is(SdkBytes.fromByteBuffer(ByteBuffer.wrap(new byte[0]))));
   }
 
   @Test
@@ -89,8 +89,8 @@ class MessageAttributesTest {
     final Map<String, MessageAttributeValue> attributes = messageAttributes.messageAttributes(messageHeaders);
 
     assertThat(attributes.containsKey("stringArray"), is(true));
-    assertThat(attributes.get("stringArray").getDataType(), is("String.Array"));
-    assertThat(attributes.get("stringArray").getStringValue(), is("[ \"123\", \"456\" ]"));
+    assertThat(attributes.get("stringArray").dataType(), is("String.Array"));
+    assertThat(attributes.get("stringArray").stringValue(), is("[ \"123\", \"456\" ]"));
   }
 
   @Test

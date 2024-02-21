@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.amazon.sns.messaging.lib.core.core;
+package com.amazon.sns.messaging.lib.core;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -39,7 +39,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.amazon.sns.messaging.lib.core.AmazonSnsTemplate;
 import com.amazon.sns.messaging.lib.core.helper.ConsumerHelper;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;

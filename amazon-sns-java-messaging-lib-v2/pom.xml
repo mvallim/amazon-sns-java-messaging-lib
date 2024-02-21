@@ -5,14 +5,14 @@
 	<parent>
 		<groupId>com.github.mvallim</groupId>
 		<artifactId>amazon-sns-java-messaging-lib</artifactId>
-		<version>1.0.5-SNAPSHOT</version>
+		<version>1.0.6-SNAPSHOT</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 	
 	<artifactId>amazon-sns-java-messaging-lib-v2</artifactId>
 
 	<properties>
-		<aws-java-sdk-bom.version>2.20.17</aws-java-sdk-bom.version>
+		<aws-java-sdk-bom.version>2.20.162</aws-java-sdk-bom.version>
 	</properties>
 	
 	<dependencyManagement>
