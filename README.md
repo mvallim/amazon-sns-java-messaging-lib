@@ -19,9 +19,9 @@ Article [Martin Fowler](https://martinfowler.com) [Request Batch](https://martin
 
 _**Compatible JDK 8, 11, 15, 16 and 17**_
 
-_**Compatible AWS JDK v1 >= 1.12.346**_
+_**Compatible AWS JDK v1 >= 1.12**_
 
-_**Compatible AWS JDK v2 >= 2.18.21**_
+_**Compatible AWS JDK v2 >= 2.18**_
 
 This library supports **`Kotlin`** aswell
 
@@ -38,7 +38,7 @@ You can pull it from the central Maven repositories:
 <dependency>
     <groupId>com.github.mvallim</groupId>
     <artifactId>amazon-sns-java-messaging-lib-v1</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.5</version>
 </dependency>
 ```
 
@@ -47,7 +47,7 @@ You can pull it from the central Maven repositories:
 <dependency>
     <groupId>com.github.mvallim</groupId>
     <artifactId>amazon-sns-java-messaging-lib-v2</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.5</version>
 </dependency>
 ```
 
@@ -68,12 +68,12 @@ If you want to try a snapshot version, add the following repository:
 
 ### For AWS SDK v1
 ```groovy
-implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v1:1.0.4'
+implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v1:1.0.5'
 ```
 
 ### For AWS SDK v2
 ```groovy
-implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v2:1.0.4'
+implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v2:1.0.5'
 ```
 
 If you want to try a snapshot version, add the following repository:
