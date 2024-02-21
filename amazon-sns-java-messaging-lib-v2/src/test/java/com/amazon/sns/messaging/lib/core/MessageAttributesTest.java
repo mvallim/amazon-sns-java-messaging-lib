@@ -26,8 +26,6 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import com.amazon.sns.messaging.lib.core.MessageAttributes;
-
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
 
