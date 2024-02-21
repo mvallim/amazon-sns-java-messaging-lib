@@ -20,8 +20,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 
+import com.amazon.sns.messaging.lib.concurrent.RingBufferBlockingQueue;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.TopicProperty;
 import com.amazonaws.services.sns.AmazonSNS;
@@ -49,7 +49,7 @@ public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<AmazonSNS, P
   }
 
   public AmazonSnsTemplate(final AmazonSNS amazonSNS, final TopicProperty topicProperty, final ObjectMapper objectMapper) {
-    this(amazonSNS, topicProperty, new ConcurrentHashMap<>(), new LinkedBlockingQueue<>(topicProperty.getMaximumPoolSize() * topicProperty.getMaxBatchSize()), objectMapper);
+    this(amazonSNS, topicProperty, new ConcurrentHashMap<>(), new RingBufferBlockingQueue<>(topicProperty.getMaximumPoolSize() * topicProperty.getMaxBatchSize()), objectMapper);
   }
 
   public AmazonSnsTemplate(final AmazonSNS amazonSNS, final TopicProperty topicProperty) {
