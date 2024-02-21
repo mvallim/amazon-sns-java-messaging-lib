@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 the original author or authors.
+ * Copyright 2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,63 +20,52 @@ import java.util.Objects;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class AmazonSnsThreadPoolExecutor extends ThreadPoolExecutor {
 
-  private final Object lockObject = new Object();
+  private final AtomicInteger activeTaskCount = new AtomicInteger();
 
-  private int activeTaskCount = 0;
+  private final AtomicInteger failedTaskCount = new AtomicInteger();
 
-  private int failedTaskCount = 0;
-
-  private int succeededTaskCount = 0;
+  private final AtomicInteger succeededTaskCount = new AtomicInteger();
 
   public AmazonSnsThreadPoolExecutor(final int maximumPoolSize) {
-    super(2, maximumPoolSize, 60, TimeUnit.SECONDS, new SynchronousQueue<>(), new BlockingSubmissionPolicy(30000));
+    super(0, maximumPoolSize, 60, TimeUnit.SECONDS, new SynchronousQueue<>(), new BlockingSubmissionPolicy(30000));
   }
 
   public int getActiveTaskCount() {
-    synchronized (lockObject) {
-      return activeTaskCount;
-    }
+    return activeTaskCount.get();
   }
 
   public int getFailedTaskCount() {
-    synchronized (lockObject) {
-      return failedTaskCount;
-    }
+    return failedTaskCount.get();
   }
 
   public int getSucceededTaskCount() {
-    synchronized (lockObject) {
-      return succeededTaskCount;
-    }
+    return succeededTaskCount.get();
   }
 
   @Override
   protected void beforeExecute(final Thread thread, final Runnable runnable) {
-    synchronized (lockObject) {
-      try {
-        super.beforeExecute(thread, runnable);
-      } finally {
-        activeTaskCount++;
-      }
+    try {
+      super.beforeExecute(thread, runnable);
+    } finally {
+      activeTaskCount.incrementAndGet();
     }
   }
 
   @Override
   protected void afterExecute(final Runnable runnable, final Throwable throwable) {
-    synchronized (lockObject) {
-      try {
-        super.afterExecute(runnable, throwable);
-      } finally {
-        if (Objects.nonNull(throwable)) {
-          failedTaskCount++;
-        } else {
-          succeededTaskCount++;
-        }
-        activeTaskCount--;
+    try {
+      super.afterExecute(runnable, throwable);
+    } finally {
+      if (Objects.nonNull(throwable)) {
+        failedTaskCount.incrementAndGet();
+      } else {
+        succeededTaskCount.incrementAndGet();
       }
+      activeTaskCount.decrementAndGet();
     }
   }
 

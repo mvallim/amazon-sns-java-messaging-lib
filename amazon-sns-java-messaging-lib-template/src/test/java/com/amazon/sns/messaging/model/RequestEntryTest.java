@@ -22,15 +22,15 @@ import static org.hamcrest.Matchers.equalTo;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 
 // @formatter:off
-public class RequestEntryTest {
+class RequestEntryTest {
 
   @Test
-  public void testSuccess() {
+  void testSuccess() {
     final Map<String, Object> messageHeaders = new HashMap<>();
 
     final RequestEntry<Object> requestEntry = RequestEntry.builder()

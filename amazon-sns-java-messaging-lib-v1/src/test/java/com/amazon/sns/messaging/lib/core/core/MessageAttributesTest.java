@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 the original author or authors.
+ * Copyright 2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,17 +24,17 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.amazon.sns.messaging.lib.core.MessageAttributes;
 import com.amazonaws.services.sns.model.MessageAttributeValue;
 
-public class MessageAttributesTest {
+class MessageAttributesTest {
 
   private final MessageAttributes messageAttributes = new MessageAttributes();
 
   @Test
-  public void testSuccessStringHeader() {
+  void testSuccessStringHeader() {
     final Map<String, Object> messageHeaders = new HashMap<>();
     messageHeaders.put("string", "string");
 
@@ -46,7 +46,7 @@ public class MessageAttributesTest {
   }
 
   @Test
-  public void testSuccessEnumHeader() {
+  void testSuccessEnumHeader() {
     final Map<String, Object> messageHeaders = new HashMap<>();
     messageHeaders.put("enum", Cards.A);
 
@@ -58,7 +58,7 @@ public class MessageAttributesTest {
   }
 
   @Test
-  public void testSuccessNumberHeader() {
+  void testSuccessNumberHeader() {
     final Map<String, Object> messageHeaders = new HashMap<>();
     messageHeaders.put("number", 1);
 
@@ -70,7 +70,7 @@ public class MessageAttributesTest {
   }
 
   @Test
-  public void testSuccessBinaryHeader() {
+  void testSuccessBinaryHeader() {
     final Map<String, Object> messageHeaders = new HashMap<>();
     messageHeaders.put("binary", ByteBuffer.wrap(new byte[0]));
 
@@ -82,7 +82,7 @@ public class MessageAttributesTest {
   }
 
   @Test
-  public void testSuccessStringArrayHeader() {
+  void testSuccessStringArrayHeader() {
     final Map<String, Object> messageHeaders = new HashMap<>();
     messageHeaders.put("stringArray", Arrays.asList("123", 1, new Object(), "456"));
 
@@ -94,7 +94,7 @@ public class MessageAttributesTest {
   }
 
   @Test
-  public void testFailUnsupportedHeader() {
+  void testFailUnsupportedHeader() {
     final Map<String, Object> messageHeaders = new HashMap<>();
     messageHeaders.put("unsupported", new Object());
 

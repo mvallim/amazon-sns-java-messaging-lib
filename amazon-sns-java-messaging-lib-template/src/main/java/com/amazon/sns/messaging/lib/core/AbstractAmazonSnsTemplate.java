@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 the original author or authors.
+ * Copyright 2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,53 +16,42 @@
 
 package com.amazon.sns.messaging.lib.core;
 
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
+import com.amazon.sns.messaging.lib.model.TopicProperty;
 
-import lombok.SneakyThrows;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 
 // @formatter:off
-abstract class AbstractAmazonSnsTemplate<R, O, E> {
+@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
+abstract class AbstractAmazonSnsTemplate<C, R, O, E> {
 
-  protected final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests = new ConcurrentHashMap<>();
+  private final AbstractAmazonSnsProducer<E> amazonSnsProducer;
 
-  protected BlockingQueue<RequestEntry<E>> topicRequests;
-
-  protected AbstractAmazonSnsProducer<R, O, E> amazonSnsProducer;
+  private final AbstractAmazonSnsConsumer<C, R, O, E> amazonSnsConsumer;
 
   public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry) {
-    try {
-      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> trackPendingRequest = trackPendingRequest(requestEntry.getId());
-      enqueueRequest(requestEntry);
-      return trackPendingRequest;
-    } finally {
-      amazonSnsProducer.wakeup();
-    }
+    return amazonSnsProducer.send(requestEntry);
   }
 
   public void shutdown() {
-    amazonSnsProducer.shutdown();
+    amazonSnsConsumer.shutdown();
   }
 
   public CompletableFuture<Void> await() {
-    return amazonSnsProducer.await();
+    return amazonSnsConsumer.await();
   }
 
-  @SneakyThrows
-  private void enqueueRequest(final RequestEntry<E> requestEntry) {
-    topicRequests.put(requestEntry);
-  }
-
-  private ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> trackPendingRequest(final String correlationId) {
-    final ListenableFutureRegistry listenableFuture = new ListenableFutureRegistry();
-    pendingRequests.put(correlationId, listenableFuture);
-    return listenableFuture;
+  protected static AmazonSnsThreadPoolExecutor getAmazonSnsThreadPoolExecutor(final TopicProperty topicProperty) {
+    if (topicProperty.isFifo()) {
+      return new AmazonSnsThreadPoolExecutor(1);
+    } else {
+      return new AmazonSnsThreadPoolExecutor(topicProperty.getMaximumPoolSize());
+    }
   }
 
 }

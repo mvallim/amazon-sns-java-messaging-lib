@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 the original author or authors.
+ * Copyright 2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package com.amazon.sns.messaging.lib.core.core;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.timeout;
@@ -29,18 +29,15 @@ import static org.mockito.Mockito.when;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.runners.MockitoJUnitRunner;
-import org.mockito.stubbing.Answer;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.amazon.sns.messaging.lib.core.AmazonSnsTemplate;
 import com.amazon.sns.messaging.lib.core.helper.ConsumerHelper;
@@ -56,29 +53,28 @@ import com.amazonaws.services.sns.model.PublishBatchResult;
 import com.amazonaws.services.sns.model.PublishBatchResultEntry;
 
 // @formatter:off
-@RunWith(MockitoJUnitRunner.class)
-public class AmazonSnsProducerAsyncTest {
+@ExtendWith(MockitoExtension.class)
+class AmazonSnsProducerAsyncTest {
 
   private AmazonSnsTemplate<Object> snsTemplate;
 
   @Mock
   private AmazonSNS amazonSNS;
 
-  @Mock
-  private TopicProperty topicProperty;
-
-  @Before
+  @BeforeEach
   public void before() throws Exception {
-    when(topicProperty.isFifo()).thenReturn(false);
-    when(topicProperty.getTopicArn()).thenReturn("arn:aws:sns:us-east-2:000000000000:topic");
-    when(topicProperty.getMaximumPoolSize()).thenReturn(100);
-    when(topicProperty.getLinger()).thenReturn(50L);
-    when(topicProperty.getMaxBatchSize()).thenReturn(10);
+    final TopicProperty topicProperty = TopicProperty.builder()
+      .fifo(false)
+      .linger(50L)
+      .maxBatchSize(10)
+      .maximumPoolSize(10)
+      .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
+      .build();
     snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty, new LinkedBlockingQueue<>(1024));
   }
 
   @Test
-  public void testSuccess() {
+  void testSuccess() {
     final String id = UUID.randomUUID().toString();
 
     final PublishBatchResultEntry publishBatchResultEntry = new PublishBatchResultEntry();
@@ -94,13 +90,15 @@ public class AmazonSnsProducerAsyncTest {
       assertThat(result.getId(), is(id));
     });
 
-    snsTemplate.await().thenAccept(result -> snsTemplate.shutdown()).join();
+    snsTemplate.await().thenAccept(result -> {
+      snsTemplate.shutdown();
+      verify(amazonSNS, timeout(10000).times(1)).publishBatch(any());
+    }).join();
 
-    verify(amazonSNS, timeout(10000).times(1)).publishBatch(any());
   }
 
   @Test
-  public void testFailure() {
+  void testFailure() {
     final String id = UUID.randomUUID().toString();
 
     final BatchResultErrorEntry batchResultErrorEntry = new BatchResultErrorEntry();
@@ -123,87 +121,57 @@ public class AmazonSnsProducerAsyncTest {
   }
 
   @Test
-  public void testSuccessMultipleEntry() {
+  void testSuccessMultipleEntry() {
 
-    when(amazonSNS.publishBatch(any())).thenAnswer(new Answer<PublishBatchResult>() {
-      @Override
-      public PublishBatchResult answer(final InvocationOnMock invocation) throws Throwable {
-        final PublishBatchRequest request = invocation.getArgumentAt(0, PublishBatchRequest.class);
-        final List<PublishBatchResultEntry> resultEntries = request.getPublishBatchRequestEntries().stream()
-          .map(entry -> new PublishBatchResultEntry().withId(entry.getId()))
-          .collect(Collectors.toList());
-        return new PublishBatchResult().withSuccessful(resultEntries);
-      }
+    when(amazonSNS.publishBatch(any())).thenAnswer(invocation -> {
+      final PublishBatchRequest request = invocation.getArgument(0, PublishBatchRequest.class);
+      final List<PublishBatchResultEntry> resultEntries = request.getPublishBatchRequestEntries().stream()
+        .map(entry -> new PublishBatchResultEntry().withId(entry.getId()))
+        .collect(Collectors.toList());
+      return new PublishBatchResult().withSuccessful(resultEntries);
     });
 
     final ConsumerHelper<ResponseSuccessEntry> successCallback = spy(new ConsumerHelper<>(result -> {
       assertThat(result, notNullValue());
     }));
 
-    CompletableFuture.runAsync(() -> {
-      entries(1000).forEach(entry -> {
-        snsTemplate.send(entry).addCallback(successCallback);
-      });
+    entries(30000).forEach(entry -> {
+      snsTemplate.send(entry).addCallback(successCallback);
     });
 
-    CompletableFuture.runAsync(() -> {
-      entries(1000).forEach(entry -> {
-        snsTemplate.send(entry).addCallback(successCallback);
-      });
-    });
-
-    CompletableFuture.runAsync(() -> {
-      entries(1000).forEach(entry -> {
-        snsTemplate.send(entry).addCallback(successCallback);
-      });
-    });
-
-    verify(successCallback, timeout(300000).times(3000)).accept(any());
-    verify(amazonSNS, atLeastOnce()).publishBatch(any());
+    snsTemplate.await().thenAccept(result -> {
+      verify(successCallback, timeout(300000).times(30000)).accept(any());
+      verify(amazonSNS, atLeastOnce()).publishBatch(any());
+    }).join();
   }
 
   @Test
-  public void testFailureMultipleEntry() {
+  void testFailureMultipleEntry() {
 
-    when(amazonSNS.publishBatch(any())).thenAnswer(new Answer<PublishBatchResult>() {
-      @Override
-      public PublishBatchResult answer(final InvocationOnMock invocation) throws Throwable {
-        final PublishBatchRequest request = invocation.getArgumentAt(0, PublishBatchRequest.class);
-        final List<BatchResultErrorEntry> resultEntries = request.getPublishBatchRequestEntries().stream()
-          .map(entry -> new BatchResultErrorEntry().withId(entry.getId()))
-          .collect(Collectors.toList());
-        return new PublishBatchResult().withFailed(resultEntries);
-      }
+    when(amazonSNS.publishBatch(any())).thenAnswer(invocation -> {
+      final PublishBatchRequest request = invocation.getArgument(0, PublishBatchRequest.class);
+      final List<BatchResultErrorEntry> resultEntries = request.getPublishBatchRequestEntries().stream()
+        .map(entry -> new BatchResultErrorEntry().withId(entry.getId()))
+        .collect(Collectors.toList());
+      return new PublishBatchResult().withFailed(resultEntries);
     });
 
     final ConsumerHelper<ResponseFailEntry> failureCallback = spy(new ConsumerHelper<>(result -> {
       assertThat(result, notNullValue());
     }));
 
-    CompletableFuture.runAsync(() -> {
-      entries(1000).forEach(entry -> {
-        snsTemplate.send(entry).addCallback(null, failureCallback);
-      });
+    entries(30000).forEach(entry -> {
+      snsTemplate.send(entry).addCallback(null, failureCallback);
     });
 
-    CompletableFuture.runAsync(() -> {
-      entries(1000).forEach(entry -> {
-        snsTemplate.send(entry).addCallback(null, failureCallback);
-      });
-    });
-
-    CompletableFuture.runAsync(() -> {
-      entries(1000).forEach(entry -> {
-        snsTemplate.send(entry).addCallback(null, failureCallback);
-      });
-    });
-
-    verify(failureCallback, timeout(300000).times(3000)).accept(any());
-    verify(amazonSNS, atLeastOnce()).publishBatch(any());
+    snsTemplate.await().thenAccept(result -> {
+      verify(failureCallback, timeout(300000).times(30000)).accept(any());
+      verify(amazonSNS, atLeastOnce()).publishBatch(any());
+    }).join();
   }
 
   @Test
-  public void testFailRiseRuntimeException() {
+  void testFailRiseRuntimeException() {
     final String id = UUID.randomUUID().toString();
 
     when(amazonSNS.publishBatch(any(PublishBatchRequest.class))).thenThrow(new RuntimeException());
@@ -220,7 +188,7 @@ public class AmazonSnsProducerAsyncTest {
   }
 
   @Test
-  public void testFailRiseAwsServiceException() {
+  void testFailRiseAwsServiceException() {
     final String id = UUID.randomUUID().toString();
 
     when(amazonSNS.publishBatch(any(PublishBatchRequest.class))).thenThrow(new AmazonServiceException("error"));
@@ -234,6 +202,36 @@ public class AmazonSnsProducerAsyncTest {
       verify(amazonSNS, timeout(10000).times(1)).publishBatch(any(PublishBatchRequest.class));
     }).join();
 
+  }
+
+  @Test
+  void testSuccessBlockingSubmissionPolicy() {
+    final TopicProperty topicProperty = TopicProperty.builder()
+        .fifo(false)
+        .linger(50L)
+        .maxBatchSize(1)
+        .maximumPoolSize(1)
+        .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
+        .build();
+
+    final AmazonSnsTemplate<Object> snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty);
+
+    when(amazonSNS.publishBatch(any())).thenAnswer(invocation -> {
+      while (true) {
+        Thread.sleep(1);
+      }
+    });
+
+    final ConsumerHelper<ResponseFailEntry> failureCallback = spy(new ConsumerHelper<>(result -> {
+      assertThat(result, notNullValue());
+    }));
+
+    entries(2).forEach(entry -> {
+      snsTemplate.send(entry).addCallback(null, failureCallback);;
+    });
+
+    verify(failureCallback, timeout(40000).times(1)).accept(any());
+    verify(amazonSNS, atLeastOnce()).publishBatch(any());
   }
 
   private List<RequestEntry<Object>> entries(final int amount) {

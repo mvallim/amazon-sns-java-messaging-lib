@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 the original author or authors.
+ * Copyright 2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,9 @@
 package com.amazon.sns.messaging.lib.core;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
@@ -26,20 +29,27 @@ import com.amazonaws.services.sns.model.PublishBatchRequest;
 import com.amazonaws.services.sns.model.PublishBatchResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<PublishBatchRequest, PublishBatchResult, E> {
+// @formatter:off
+public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<AmazonSNS, PublishBatchRequest, PublishBatchResult, E> {
 
-  public AmazonSnsTemplate(final AmazonSNS amazonSNS, final TopicProperty topicProperty, final BlockingQueue<RequestEntry<E>> topicRequests, final ObjectMapper objectMapper) {
-    super.topicRequests = topicRequests;
-    super.amazonSnsProducer = new AmazonSnsProducer<>(amazonSNS, topicProperty, objectMapper, super.pendingRequests, super.topicRequests);
-    super.amazonSnsProducer.start();
+  public AmazonSnsTemplate(
+      final AmazonSNS amazonSnsClient,
+      final TopicProperty topicProperty,
+      final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
+      final BlockingQueue<RequestEntry<E>> topicRequests,
+      final ObjectMapper objectMapper) {
+    super(
+      new AmazonSnsProducer<>(pendingRequests, topicRequests, Executors.newSingleThreadExecutor()),
+      new AmazonSnsConsumer<>(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, getAmazonSnsThreadPoolExecutor(topicProperty))
+    );
   }
 
   public AmazonSnsTemplate(final AmazonSNS amazonSNS, final TopicProperty topicProperty, final BlockingQueue<RequestEntry<E>> topicRequests) {
-    this(amazonSNS, topicProperty, topicRequests, new ObjectMapper());
+    this(amazonSNS, topicProperty, new ConcurrentHashMap<>(), topicRequests, new ObjectMapper());
   }
 
   public AmazonSnsTemplate(final AmazonSNS amazonSNS, final TopicProperty topicProperty, final ObjectMapper objectMapper) {
-    this(amazonSNS, topicProperty, new LinkedBlockingQueue<>(topicProperty.getMaximumPoolSize() * topicProperty.getMaxBatchSize()), objectMapper);
+    this(amazonSNS, topicProperty, new ConcurrentHashMap<>(), new LinkedBlockingQueue<>(topicProperty.getMaximumPoolSize() * topicProperty.getMaxBatchSize()), objectMapper);
   }
 
   public AmazonSnsTemplate(final AmazonSNS amazonSNS, final TopicProperty topicProperty) {
@@ -47,3 +57,4 @@ public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<PublishBatch
   }
 
 }
+// @formatter:on
