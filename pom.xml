@@ -42,7 +42,8 @@
 			**/package-info.**,
 			**/ConsumerHelper.**,
 			**/generated-sources/**,
-			**/generated-test-sources/**
+			**/generated-test-sources/**,
+			**/test/**
 		</sonar.coverage.exclusions>
 	</properties>
 
@@ -308,7 +309,6 @@
 				<configuration>
 					<formats>
 						<format>XML</format>
-						<format>CSV</format>
 					</formats>
 					<excludes>
 						<exclude>**/amazon-sns-java-messaging-lib-template/**</exclude>
