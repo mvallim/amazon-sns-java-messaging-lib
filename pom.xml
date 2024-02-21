@@ -38,6 +38,8 @@
 		<sonar.coverage.exclusions>
 			**/AbstractAmazonSnsConsumer.**,
 			**/AbstractAmazonSnsProducer.**,
+			**/AbstractAmazonSnsTemplate.**,
+			**/AbstractMessageAttributes.**,
 			**/ListenableFuture.**,
 			**/ListenableFutureRegistry.**,
 			**/package-info.**,
@@ -314,6 +316,8 @@
 					<excludes>
 						<exclude>**/AbstractAmazonSnsConsumer.**</exclude>
 						<exclude>**/AbstractAmazonSnsProducer.**</exclude>
+						<exclude>**/AbstractAmazonSnsTemplate.**</exclude>
+						<exclude>**/AbstractMessageAttributes.**</exclude>
 						<exclude>**/ListenableFuture.**</exclude>
 						<exclude>**/ListenableFutureRegistry.**</exclude>
 						<exclude>**/package-info.**</exclude>
@@ -444,6 +448,9 @@
 		</profile>
 		<profile>
 			<id>nexus-release</id>
+			<properties>
+				<java.version>8</java.version>
+			</properties>
 			<distributionManagement>
 				<snapshotRepository>
 					<id>nexus-release</id>
