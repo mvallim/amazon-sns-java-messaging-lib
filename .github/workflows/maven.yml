@@ -25,14 +25,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java-version: [8, 11, 17, 21]
+        java-version: [8, 11, 17]
     steps:
       - uses: actions/checkout@v3
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
           java-version: ${{ matrix.java-version }}
-          distribution: "oracle"
+          distribution: "corretto"
           cache: "maven"
       - name: Cache Maven packages
         uses: actions/cache@v3.0.11
@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java-version: [8, 11, 17, 21]
+        java-version: [8, 11, 17]
     needs: [build]
     steps:
       - uses: actions/checkout@v3
@@ -55,7 +55,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           java-version: ${{ matrix.java-version }}
-          distribution: "oracle"
+          distribution: "corretto"
           cache: "maven"
       - name: Cache Maven packages
         uses: actions/cache@v3.0.11
@@ -76,7 +76,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           java-version: 17
-          distribution: "oracle"
+          distribution: "corretto"
           cache: "maven"
       - name: Cache SonarQube packages
         uses: actions/cache@v3.0.11

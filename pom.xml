@@ -394,15 +394,6 @@
 			</properties>
 		</profile>
 		<profile>
-			<id>21</id>
-			<activation>
-				<jdk>21</jdk>
-			</activation>
-			<properties>
-				<java.version>21</java.version>
-			</properties>
-		</profile>
-		<profile>
 			<id>code-ql</id>
 			<build>
 				<plugins>

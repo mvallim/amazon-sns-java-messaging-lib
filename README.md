@@ -17,7 +17,7 @@ Combine multiple requests to optimally utilise the network.
 
 Article [Martin Fowler](https://martinfowler.com) [Request Batch](https://martinfowler.com/articles/patterns-of-distributed-systems/request-batch.html)
 
-_**Compatible JDK 8, 11, 17 and 21**_
+_**Compatible JDK 8, 11 and 17**_
 
 _**Compatible AWS JDK v1 >= 1.12**_
 
