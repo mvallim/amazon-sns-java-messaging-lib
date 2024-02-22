@@ -113,17 +113,11 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   }
 
   @Override
-  @SneakyThrows
   public E peek() {
-    if (isEmpty()) {
-      return null;
-    }
-
-    return buffer[wrap(readSequence.get())].getValue();
+    return isEmpty() ? null : buffer[wrap(readSequence.get())].getValue();
   }
 
   @Override
-  @SneakyThrows
   public void put(final E element) {
     try {
       reentrantLock.lock();
@@ -134,7 +128,6 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   }
 
   @Override
-  @SneakyThrows
   public E take() {
     try {
       reentrantLock.lock();
@@ -144,21 +137,23 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
     }
   }
 
-  @Getter
-  @Setter
-  static class Entry<E> {
-
-    private E value;
-
-  }
-
   @Override
   public boolean offer(final E e) {
     throw new UnsupportedOperationException();
   }
 
   @Override
+  public boolean offer(final E e, final long timeout, final TimeUnit unit) throws InterruptedException {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public E poll() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public E poll(final long timeout, final TimeUnit unit) throws InterruptedException {
     throw new UnsupportedOperationException();
   }
 
@@ -169,16 +164,6 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
 
   @Override
   public boolean add(final E e) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean offer(final E e, final long timeout, final TimeUnit unit) throws InterruptedException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public E poll(final long timeout, final TimeUnit unit) throws InterruptedException {
     throw new UnsupportedOperationException();
   }
 
@@ -195,6 +180,14 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   @Override
   public int drainTo(final Collection<? super E> c, final int maxElements) {
     throw new UnsupportedOperationException();
+  }
+
+  @Getter
+  @Setter
+  static class Entry<E> {
+
+    private E value;
+
   }
 
 }

@@ -46,8 +46,12 @@
 			**/package-info.**,
 			**/generated-sources/**,
 			**/generated-test-sources/**,
-			**/test/**
+			**/src/test/**
 		</sonar.coverage.exclusions>
+		
+		<sonar.exclusions>
+			**/src/test/**
+		</sonar.exclusions>
 	</properties>
 
 	<modules>
@@ -324,7 +328,7 @@
 						<exclude>**/package-info.**</exclude>
 						<exclude>**/generated-sources/**</exclude>
 						<exclude>**/generated-test-sources/**</exclude>
-						<exclude>**/test/**</exclude>
+						<exclude>**/src/test/**</exclude>
 					</excludes>
 				</configuration>
 				<executions>
