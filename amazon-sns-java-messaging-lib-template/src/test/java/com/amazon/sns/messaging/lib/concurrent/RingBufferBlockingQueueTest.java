@@ -20,6 +20,7 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.Mockito.spy;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -36,12 +37,12 @@ import com.amazon.sns.messaging.lib.model.RequestEntry;
 
 class RingBufferBlockingQueueTest {
 
-  private final ExecutorService producer = Executors.newSingleThreadExecutor();
-
-  private final ScheduledExecutorService consumer = Executors.newSingleThreadScheduledExecutor();
-
   @Test
   void testSuccess() throws InterruptedException {
+    final ExecutorService producer = Executors.newSingleThreadExecutor();
+
+    final ScheduledExecutorService consumer = Executors.newSingleThreadScheduledExecutor();
+
     final List<RequestEntry<Integer>> requestEntriesOut = new LinkedList<>();
 
     final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>(5120);
@@ -78,6 +79,63 @@ class RingBufferBlockingQueueTest {
     for (int i = 0; i < 100_000; i++) {
       assertThat(requestEntriesOut.get(i).getValue(), is(i));
     }
+  }
+
+  @Test
+  void testSuccessWhenIsEmpty() throws InterruptedException {
+    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = spy(new RingBufferBlockingQueue<>());
+
+    final ExecutorService producer = Executors.newSingleThreadExecutor();
+
+    final ExecutorService consumer = Executors.newSingleThreadExecutor();
+
+    consumer.submit(() -> {
+      final RequestEntry<Integer> entry = ringBlockingQueue.take();
+      assertThat(entry.getValue(), is(0));
+    });
+
+    Thread.sleep(2000);
+
+    producer.submit(() -> {
+      ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(0).build());
+    });
+
+    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.writeSequence() == 0);
+    producer.shutdownNow();
+
+    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.readSequence() == 1);
+    consumer.shutdownNow();
+
+    assertThat(ringBlockingQueue.isEmpty(), is(true));
+  }
+
+  @Test
+  void testSuccessWhenIsFull() throws InterruptedException {
+    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = spy(new RingBufferBlockingQueue<>(1));
+
+    final ExecutorService producer = Executors.newSingleThreadExecutor();
+
+    final ExecutorService consumer = Executors.newSingleThreadExecutor();
+
+    producer.submit(() -> {
+      ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(0).build());
+      ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(1).build());
+    });
+
+    Thread.sleep(2000);
+
+    consumer.submit(() -> {
+      assertThat(ringBlockingQueue.take().getValue(), is(0));
+      assertThat(ringBlockingQueue.take().getValue(), is(1));
+    });
+
+    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.writeSequence() == 1);
+    producer.shutdownNow();
+
+    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.readSequence() == 2);
+    consumer.shutdownNow();
+
+    assertThat(ringBlockingQueue.isEmpty(), is(true));
   }
 
 }
