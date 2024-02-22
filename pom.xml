@@ -48,6 +48,10 @@
 			**/generated-test-sources/**,
 			**/src/test/**
 		</sonar.coverage.exclusions>
+		
+		<sonar.exclusions>
+			**/src/test/**
+		</sonar.exclusions>
 	</properties>
 
 	<modules>
