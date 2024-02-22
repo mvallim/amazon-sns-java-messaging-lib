@@ -42,8 +42,8 @@
 			**/AbstractMessageAttributes.**,
 			**/ListenableFuture.**,
 			**/ListenableFutureRegistry.**,
+			**/model/**,
 			**/package-info.**,
-			**/ConsumerHelper.**,
 			**/generated-sources/**,
 			**/generated-test-sources/**,
 			**/test/**
@@ -320,8 +320,8 @@
 						<exclude>**/AbstractMessageAttributes.**</exclude>
 						<exclude>**/ListenableFuture.**</exclude>
 						<exclude>**/ListenableFutureRegistry.**</exclude>
+						<exclude>**/model/**</exclude>
 						<exclude>**/package-info.**</exclude>
-						<exclude>**/ConsumerHelper.**</exclude>
 						<exclude>**/generated-sources/**</exclude>
 						<exclude>**/generated-test-sources/**</exclude>
 						<exclude>**/test/**</exclude>
