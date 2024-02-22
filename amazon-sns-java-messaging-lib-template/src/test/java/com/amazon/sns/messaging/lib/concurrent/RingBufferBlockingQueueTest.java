@@ -37,7 +37,7 @@ import org.junit.jupiter.api.Test;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 
-@SuppressWarnings("java:S2925")
+@SuppressWarnings({ "java:S2925", "java:S5778" })
 class RingBufferBlockingQueueTest {
 
   @Test
