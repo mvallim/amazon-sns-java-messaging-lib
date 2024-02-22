@@ -137,57 +137,57 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
     }
   }
 
+  @Override
+  public boolean offer(final E e) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean offer(final E e, final long timeout, final TimeUnit unit) throws InterruptedException {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public E poll() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public E poll(final long timeout, final TimeUnit unit) throws InterruptedException {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public Iterator<E> iterator() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean add(final E e) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public int remainingCapacity() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public int drainTo(final Collection<? super E> c) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public int drainTo(final Collection<? super E> c, final int maxElements) {
+    throw new UnsupportedOperationException();
+  }
+
   @Getter
   @Setter
   static class Entry<E> {
 
     private E value;
 
-  }
-
-  @Override
-  public boolean offer(final E e) {
-    throw new UnsupportedOperationException(); // NOSONAR
-  }
-
-  @Override
-  public E poll() {
-    throw new UnsupportedOperationException(); // NOSONAR
-  }
-
-  @Override
-  public Iterator<E> iterator() {
-    throw new UnsupportedOperationException(); // NOSONAR
-  }
-
-  @Override
-  public boolean add(final E e) {
-    throw new UnsupportedOperationException(); // NOSONAR
-  }
-
-  @Override
-  public boolean offer(final E e, final long timeout, final TimeUnit unit) throws InterruptedException {
-    throw new UnsupportedOperationException(); // NOSONAR
-  }
-
-  @Override
-  public E poll(final long timeout, final TimeUnit unit) throws InterruptedException {
-    throw new UnsupportedOperationException(); // NOSONAR
-  }
-
-  @Override
-  public int remainingCapacity() {
-    throw new UnsupportedOperationException(); // NOSONAR
-  }
-
-  @Override
-  public int drainTo(final Collection<? super E> c) {
-    throw new UnsupportedOperationException(); // NOSONAR
-  }
-
-  @Override
-  public int drainTo(final Collection<? super E> c, final int maxElements) {
-    throw new UnsupportedOperationException(); // NOSONAR
   }
 
 }

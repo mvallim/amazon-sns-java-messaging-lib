@@ -20,8 +20,10 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.spy;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -35,6 +37,7 @@ import org.junit.jupiter.api.Test;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 
+@SuppressWarnings("java:S2925")
 class RingBufferBlockingQueueTest {
 
   @Test
@@ -136,6 +139,60 @@ class RingBufferBlockingQueueTest {
     consumer.shutdownNow();
 
     assertThat(ringBlockingQueue.isEmpty(), is(true));
+  }
+
+  @Test
+  void testFailOffer() {
+    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
+    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.offer(RequestEntry.<Integer>builder().withValue(0).build()));
+  }
+
+  @Test
+  void testFailOfferWithParams() throws InterruptedException {
+    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
+    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.offer(RequestEntry.<Integer>builder().withValue(0).build(), 1, TimeUnit.MILLISECONDS));
+  }
+
+  @Test
+  void testFailPoll() {
+    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
+    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.poll());
+  }
+
+  @Test
+  void testFailPollWithParams() throws InterruptedException {
+    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
+    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.poll(1, TimeUnit.MILLISECONDS));
+  }
+
+  @Test
+  void testFailIterator() {
+    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
+    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.iterator());
+  }
+
+  @Test
+  void testFailAdd() {
+    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
+    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.add(RequestEntry.<Integer>builder().withValue(0).build()));
+  }
+
+  @Test
+  void testFailRemainingCapacity() {
+    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
+    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.remainingCapacity());
+  }
+
+  @Test
+  void testFailDrainTo() {
+    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
+    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.drainTo(Collections.emptyList()));
+  }
+
+  @Test
+  void testFailDrainToWithParams() {
+    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
+    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.drainTo(Collections.emptyList(), 1));
   }
 
 }
