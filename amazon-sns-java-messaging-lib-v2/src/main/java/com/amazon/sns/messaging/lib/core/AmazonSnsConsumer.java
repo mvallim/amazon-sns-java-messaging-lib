@@ -40,6 +40,7 @@ import software.amazon.awssdk.services.sns.model.PublishBatchRequestEntry;
 import software.amazon.awssdk.services.sns.model.PublishBatchResponse;
 
 // @formatter:off
+@SuppressWarnings("java:S6204")
 class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<SnsClient, PublishBatchRequest, PublishBatchResponse, E> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AmazonSnsConsumer.class);

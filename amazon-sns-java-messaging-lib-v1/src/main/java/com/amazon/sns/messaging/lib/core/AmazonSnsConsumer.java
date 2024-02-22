@@ -41,6 +41,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 
 // @formatter:off
+@SuppressWarnings("java:S6204")
 class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishBatchRequest, PublishBatchResult, E> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AmazonSnsConsumer.class);
