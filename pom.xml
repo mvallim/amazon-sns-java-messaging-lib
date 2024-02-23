@@ -40,8 +40,6 @@
 			**/AbstractAmazonSnsProducer.**,
 			**/AbstractAmazonSnsTemplate.**,
 			**/AbstractMessageAttributes.**,
-			**/ListenableFuture.**,
-			**/ListenableFutureRegistry.**,
 			**/model/**,
 			**/package-info.**,
 			**/generated-sources/**,
@@ -322,8 +320,6 @@
 						<exclude>**/AbstractAmazonSnsProducer.**</exclude>
 						<exclude>**/AbstractAmazonSnsTemplate.**</exclude>
 						<exclude>**/AbstractMessageAttributes.**</exclude>
-						<exclude>**/ListenableFuture.**</exclude>
-						<exclude>**/ListenableFutureRegistry.**</exclude>
 						<exclude>**/model/**</exclude>
 						<exclude>**/package-info.**</exclude>
 						<exclude>**/generated-sources/**</exclude>

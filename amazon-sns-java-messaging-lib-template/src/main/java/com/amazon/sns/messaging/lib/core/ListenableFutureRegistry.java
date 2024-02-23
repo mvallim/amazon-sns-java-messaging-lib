@@ -38,11 +38,6 @@ class ListenableFutureRegistry implements ListenableFuture<ResponseSuccessEntry,
     completableFutureFailure.whenComplete((result, throwable) -> internalFailureCallback.accept(result));
   }
 
-  @Override
-  public void addCallback(final Consumer<? super ResponseSuccessEntry> successCallback) {
-    addCallback(successCallback, null);
-  }
-
   public void success(final ResponseSuccessEntry entry) {
     completableFutureSuccess.complete(entry);
   }

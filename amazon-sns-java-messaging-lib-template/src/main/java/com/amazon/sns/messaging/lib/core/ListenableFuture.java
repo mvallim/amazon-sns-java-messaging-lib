@@ -24,7 +24,7 @@ public interface ListenableFuture<S, F> {
   void addCallback(final Consumer<? super S> successCallback, final Consumer<? super F> failureCallback);
 
   default void addCallback(final Consumer<? super S> successCallback) {
-    addCallback(successCallback, failureCallback -> { });
+    addCallback(successCallback, null);
   }
 
 }

@@ -93,20 +93,21 @@ class RingBufferBlockingQueueTest {
     final ExecutorService consumer = Executors.newSingleThreadExecutor();
 
     consumer.submit(() -> {
-      final RequestEntry<Integer> entry = ringBlockingQueue.take();
-      assertThat(entry.getValue(), is(0));
+      assertThat(ringBlockingQueue.take().getValue(), is(0));
+      assertThat(ringBlockingQueue.take().getValue(), is(1));
     });
 
     Thread.sleep(2000);
 
     producer.submit(() -> {
       ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(0).build());
+      ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(1).build());
     });
 
-    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.writeSequence() == 0);
+    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.writeSequence() == 1);
     producer.shutdownNow();
 
-    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.readSequence() == 1);
+    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.readSequence() == 2);
     consumer.shutdownNow();
 
     assertThat(ringBlockingQueue.isEmpty(), is(true));
@@ -180,7 +181,7 @@ class RingBufferBlockingQueueTest {
   @Test
   void testFailRemainingCapacity() {
     final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
-    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.remainingCapacity());
+    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.add(RequestEntry.<Integer>builder().withValue(0).build()));
   }
 
   @Test

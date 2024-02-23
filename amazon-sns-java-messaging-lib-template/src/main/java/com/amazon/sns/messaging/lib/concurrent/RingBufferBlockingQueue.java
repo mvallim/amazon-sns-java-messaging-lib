@@ -26,12 +26,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 
 @SuppressWarnings({ "java:S2274", "unchecked" })
 public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements BlockingQueue<E> {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(RingBufferBlockingQueue.class);
 
   private static final int DEFAULT_CAPACITY = 2048;
 
@@ -62,8 +67,7 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
     this(DEFAULT_CAPACITY);
   }
 
-  @SneakyThrows
-  private void enqueue(final E element) {
+  private void enqueue(final E element) throws InterruptedException {
     while (isFull()) {
       notFull.await();
     }
@@ -74,8 +78,7 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
     notEmpty.signal();
   }
 
-  @SneakyThrows
-  private E dequeue() {
+  private E dequeue() throws InterruptedException {
     while (isEmpty()) {
       notEmpty.await();
     }
@@ -118,6 +121,7 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   }
 
   @Override
+  @SneakyThrows
   public void put(final E element) {
     try {
       reentrantLock.lock();
@@ -128,6 +132,7 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   }
 
   @Override
+  @SneakyThrows
   public E take() {
     try {
       reentrantLock.lock();
@@ -138,12 +143,12 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   }
 
   @Override
-  public boolean offer(final E e) {
+  public boolean offer(final E element) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public boolean offer(final E e, final long timeout, final TimeUnit unit) throws InterruptedException {
+  public boolean offer(final E element, final long timeout, final TimeUnit unit) throws InterruptedException {
     throw new UnsupportedOperationException();
   }
 
@@ -163,7 +168,7 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   }
 
   @Override
-  public boolean add(final E e) {
+  public boolean add(final E element) {
     throw new UnsupportedOperationException();
   }
 
@@ -173,12 +178,12 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   }
 
   @Override
-  public int drainTo(final Collection<? super E> c) {
+  public int drainTo(final Collection<? super E> collection) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public int drainTo(final Collection<? super E> c, final int maxElements) {
+  public int drainTo(final Collection<? super E> collection, final int maxElements) {
     throw new UnsupportedOperationException();
   }
 
