@@ -26,17 +26,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 
 @SuppressWarnings({ "java:S2274", "unchecked" })
 public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements BlockingQueue<E> {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(RingBufferBlockingQueue.class);
 
   private static final int DEFAULT_CAPACITY = 2048;
 
