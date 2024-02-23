@@ -181,7 +181,7 @@ class RingBufferBlockingQueueTest {
   @Test
   void testFailRemainingCapacity() {
     final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
-    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.add(RequestEntry.<Integer>builder().withValue(0).build()));
+    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.remainingCapacity());
   }
 
   @Test
