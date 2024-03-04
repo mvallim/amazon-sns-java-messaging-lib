@@ -39,6 +39,7 @@ abstract class AbstractAmazonSnsTemplate<C, R, O, E> {
   }
 
   public void shutdown() {
+    amazonSnsProducer.shutdown();
     amazonSnsConsumer.shutdown();
   }
 
