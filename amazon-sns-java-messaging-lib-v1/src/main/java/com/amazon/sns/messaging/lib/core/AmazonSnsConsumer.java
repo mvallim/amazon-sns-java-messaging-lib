@@ -38,8 +38,6 @@ import com.amazonaws.services.sns.model.PublishBatchRequestEntry;
 import com.amazonaws.services.sns.model.PublishBatchResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import lombok.SneakyThrows;
-
 // @formatter:off
 @SuppressWarnings("java:S6204")
 class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishBatchRequest, PublishBatchResult, E> {
@@ -98,7 +96,6 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishB
   }
 
   @Override
-  @SneakyThrows
   protected void handleResponse(final PublishBatchResult publishBatchResult) {
     publishBatchResult.getSuccessful().forEach(entry -> {
       final ListenableFutureRegistry listenableFuture = pendingRequests.remove(entry.getId());
