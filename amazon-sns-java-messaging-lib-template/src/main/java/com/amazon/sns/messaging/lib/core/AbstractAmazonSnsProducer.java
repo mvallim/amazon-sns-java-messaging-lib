@@ -16,10 +16,15 @@
 
 package com.amazon.sns.messaging.lib.core;
 
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
@@ -33,6 +38,8 @@ import lombok.SneakyThrows;
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 abstract class AbstractAmazonSnsProducer<E> {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAmazonSnsProducer.class);
+
   private final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests;
 
   private final BlockingQueue<RequestEntry<E>> topicRequests;
@@ -41,20 +48,27 @@ abstract class AbstractAmazonSnsProducer<E> {
 
   @SneakyThrows
   public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry) {
-    final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> trackPendingRequest = trackPendingRequest(requestEntry.getId());
-    CompletableFuture.runAsync(() -> enqueueRequest(requestEntry), executorService);
-    return trackPendingRequest;
+    return CompletableFuture.supplyAsync(() -> enqueueRequest(requestEntry), executorService).get();
   }
 
   @SneakyThrows
-  private void enqueueRequest(final RequestEntry<E> requestEntry) {
-    topicRequests.put(requestEntry);
+  public void shutdown() {
+    LOGGER.warn("Shutdown producer {}", getClass().getSimpleName());
+
+    executorService.shutdown();
+    if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+      LOGGER.warn("Executor service did not terminate in the specified time.");
+      final List<Runnable> droppedTasks = executorService.shutdownNow();
+      LOGGER.warn("Executor service was abruptly shut down. {} tasks will not be executed.", droppedTasks.size());
+    }
   }
 
-  private ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> trackPendingRequest(final String correlationId) {
-    final ListenableFutureRegistry listenableFuture = new ListenableFutureRegistry();
-    pendingRequests.put(correlationId, listenableFuture);
-    return listenableFuture;
+  @SneakyThrows
+  private ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> enqueueRequest(final RequestEntry<E> requestEntry) {
+    final ListenableFutureRegistry trackPendingRequest = new ListenableFutureRegistry();
+    pendingRequests.put(requestEntry.getId(), trackPendingRequest);
+    topicRequests.put(requestEntry);
+    return trackPendingRequest;
   }
 
 }
