@@ -20,8 +20,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 
+import com.amazon.sns.messaging.lib.concurrent.RingBufferBlockingQueue;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.TopicProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,7 +33,7 @@ import software.amazon.awssdk.services.sns.model.PublishBatchResponse;
 // @formatter:off
 public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<SnsClient, PublishBatchRequest, PublishBatchResponse, E> {
 
-  public AmazonSnsTemplate(
+  private AmazonSnsTemplate(
       final SnsClient amazonSnsClient,
       final TopicProperty topicProperty,
       final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
@@ -45,12 +45,16 @@ public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<SnsClient, P
     );
   }
 
+  public AmazonSnsTemplate(final SnsClient amazonSNS, final TopicProperty topicProperty, final BlockingQueue<RequestEntry<E>> topicRequests, final ObjectMapper objectMapper) {
+    this(amazonSNS, topicProperty, new ConcurrentHashMap<>(), topicRequests, objectMapper);
+  }
+
   public AmazonSnsTemplate(final SnsClient amazonSNS, final TopicProperty topicProperty, final BlockingQueue<RequestEntry<E>> topicRequests) {
-    this(amazonSNS, topicProperty, new ConcurrentHashMap<>(), topicRequests, new ObjectMapper());
+    this(amazonSNS, topicProperty, topicRequests, new ObjectMapper());
   }
 
   public AmazonSnsTemplate(final SnsClient amazonSNS, final TopicProperty topicProperty, final ObjectMapper objectMapper) {
-    this(amazonSNS, topicProperty, new ConcurrentHashMap<>(), new LinkedBlockingQueue<>(topicProperty.getMaximumPoolSize() * topicProperty.getMaxBatchSize()), objectMapper);
+    this(amazonSNS, topicProperty, new RingBufferBlockingQueue<>(topicProperty.getMaximumPoolSize() * topicProperty.getMaxBatchSize()), objectMapper);
   }
 
   public AmazonSnsTemplate(final SnsClient amazonSNS, final TopicProperty topicProperty) {

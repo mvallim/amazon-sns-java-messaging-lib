@@ -32,7 +32,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 // @formatter:off
 public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<AmazonSNS, PublishBatchRequest, PublishBatchResult, E> {
 
-  public AmazonSnsTemplate(
+  private AmazonSnsTemplate(
       final AmazonSNS amazonSnsClient,
       final TopicProperty topicProperty,
       final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
@@ -44,12 +44,16 @@ public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<AmazonSNS, P
     );
   }
 
+  public AmazonSnsTemplate(final AmazonSNS amazonSNS, final TopicProperty topicProperty, final BlockingQueue<RequestEntry<E>> topicRequests, final ObjectMapper objectMapper) {
+    this(amazonSNS, topicProperty, new ConcurrentHashMap<>(), topicRequests, objectMapper);
+  }
+
   public AmazonSnsTemplate(final AmazonSNS amazonSNS, final TopicProperty topicProperty, final BlockingQueue<RequestEntry<E>> topicRequests) {
-    this(amazonSNS, topicProperty, new ConcurrentHashMap<>(), topicRequests, new ObjectMapper());
+    this(amazonSNS, topicProperty, topicRequests, new ObjectMapper());
   }
 
   public AmazonSnsTemplate(final AmazonSNS amazonSNS, final TopicProperty topicProperty, final ObjectMapper objectMapper) {
-    this(amazonSNS, topicProperty, new ConcurrentHashMap<>(), new RingBufferBlockingQueue<>(topicProperty.getMaximumPoolSize() * topicProperty.getMaxBatchSize()), objectMapper);
+    this(amazonSNS, topicProperty, new RingBufferBlockingQueue<>(topicProperty.getMaximumPoolSize() * topicProperty.getMaxBatchSize()), objectMapper);
   }
 
   public AmazonSnsTemplate(final AmazonSNS amazonSNS, final TopicProperty topicProperty) {
