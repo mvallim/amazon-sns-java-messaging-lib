@@ -28,6 +28,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.UnaryOperator;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
@@ -58,6 +59,8 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
 
   private final BlockingQueue<RequestEntry<E>> topicRequests;
 
+  private final UnaryOperator<R> publishDecorator;
+
   private final ExecutorService executorService;
 
   protected AbstractAmazonSnsConsumer(
@@ -66,13 +69,15 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
       final ObjectMapper objectMapper,
       final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
       final BlockingQueue<RequestEntry<E>> topicRequests,
-      final ExecutorService executorService) {
+      final ExecutorService executorService,
+      final UnaryOperator<R> publishDecorator) {
 
     this.amazonSnsClient = amazonSnsClient;
     this.topicProperty = topicProperty;
     this.objectMapper = objectMapper;
     this.pendingRequests = pendingRequests;
     this.topicRequests = topicRequests;
+    this.publishDecorator = publishDecorator;
     this.executorService = executorService;
 
     scheduledExecutorService.scheduleAtFixedRate(this, 0, topicProperty.getLinger(), TimeUnit.MILLISECONDS);
@@ -88,7 +93,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
 
   private void doPublish(final R publishBatchRequest) {
     try {
-      handleResponse(publish(publishBatchRequest));
+      handleResponse(publish(publishDecorator.apply(publishBatchRequest)));
     } catch (final Exception ex) {
       handleError(publishBatchRequest, ex);
     }

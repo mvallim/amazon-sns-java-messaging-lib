@@ -21,6 +21,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiFunction;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -53,8 +54,9 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<SnsClient, PublishB
       final ObjectMapper objectMapper,
       final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
       final BlockingQueue<RequestEntry<E>> topicRequests,
-      final ExecutorService executorService) {
-    super(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, executorService);
+      final ExecutorService executorService,
+      final UnaryOperator<PublishBatchRequest> publishDecorator) {
+    super(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator);
   }
 
   @Override
