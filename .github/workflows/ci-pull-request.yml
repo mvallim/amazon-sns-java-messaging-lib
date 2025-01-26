@@ -1,0 +1,41 @@
+name: Create Pull Request
+
+on:
+  workflow_call:
+
+jobs:
+  open-pr:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Create Pull Request (feature)
+      if: startsWith(github.ref, 'refs/heads/feature')
+      uses: peter-evans/create-pull-request@v7
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+        author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
+        commit-message: Auto Pull Request
+        body: Auto-created Pull Request
+        branch: ${{ github.ref }}
+        base: master
+        labels: automatic,feature
+        assignees: ${{ github.actor }}
+        reviewers: mvallim
+
+    - name: Create Pull Request (fix)
+      if: startsWith(github.ref, 'refs/heads/fix')
+      uses: peter-evans/create-pull-request@v7
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+        author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
+        commit-message: Auto Pull Request
+        body: Auto-created Pull Request
+        branch: ${{ github.ref }}
+        base: master
+        labels: automatic,fix
+        assignees: ${{ github.actor }}
+        reviewers: mvallim

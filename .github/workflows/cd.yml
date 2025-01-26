@@ -1,0 +1,21 @@
+name: Publish && Release
+
+on:
+  push:
+      branches:
+      - master
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  snapshot:
+    uses: ./.github/workflows/cd-snapshot.yml
+    secrets: inherit
+
+  release:
+    uses: ./.github/workflows/cd-release.yml
+    secrets: inherit
+
+
