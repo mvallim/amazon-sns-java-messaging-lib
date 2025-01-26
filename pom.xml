@@ -19,22 +19,31 @@
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 		
+		<!-- Dependencies -->
 		<lombok.version>1.18.24</lombok.version>
 		<logback.version>1.3.14</logback.version>
 		<mockito.version>4.11.0</mockito.version>
 		<junit.jupiter.version>5.10.2</junit.jupiter.version>
 		<jackson-databind.version>2.16.1</jackson-databind.version>
 		<jmh.version>1.37</jmh.version>
+		<awaitility.version>4.2.2</awaitility.version>
+		<assertj-core.version>3.24.2</assertj-core.version>
+		<commons-lang3.version>3.17.0</commons-lang3.version>
+		<commons-collections4.version>4.4</commons-collections4.version>
+		<slf4j-api.version>2.0.6</slf4j-api.version>
+		<hamcrest.version>3.0</hamcrest.version>
 		
+		<!-- Plugins -->
 		<maven-clean-plugin.version>3.2.0</maven-clean-plugin.version>
 		<maven-compiler-plugin.version>3.12.1</maven-compiler-plugin.version>
 		<maven-deploy-plugin.version>3.0.0</maven-deploy-plugin.version>
 		<maven-install-plugin.version>3.1.0</maven-install-plugin.version>
-		<maven-release-plugin.version>3.0.1</maven-release-plugin.version>
+		<maven-release-plugin.version>3.1.1</maven-release-plugin.version>
 		<maven-resources-plugin.version>3.3.0</maven-resources-plugin.version>
 		<maven-source-plugin.version>3.2.1</maven-source-plugin.version>
 		<maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
-		<jacoco-maven-plugin.version>0.8.11</jacoco-maven-plugin.version>
+		<jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
+		<sonar-maven-plugin.version>4.0.0.4121</sonar-maven-plugin.version>
 		
 		<sonar.coverage.exclusions>
 			**/AbstractAmazonSnsConsumer.**,
@@ -116,92 +125,108 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>2.0.6</version>
+			<version>${slf4j-api.version}</version>
 		</dependency>
+
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-collections4</artifactId>
-			<version>4.4</version>
+			<version>${commons-collections4.version}</version>
 		</dependency>
+
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
-			<version>3.12.0</version>
+			<version>${commons-lang3.version}</version>
 		</dependency>
+
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
 			<version>${jackson-databind.version}</version>
 		</dependency>
+
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<version>${lombok.version}</version>
 			<scope>provided</scope>
 		</dependency>
+
+		<!-- Scope Test -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
             <version>${junit.jupiter.version}</version>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <version>${junit.jupiter.version}</version>
             <scope>test</scope>
         </dependency>
+
 		<dependency>
 			<groupId>org.hamcrest</groupId>
 			<artifactId>hamcrest</artifactId>
-			<version>2.2</version>
+			<version>${hamcrest.version}</version>
 			<scope>test</scope>
 		</dependency>
+
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-junit-jupiter</artifactId>
 			<version>${mockito.version}</version>
 			<scope>test</scope>
 		</dependency>
+
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
 			<version>${mockito.version}</version>
 			<scope>test</scope>
 		</dependency>
+
 		<dependency>
 			<groupId>org.awaitility</groupId>
 			<artifactId>awaitility</artifactId>
-			<version>4.2.0</version>
+			<version>${awaitility.version}</version>
 			<scope>test</scope>
 		</dependency>
+
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
 			<version>${logback.version}</version>
 			<scope>test</scope>
 		</dependency>
+
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-core</artifactId>
 			<version>${logback.version}</version>
 			<scope>test</scope>
 		</dependency>
+
 		<dependency>
 		    <groupId>org.openjdk.jmh</groupId>
 		    <artifactId>jmh-core</artifactId>
 		    <version>${jmh.version}</version>
 		    <scope>test</scope>
 		</dependency>
+
 		<dependency>
 		    <groupId>org.openjdk.jmh</groupId>
 		    <artifactId>jmh-generator-annprocess</artifactId>
 		    <version>${jmh.version}</version>
 		</dependency>
+
 		<dependency>
 			<groupId>org.assertj</groupId>
 			<artifactId>assertj-core</artifactId>
-			<version>3.24.2</version>
+			<version>${assertj-core.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -264,6 +289,11 @@
 					<artifactId>jacoco-maven-plugin</artifactId>
 					<version>${jacoco-maven-plugin.version}</version>
 				</plugin>
+				<plugin>
+					<groupId>org.sonarsource.scanner.maven</groupId>
+					<artifactId>sonar-maven-plugin</artifactId>
+					<version>${sonar-maven-plugin.version}</version>
+				  </plugin>
 			</plugins>
 		</pluginManagement>
 
@@ -328,15 +358,11 @@
 						<format>XML</format>
 					</formats>
 					<excludes>
-						<exclude>**/AbstractAmazonSnsConsumer.**</exclude>
-						<exclude>**/AbstractAmazonSnsProducer.**</exclude>
-						<exclude>**/AbstractAmazonSnsTemplate.**</exclude>
-						<exclude>**/AbstractMessageAttributes.**</exclude>
 						<exclude>**/model/**</exclude>
 						<exclude>**/package-info.**</exclude>
 						<exclude>**/generated-sources/**</exclude>
 						<exclude>**/generated-test-sources/**</exclude>
-						<exclude>**/src/test/**</exclude>
+						<exclude>**/test/**</exclude>
 					</excludes>
 				</configuration>
 				<executions>
@@ -346,15 +372,22 @@
 							<goal>prepare-agent</goal>
 						</goals>
 						<configuration>
+							<append>true</append>
 							<propertyName>jacoco.argLine</propertyName>
+							<destFile>../target/site/${project.artifactId}/jacoco.exe</destFile>
 						</configuration>
 					</execution>
 					<execution>
 						<id>report</id>
-						<phase>verify</phase>
+						<phase>test</phase>
 						<goals>
 							<goal>report</goal>
 						</goals>
+						<configuration>
+							<append>true</append>
+							<dataFile>../target/site/${project.artifactId}/jacoco.exe</dataFile>
+							<outputDirectory>../target/site/${project.artifactId}</outputDirectory>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>
@@ -396,6 +429,7 @@
 				<java.version>8</java.version>
 			</properties>
 		</profile>
+
 		<profile>
 			<id>11</id>
 			<activation>
@@ -405,6 +439,7 @@
 				<java.version>11</java.version>
 			</properties>
 		</profile>
+
 		<profile>
 			<id>17</id>
 			<activation>
@@ -414,28 +449,54 @@
 				<java.version>17</java.version>
 			</properties>
 		</profile>
+
 		<profile>
-			<id>code-ql</id>
-			<build>
+			<id>sonar</id>
+			<properties>
+				<sonar.organization>mvallim</sonar.organization>
+				<sonar.host.url>https://sonarcloud.io</sonar.host.url>
+				<sonar.token>${env.SONAR_TOKEN}</sonar.token>
+				<sonar.projectKey>${project.artifactId}</sonar.projectKey>
+				<sonar.projectName>${project.artifactId}</sonar.projectName>
+				<sonar.projectVersion>${project.version}</sonar.projectVersion>
+				<sonar.projectBaseDir>.</sonar.projectBaseDir>
+				<sonar.coverage.jacoco.xmlReportPaths>target/site/**/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+				<sonar.sources>src/main/java</sonar.sources>
+				<sonar.tests>src/test/java</sonar.tests>
+				<sonar.inclusions>**/main/**</sonar.inclusions>
+				<sonar.exclusions>**/test/**</sonar.exclusions>
+				<sonar.sourceEncoding>${maven.compile.encoding}</sonar.sourceEncoding>
+				<sonar.scm.exclusions.disabled>false</sonar.scm.exclusions.disabled>
+				<sonar.coverage.exclusions>
+					**/amazon-sns-java-messaging-lib-template/**,
+					**/model/**,
+					**/package-info.**,
+					**/generated-sources/**,
+					**/generated-test-sources/**,
+					**/test/**
+				</sonar.coverage.exclusions>
+			</properties>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
 				<plugins>
 					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.11.0</version>
-						<configuration>
-							<source>${java.version}</source>
-							<target>${java.version}</target>
-							<encoding>${project.build.sourceEncoding}</encoding>
-							<debug>true</debug>
-							<optimize>true</optimize>
-							<showDeprecation>true</showDeprecation>
-							<showWarnings>true</showWarnings>
-							<useIncrementalCompilation>true</useIncrementalCompilation>
-						</configuration>
+						<groupId>org.sonarsource.scanner.maven</groupId>
+						<artifactId>sonar-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sonar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
 					</plugin>
 				</plugins>
 			</build>
 		</profile>
+		
 		<profile>
 			<id>release-sign-artifacts</id>
 			<activation>
@@ -449,7 +510,6 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-gpg-plugin</artifactId>
-						<version>3.0.1</version>
 						<executions>
 							<execution>
 								<id>sign-artifacts</id>
@@ -457,12 +517,19 @@
 								<goals>
 									<goal>sign</goal>
 								</goals>
+								<configuration>
+									<gpgArguments>
+										<arg>--pinentry-mode</arg>
+										<arg>loopback</arg>
+									</gpgArguments>
+								</configuration>
 							</execution>
 						</executions>
 					</plugin>
 				</plugins>
 			</build>
 		</profile>
+
 		<profile>
 			<id>nexus-release</id>
 			<properties>
@@ -485,7 +552,6 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-source-plugin</artifactId>
-						<version>2.2.1</version>
 						<executions>
 							<execution>
 								<phase>package</phase>
@@ -498,7 +564,6 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-javadoc-plugin</artifactId>
-						<version>3.5.0</version>
 						<executions>
 							<execution>
 								<phase>package</phase>
@@ -511,7 +576,6 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-gpg-plugin</artifactId>
-						<version>3.0.1</version>
 						<executions>
 							<execution>
 								<id>sign-artifacts</id>
