@@ -16,6 +16,7 @@
 
 package com.amazon.sns.messaging.lib.core;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
@@ -28,6 +29,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.amazon.sns.messaging.lib.core.RequestEntryInternalFactory.RequestEntryInternal;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
@@ -65,7 +67,7 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<SnsClient, PublishB
   }
 
   @Override
-  protected BiFunction<String, List<RequestEntry<E>>, PublishBatchRequest> supplierPublishRequest() {
+  protected BiFunction<String, List<RequestEntryInternal>, PublishBatchRequest> supplierPublishRequest() {
     return (topicArn, requestEntries) -> {
       final List<PublishBatchRequestEntry> entries = requestEntries.stream()
         .map(entry -> PublishBatchRequestEntry.builder()
@@ -74,7 +76,7 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<SnsClient, PublishB
           .messageGroupId(StringUtils.isNotBlank(entry.getGroupId()) ? entry.getGroupId() : null)
           .messageDeduplicationId(StringUtils.isNotBlank(entry.getDeduplicationId()) ? entry.getDeduplicationId() : null)
           .messageAttributes(messageAttributes.messageAttributes(entry.getMessageHeaders()))
-          .message(convertPayload(entry.getValue()))
+          .message(StandardCharsets.UTF_8.decode(entry.getValue()).toString())
           .build())
         .collect(Collectors.toList());
       return PublishBatchRequest.builder().publishBatchRequestEntries(entries).topicArn(topicArn).build();

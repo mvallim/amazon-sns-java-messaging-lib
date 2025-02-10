@@ -1,0 +1,72 @@
+package com.amazon.sns.messaging.lib.core;
+
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+
+import com.amazon.sns.messaging.lib.model.RequestEntry;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.Builder;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
+import lombok.ToString;
+
+// @formatter:off
+@RequiredArgsConstructor
+final class RequestEntryInternalFactory {
+
+  private final ObjectMapper objectMapper;
+
+  public RequestEntryInternal create(final RequestEntry<?> requestEntry, final byte[] bytes) {
+    return RequestEntryInternal.builder()
+        .withCreateTime(requestEntry.getCreateTime())
+        .withDeduplicationId(requestEntry.getDeduplicationId())
+        .withGroupId(requestEntry.getGroupId())
+        .withId(requestEntry.getId())
+        .withMessageHeaders(requestEntry.getMessageHeaders())
+        .withValue(ByteBuffer.wrap(bytes))
+        .withSubject(requestEntry.getSubject())
+        .build();
+  }
+
+  public RequestEntryInternal create(final RequestEntry<?> requestEntry) {
+    return create(requestEntry, convertPayload(requestEntry));
+  }
+
+  @SneakyThrows
+  public byte[] convertPayload(final RequestEntry<?> requestEntry) {
+    return requestEntry.getValue() instanceof String
+      ? String.class.cast(requestEntry.getValue()).getBytes(StandardCharsets.UTF_8)
+      : objectMapper.writeValueAsBytes(requestEntry.getValue());
+  }
+
+  @Getter
+  @ToString
+  @RequiredArgsConstructor
+  @Builder(setterPrefix = "with")
+  static class RequestEntryInternal {
+
+    private final long createTime;
+
+    private final String id;
+
+    private final ByteBuffer value;
+
+    private final Map<String, Object> messageHeaders;
+
+    private final String subject;
+
+    private final String groupId;
+
+    private final String deduplicationId;
+
+    public int size() {
+      return value.capacity();
+    }
+
+  }
+
+}
+// @formatter:on

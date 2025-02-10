@@ -16,6 +16,7 @@
 
 package com.amazon.sns.messaging.lib.core;
 
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -27,6 +28,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 
@@ -35,6 +37,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.amazon.sns.messaging.lib.core.RequestEntryInternalFactory.RequestEntryInternal;
 import com.amazon.sns.messaging.lib.model.PublishRequestBuilder;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.TopicProperty;
@@ -45,6 +48,10 @@ import lombok.SneakyThrows;
 // @formatter:off
 abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
 
+  private static final Integer KB = 1024;
+
+  private static final Integer BATCH_SIZE_BYTES_THRESHOLD = 256 * KB;
+
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAmazonSnsConsumer.class);
 
   private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
@@ -53,7 +60,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
 
   private final TopicProperty topicProperty;
 
-  private final ObjectMapper objectMapper;
+  private final RequestEntryInternalFactory requestEntryInternalFactory;
 
   protected final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests;
 
@@ -74,7 +81,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
 
     this.amazonSnsClient = amazonSnsClient;
     this.topicProperty = topicProperty;
-    this.objectMapper = objectMapper;
+    this.requestEntryInternalFactory = new RequestEntryInternalFactory(objectMapper);
     this.pendingRequests = pendingRequests;
     this.topicRequests = topicRequests;
     this.publishDecorator = publishDecorator;
@@ -89,7 +96,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
 
   protected abstract void handleResponse(final O publishBatchResult);
 
-  protected abstract BiFunction<String, List<RequestEntry<E>>, R> supplierPublishRequest();
+  protected abstract BiFunction<String, List<RequestEntryInternal>, R> supplierPublishRequest();
 
   private void doPublish(final R publishBatchRequest) {
     try {
@@ -154,11 +161,27 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
   }
 
   @SneakyThrows
+  @SuppressWarnings("java:S135")
   private Optional<R> createBatch(final BlockingQueue<RequestEntry<E>> requests) {
-    final List<RequestEntry<E>> requestEntries = new LinkedList<>();
+    final AtomicInteger batchSizeBytes = new AtomicInteger(0);
+    final List<RequestEntryInternal> requestEntries = new LinkedList<>();
 
-    while (requestEntries.size() < topicProperty.getMaxBatchSize() && Objects.nonNull(requests.peek())) {
-      final RequestEntry<E> requestEntry = requests.take();
+    while ((requestEntries.size() < topicProperty.getMaxBatchSize()) && Objects.nonNull(requests.peek())) {
+      final RequestEntry<E> request = requests.peek();
+
+      final byte[] payload = requestEntryInternalFactory.convertPayload(request);
+
+      if (payload.length > BATCH_SIZE_BYTES_THRESHOLD) {
+        final String value = new String(payload, StandardCharsets.UTF_8);
+        LOGGER.error("The maximum allowed message size exceeding 256KB (262,144 bytes). Payload: {}", value);
+        break;
+      }
+
+      if (batchSizeBytes.addAndGet(payload.length) > BATCH_SIZE_BYTES_THRESHOLD) {
+        break;
+      }
+
+      final RequestEntryInternal requestEntry = requestEntryInternalFactory.create(requests.take(), payload);
       requestEntries.add(requestEntry);
     }
 
@@ -168,7 +191,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
 
     LOGGER.debug("{}", requestEntries);
 
-    return Optional.of(PublishRequestBuilder.<R, RequestEntry<E>>builder()
+    return Optional.of(PublishRequestBuilder.<R, RequestEntryInternal>builder()
       .supplier(supplierPublishRequest())
       .entries(requestEntries)
       .topicArn(topicProperty.getTopicArn())
@@ -184,11 +207,6 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
         sleep(topicProperty.getLinger());
       }
     });
-  }
-
-  @SneakyThrows
-  protected String convertPayload(final E payload) {
-    return payload instanceof String ? payload.toString() : objectMapper.writeValueAsString(payload);
   }
 
   @SneakyThrows
