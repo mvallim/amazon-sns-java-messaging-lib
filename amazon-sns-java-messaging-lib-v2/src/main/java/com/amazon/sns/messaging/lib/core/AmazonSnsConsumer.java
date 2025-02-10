@@ -16,7 +16,6 @@
 
 package com.amazon.sns.messaging.lib.core;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
@@ -76,7 +75,7 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<SnsClient, PublishB
           .messageGroupId(StringUtils.isNotBlank(entry.getGroupId()) ? entry.getGroupId() : null)
           .messageDeduplicationId(StringUtils.isNotBlank(entry.getDeduplicationId()) ? entry.getDeduplicationId() : null)
           .messageAttributes(messageAttributes.messageAttributes(entry.getMessageHeaders()))
-          .message(StandardCharsets.UTF_8.decode(entry.getValue()).toString())
+          .message(entry.getMessage())
           .build())
         .collect(Collectors.toList());
       return PublishBatchRequest.builder().publishBatchRequestEntries(entries).topicArn(topicArn).build();

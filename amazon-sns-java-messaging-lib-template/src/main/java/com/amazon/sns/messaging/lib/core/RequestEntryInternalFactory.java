@@ -23,6 +23,7 @@ import java.util.Map;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -68,6 +69,7 @@ final class RequestEntryInternalFactory {
 
     private final String id;
 
+    @Getter(value = AccessLevel.PRIVATE)
     private final ByteBuffer value;
 
     private final Map<String, Object> messageHeaders;
@@ -80,6 +82,10 @@ final class RequestEntryInternalFactory {
 
     public int size() {
       return value.capacity();
+    }
+
+    public String getMessage() {
+      return StandardCharsets.UTF_8.decode(value).toString();
     }
 
   }

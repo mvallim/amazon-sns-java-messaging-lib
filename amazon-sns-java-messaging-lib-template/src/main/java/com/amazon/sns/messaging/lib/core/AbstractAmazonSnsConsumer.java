@@ -16,6 +16,7 @@
 
 package com.amazon.sns.messaging.lib.core;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
@@ -161,28 +162,39 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
   }
 
   @SneakyThrows
-  @SuppressWarnings("java:S135")
+  private void validatePayloadSize(final byte[] payload) {
+    if (payload.length > BATCH_SIZE_BYTES_THRESHOLD) {
+      final String value = new String(payload, StandardCharsets.UTF_8);
+      final String message = String.format("The maximum allowed message size exceeding 256KB (262,144 bytes). Payload: %s", value);
+      throw new IOException(message);
+    }
+  }
+
+  private boolean canAddToBatch(final int batchSizeBytes, final int requestEntriesSize, final RequestEntry<E> request) {
+    return (batchSizeBytes < BATCH_SIZE_BYTES_THRESHOLD)
+      && (requestEntriesSize < topicProperty.getMaxBatchSize())
+      && Objects.nonNull(request);
+  }
+
+  private boolean canAddPayload(final int batchSizeBytes) {
+    return batchSizeBytes <= BATCH_SIZE_BYTES_THRESHOLD;
+  }
+
+  @SneakyThrows
   private Optional<R> createBatch(final BlockingQueue<RequestEntry<E>> requests) {
     final AtomicInteger batchSizeBytes = new AtomicInteger(0);
     final List<RequestEntryInternal> requestEntries = new LinkedList<>();
 
-    while ((requestEntries.size() < topicProperty.getMaxBatchSize()) && Objects.nonNull(requests.peek())) {
+    while (canAddToBatch(batchSizeBytes.get(), requestEntries.size(), requests.peek())) {
       final RequestEntry<E> request = requests.peek();
 
       final byte[] payload = requestEntryInternalFactory.convertPayload(request);
 
-      if (payload.length > BATCH_SIZE_BYTES_THRESHOLD) {
-        final String value = new String(payload, StandardCharsets.UTF_8);
-        LOGGER.error("The maximum allowed message size exceeding 256KB (262,144 bytes). Payload: {}", value);
-        break;
-      }
+      validatePayloadSize(payload);
 
-      if (batchSizeBytes.addAndGet(payload.length) > BATCH_SIZE_BYTES_THRESHOLD) {
-        break;
+      if (canAddPayload(batchSizeBytes.addAndGet(payload.length))) {
+        requestEntries.add(requestEntryInternalFactory.create(requests.take(), payload));
       }
-
-      final RequestEntryInternal requestEntry = requestEntryInternalFactory.create(requests.take(), payload);
-      requestEntries.add(requestEntry);
     }
 
     if (requestEntries.isEmpty()) {
