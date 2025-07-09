@@ -1,4 +1,4 @@
-name: SonarCloud and CodeQL Analysis
+name: SonarCloud
 
 on:
   workflow_call:

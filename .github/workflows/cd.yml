@@ -1,21 +1,64 @@
-name: Publish && Release
+name: Snapshot && Release
 
 on:
-  push:
-      branches:
+  pull_request_target:
+    branches:
+      - develop
       - master
+    types:
+      - closed
 
 permissions:
-  contents: read
-  packages: write
+  contents: write
+  pull-requests: write
+
+env:
+  TYPE: ${{ startsWith(github.ref_name, 'develop') && 'snapshot' || 'release'}}
 
 jobs:
-  snapshot:
-    uses: ./.github/workflows/cd-snapshot.yml
+  set-outputs:
+    runs-on: ubuntu-latest
+    outputs:
+      type: ${{ steps.environment.outputs.type }}
+    steps:
+      - id: environment
+        name: Set output environment passed to the reusable workflow
+        run: |
+          echo "type=$TYPE" >> $GITHUB_OUTPUT
+          
+  ci:
+    if: ${{ github.event.pull_request.merged == true }}
+    uses: ./.github/workflows/ci-maven.yml
     secrets: inherit
+
+  gates:
+    needs: ci
+    if: success()
+    uses: ./.github/workflows/ci-gates.yml
+    secrets: inherit
+
+  snapshot:
+    needs: [gates, set-outputs]
+    if: ${{ needs.set-outputs.outputs.type == 'snapshot' }}
+    uses: ./.github/workflows/cd-deploy.yml
+    secrets: inherit
+    with:
+      environment: ${{ needs.set-outputs.outputs.type }}
 
   release:
-    uses: ./.github/workflows/cd-release.yml
+    needs: [gates, set-outputs]
+    if: ${{ needs.set-outputs.outputs.type == 'release' }}
+    uses: ./.github/workflows/cd-deploy.yml
     secrets: inherit
+    with:
+      environment: ${{ needs.set-outputs.outputs.type }}
 
-
+  pull-request:
+    needs: [snapshot, set-outputs]
+    if: ${{ needs.set-outputs.outputs.type == 'snapshot' }}
+    uses: ./.github/workflows/ci-pull-request.yml
+    secrets: inherit
+    with:
+      type: Release
+      labels: automatic,release
+      target-branch: master
