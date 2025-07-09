@@ -11,4 +11,6 @@
 
 	<artifactId>amazon-sns-java-messaging-lib-template</artifactId>
 
+	<name>${project.artifactId}</name>
+
 </project>

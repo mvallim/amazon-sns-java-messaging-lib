@@ -10,6 +10,8 @@
 	</parent>
 	
 	<artifactId>amazon-sns-java-messaging-lib-v1</artifactId>
+
+	<name>${project.artifactId}</name>
 	
 	<properties>
 		<aws-java-sdk-bom.version>1.12.661</aws-java-sdk-bom.version>
