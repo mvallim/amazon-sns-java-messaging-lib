@@ -1,0 +1,38 @@
+name: Create Pull Request
+
+on:
+  workflow_call:
+    inputs:
+      target-branch:
+        description: Target branch
+        type: string
+        required: true
+      labels:
+        description: Labels to PR
+        type: string
+        required: true
+      type:
+        description: PR Type
+        type: string
+        required: true
+
+jobs:
+  open-pr:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Create Pull Request (${{ inputs.type }})
+      uses: peter-evans/create-pull-request@v7
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+        author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
+        commit-message: Auto Pull Request (${{ inputs.type }})
+        body: Auto-created Pull Request
+        branch: ${{ github.ref }}
+        base: ${{ inputs.target-branch }}
+        labels: ${{ inputs.labels }}
+        assignees: ${{ github.actor }}
+        reviewers: mvallim

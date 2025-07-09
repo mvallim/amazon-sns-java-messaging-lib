@@ -1,41 +1,55 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
 	<modelVersion>4.0.0</modelVersion>
-	
+
 	<groupId>com.github.mvallim</groupId>
 	<artifactId>amazon-sns-java-messaging-lib</artifactId>
 	<version>1.0.7-SNAPSHOT</version>
 	<packaging>pom</packaging>
-	
-	<name>amazon-sns-java-messaging-lib</name>
-	
+
+	<name>${project.artifactId}</name>
+
 	<properties>
 		<project.build.outputEncoding>UTF-8</project.build.outputEncoding>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<project.reporting.sourceEncoding>UTF-8</project.reporting.sourceEncoding>
-		
+
 		<maven.compile.encoding>UTF-8</maven.compile.encoding>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
-		
+
+		<!-- Dependencies -->
 		<lombok.version>1.18.24</lombok.version>
 		<logback.version>1.3.14</logback.version>
 		<mockito.version>4.11.0</mockito.version>
 		<junit.jupiter.version>5.10.2</junit.jupiter.version>
 		<jackson-databind.version>2.16.1</jackson-databind.version>
 		<jmh.version>1.37</jmh.version>
-		
+		<awaitility.version>4.2.2</awaitility.version>
+		<assertj-core.version>3.24.2</assertj-core.version>
+		<commons-lang3.version>3.17.0</commons-lang3.version>
+		<commons-collections4.version>4.5.0</commons-collections4.version>
+		<slf4j-api.version>2.0.6</slf4j-api.version>
+		<hamcrest.version>3.0</hamcrest.version>
+
+		<!-- Plugins -->
 		<maven-clean-plugin.version>3.2.0</maven-clean-plugin.version>
 		<maven-compiler-plugin.version>3.12.1</maven-compiler-plugin.version>
 		<maven-deploy-plugin.version>3.0.0</maven-deploy-plugin.version>
 		<maven-install-plugin.version>3.1.0</maven-install-plugin.version>
-		<maven-release-plugin.version>3.0.1</maven-release-plugin.version>
+		<maven-release-plugin.version>3.1.1</maven-release-plugin.version>
 		<maven-resources-plugin.version>3.3.0</maven-resources-plugin.version>
 		<maven-source-plugin.version>3.2.1</maven-source-plugin.version>
 		<maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
-		<jacoco-maven-plugin.version>0.8.11</jacoco-maven-plugin.version>
-		
+		<maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
+		<maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
+		<jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
+		<sonar-maven-plugin.version>4.0.0.4121</sonar-maven-plugin.version>
+		<central-publishing-maven-plugin.version>0.8.0</central-publishing-maven-plugin.version>
+
 		<sonar.coverage.exclusions>
 			**/AbstractAmazonSnsConsumer.**,
 			**/AbstractAmazonSnsProducer.**,
@@ -47,7 +61,7 @@
 			**/generated-test-sources/**,
 			**/src/test/**
 		</sonar.coverage.exclusions>
-		
+
 		<sonar.exclusions>
 			**/src/test/**
 		</sonar.exclusions>
@@ -58,23 +72,23 @@
 		<module>amazon-sns-java-messaging-lib-v1</module>
 		<module>amazon-sns-java-messaging-lib-v2</module>
 	</modules>
-	
+
 	<scm>
 		<url>scm:git:git@github.com:mvallim/amazon-sns-java-messaging-lib</url>
 		<connection>scm:git:git@github.com:mvallim/amazon-sns-java-messaging-lib</connection>
 		<developerConnection>scm:git:git@github.com:mvallim/amazon-sns-java-messaging-lib</developerConnection>
 		<tag>HEAD</tag>
 	</scm>
-	
+
 	<description>Request Batch combine multiple requests to optimally utilise the network.</description>
 	<url>https://github.com/mvallim/amazon-sns-java-messaging-lib</url>
 	<inceptionYear>2022</inceptionYear>
-	
+
 	<organization>
 		<name>com.github.mvallim</name>
 		<url>https://github.com/mvallim</url>
 	</organization>
-	
+
 	<developers>
 		<developer>
 			<name>Marcos Tischer Vallim</name>
@@ -82,7 +96,7 @@
 			<timezone>-3</timezone>
 		</developer>
 	</developers>
-	
+
 	<licenses>
 		<license>
 			<name>Apache 2</name>
@@ -111,97 +125,113 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
-	
+
 	<dependencies>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>2.0.6</version>
+			<version>${slf4j-api.version}</version>
 		</dependency>
+
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-collections4</artifactId>
-			<version>4.4</version>
+			<version>${commons-collections4.version}</version>
 		</dependency>
+
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
-			<version>3.12.0</version>
+			<version>${commons-lang3.version}</version>
 		</dependency>
+
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
 			<version>${jackson-databind.version}</version>
 		</dependency>
+
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<version>${lombok.version}</version>
 			<scope>provided</scope>
 		</dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>${junit.jupiter.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <version>${junit.jupiter.version}</version>
-            <scope>test</scope>
-        </dependency>
+
+		<!-- Scope Test -->
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-engine</artifactId>
+			<version>${junit.jupiter.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<version>${junit.jupiter.version}</version>
+			<scope>test</scope>
+		</dependency>
+
 		<dependency>
 			<groupId>org.hamcrest</groupId>
 			<artifactId>hamcrest</artifactId>
-			<version>2.2</version>
+			<version>${hamcrest.version}</version>
 			<scope>test</scope>
 		</dependency>
+
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-junit-jupiter</artifactId>
 			<version>${mockito.version}</version>
 			<scope>test</scope>
 		</dependency>
+
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
 			<version>${mockito.version}</version>
 			<scope>test</scope>
 		</dependency>
+
 		<dependency>
 			<groupId>org.awaitility</groupId>
 			<artifactId>awaitility</artifactId>
-			<version>4.2.0</version>
+			<version>${awaitility.version}</version>
 			<scope>test</scope>
 		</dependency>
+
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
 			<version>${logback.version}</version>
 			<scope>test</scope>
 		</dependency>
+
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-core</artifactId>
 			<version>${logback.version}</version>
 			<scope>test</scope>
 		</dependency>
+
 		<dependency>
-		    <groupId>org.openjdk.jmh</groupId>
-		    <artifactId>jmh-core</artifactId>
-		    <version>${jmh.version}</version>
-		    <scope>test</scope>
+			<groupId>org.openjdk.jmh</groupId>
+			<artifactId>jmh-core</artifactId>
+			<version>${jmh.version}</version>
+			<scope>test</scope>
 		</dependency>
+
 		<dependency>
-		    <groupId>org.openjdk.jmh</groupId>
-		    <artifactId>jmh-generator-annprocess</artifactId>
-		    <version>${jmh.version}</version>
+			<groupId>org.openjdk.jmh</groupId>
+			<artifactId>jmh-generator-annprocess</artifactId>
+			<version>${jmh.version}</version>
 		</dependency>
+
 		<dependency>
 			<groupId>org.assertj</groupId>
 			<artifactId>assertj-core</artifactId>
-			<version>3.24.2</version>
+			<version>${assertj-core.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -216,7 +246,7 @@
 				</includes>
 			</resource>
 		</resources>
-		
+
 		<pluginManagement>
 			<plugins>
 				<plugin>
@@ -260,9 +290,29 @@
 					<version>${maven-surefire-plugin.version}</version>
 				</plugin>
 				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-javadoc-plugin</artifactId>
+					<version>${maven-javadoc-plugin.version}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-gpg-plugin</artifactId>
+					<version>${maven-gpg-plugin.version}</version>
+				</plugin>
+				<plugin>
 					<groupId>org.jacoco</groupId>
 					<artifactId>jacoco-maven-plugin</artifactId>
 					<version>${jacoco-maven-plugin.version}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.sonarsource.scanner.maven</groupId>
+					<artifactId>sonar-maven-plugin</artifactId>
+					<version>${sonar-maven-plugin.version}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.sonatype.central</groupId>
+					<artifactId>central-publishing-maven-plugin</artifactId>
+					<version>${central-publishing-maven-plugin.version}</version>
 				</plugin>
 			</plugins>
 		</pluginManagement>
@@ -285,16 +335,6 @@
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-release-plugin</artifactId>
-				<configuration>
-					<localCheckout>true</localCheckout>
-					<pushChanges>false</pushChanges>
-					<mavenExecutorId>forked-path</mavenExecutorId>
-					<arguments>-Dgpg.passphrase=${gpg.passphrase}</arguments>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-resources-plugin</artifactId>
 				<configuration>
 					<encoding>${project.build.sourceEncoding}</encoding>
@@ -302,22 +342,10 @@
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-source-plugin</artifactId>
-				<inherited>true</inherited>
-				<executions>
-					<execution>
-						<id>attach-source</id>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
-					<argLine>${jacoco.argLine} -Dfile.encoding=${project.build.sourceEncoding} -Xms1024m -Xmx1024m</argLine>
+					<argLine>${jacoco.argLine} -Dfile.encoding=${project.build.sourceEncoding}
+						-Xms1024m -Xmx1024m</argLine>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -328,15 +356,11 @@
 						<format>XML</format>
 					</formats>
 					<excludes>
-						<exclude>**/AbstractAmazonSnsConsumer.**</exclude>
-						<exclude>**/AbstractAmazonSnsProducer.**</exclude>
-						<exclude>**/AbstractAmazonSnsTemplate.**</exclude>
-						<exclude>**/AbstractMessageAttributes.**</exclude>
 						<exclude>**/model/**</exclude>
 						<exclude>**/package-info.**</exclude>
 						<exclude>**/generated-sources/**</exclude>
 						<exclude>**/generated-test-sources/**</exclude>
-						<exclude>**/src/test/**</exclude>
+						<exclude>**/test/**</exclude>
 					</excludes>
 				</configuration>
 				<executions>
@@ -346,15 +370,22 @@
 							<goal>prepare-agent</goal>
 						</goals>
 						<configuration>
+							<append>true</append>
 							<propertyName>jacoco.argLine</propertyName>
+							<destFile>../target/site/${project.artifactId}/jacoco.exe</destFile>
 						</configuration>
 					</execution>
 					<execution>
 						<id>report</id>
-						<phase>verify</phase>
+						<phase>test</phase>
 						<goals>
 							<goal>report</goal>
 						</goals>
+						<configuration>
+							<append>true</append>
+							<dataFile>../target/site/${project.artifactId}/jacoco.exe</dataFile>
+							<outputDirectory>../target/site/${project.artifactId}</outputDirectory>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>
@@ -375,11 +406,11 @@
 							<artifactId>lombok</artifactId>
 							<version>${lombok.version}</version>
 						</annotationProcessorPath>
-			            <annotationProcessorPath>
-		                    <groupId>org.openjdk.jmh</groupId>
-		                    <artifactId>jmh-generator-annprocess</artifactId>
-		                    <version>${jmh.version}</version>
-			            </annotationProcessorPath>
+						<annotationProcessorPath>
+							<groupId>org.openjdk.jmh</groupId>
+							<artifactId>jmh-generator-annprocess</artifactId>
+							<version>${jmh.version}</version>
+						</annotationProcessorPath>
 					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
@@ -396,6 +427,7 @@
 				<java.version>8</java.version>
 			</properties>
 		</profile>
+
 		<profile>
 			<id>11</id>
 			<activation>
@@ -405,6 +437,7 @@
 				<java.version>11</java.version>
 			</properties>
 		</profile>
+
 		<profile>
 			<id>17</id>
 			<activation>
@@ -414,42 +447,96 @@
 				<java.version>17</java.version>
 			</properties>
 		</profile>
+
 		<profile>
-			<id>code-ql</id>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.11.0</version>
-						<configuration>
-							<source>${java.version}</source>
-							<target>${java.version}</target>
-							<encoding>${project.build.sourceEncoding}</encoding>
-							<debug>true</debug>
-							<optimize>true</optimize>
-							<showDeprecation>true</showDeprecation>
-							<showWarnings>true</showWarnings>
-							<useIncrementalCompilation>true</useIncrementalCompilation>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-		<profile>
-			<id>release-sign-artifacts</id>
+			<id>sonar</id>
+			<properties>
+				<sonar.organization>mvallim</sonar.organization>
+				<sonar.host.url>https://sonarcloud.io</sonar.host.url>
+				<sonar.token>${env.SONAR_TOKEN}</sonar.token>
+				<sonar.projectKey>${project.artifactId}</sonar.projectKey>
+				<sonar.projectName>${project.artifactId}</sonar.projectName>
+				<sonar.projectVersion>${project.version}</sonar.projectVersion>
+				<sonar.projectBaseDir>.</sonar.projectBaseDir>
+				<sonar.coverage.jacoco.xmlReportPaths>target/site/**/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+				<sonar.sources>src/main/java</sonar.sources>
+				<sonar.tests>src/test/java</sonar.tests>
+				<sonar.inclusions>**/main/**</sonar.inclusions>
+				<sonar.exclusions>**/test/**</sonar.exclusions>
+				<sonar.sourceEncoding>${maven.compile.encoding}</sonar.sourceEncoding>
+				<sonar.scm.exclusions.disabled>false</sonar.scm.exclusions.disabled>
+				<sonar.coverage.exclusions>
+					**/amazon-sns-java-messaging-lib-template/**,
+					**/model/**,
+					**/package-info.**,
+					**/generated-sources/**,
+					**/generated-test-sources/**,
+					**/test/**
+				</sonar.coverage.exclusions>
+			</properties>
 			<activation>
-				<property>
-					<name>performRelease</name>
-					<value>true</value>
-				</property>
+				<activeByDefault>false</activeByDefault>
 			</activation>
 			<build>
 				<plugins>
 					<plugin>
+						<groupId>org.sonarsource.scanner.maven</groupId>
+						<artifactId>sonar-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<phase>verify</phase>
+								<goals>
+									<goal>sonar</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
+		<profile>
+			<id>snapshot</id>
+			<properties>
+				<java.version>8</java.version>
+				<maven.test.skip>true</maven.test.skip>
+			</properties>
+			<distributionManagement>
+				<snapshotRepository>
+					<id>sonatype-central</id>
+					<layout>default</layout>
+					<url>https://central.sonatype.com/repository/maven-snapshots/</url>
+				</snapshotRepository>
+			</distributionManagement>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-source-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>attach-sources</id>
+								<goals>
+									<goal>jar-no-fork</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-javadoc-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>attach-javadocs</id>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-gpg-plugin</artifactId>
-						<version>3.0.1</version>
 						<executions>
 							<execution>
 								<id>sign-artifacts</id>
@@ -463,32 +550,41 @@
 				</plugins>
 			</build>
 		</profile>
+
 		<profile>
-			<id>nexus-release</id>
+			<id>release</id>
 			<properties>
 				<java.version>8</java.version>
+				<maven.test.skip>true</maven.test.skip>
 			</properties>
-			<distributionManagement>
-				<snapshotRepository>
-					<id>nexus-release</id>
-					<layout>default</layout>
-					<url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-				</snapshotRepository>
-				<repository>
-					<id>nexus-release</id>
-					<layout>default</layout>
-					<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-				</repository>
-			</distributionManagement>
 			<build>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-release-plugin</artifactId>
+						<configuration>
+							<autoVersionSubmodules>true</autoVersionSubmodules>
+							<useReleaseProfile>false</useReleaseProfile>
+							<pushChanges>false</pushChanges>
+							<releaseVersion>${env.RELEASE_VERSION}</releaseVersion>
+							<tag>${env.RELEASE_TAG}</tag>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.sonatype.central</groupId>
+						<artifactId>central-publishing-maven-plugin</artifactId>
+						<extensions>true</extensions>
+						<configuration>
+							<publishingServerId>sonatype-central</publishingServerId>
+							<autoPublish>false</autoPublish>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-source-plugin</artifactId>
-						<version>2.2.1</version>
 						<executions>
 							<execution>
-								<phase>package</phase>
+								<id>attach-sources</id>
 								<goals>
 									<goal>jar-no-fork</goal>
 								</goals>
@@ -498,10 +594,9 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-javadoc-plugin</artifactId>
-						<version>3.5.0</version>
 						<executions>
 							<execution>
-								<phase>package</phase>
+								<id>attach-javadocs</id>
 								<goals>
 									<goal>jar</goal>
 								</goals>
@@ -511,7 +606,6 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-gpg-plugin</artifactId>
-						<version>3.0.1</version>
 						<executions>
 							<execution>
 								<id>sign-artifacts</id>

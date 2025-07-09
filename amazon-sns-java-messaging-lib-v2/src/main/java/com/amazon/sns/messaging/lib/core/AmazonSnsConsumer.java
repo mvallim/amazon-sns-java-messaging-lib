@@ -21,12 +21,14 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiFunction;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.amazon.sns.messaging.lib.core.RequestEntryInternalFactory.RequestEntryInternal;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
@@ -53,8 +55,9 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<SnsClient, PublishB
       final ObjectMapper objectMapper,
       final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
       final BlockingQueue<RequestEntry<E>> topicRequests,
-      final ExecutorService executorService) {
-    super(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, executorService);
+      final ExecutorService executorService,
+      final UnaryOperator<PublishBatchRequest> publishDecorator) {
+    super(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator);
   }
 
   @Override
@@ -63,7 +66,7 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<SnsClient, PublishB
   }
 
   @Override
-  protected BiFunction<String, List<RequestEntry<E>>, PublishBatchRequest> supplierPublishRequest() {
+  protected BiFunction<String, List<RequestEntryInternal>, PublishBatchRequest> supplierPublishRequest() {
     return (topicArn, requestEntries) -> {
       final List<PublishBatchRequestEntry> entries = requestEntries.stream()
         .map(entry -> PublishBatchRequestEntry.builder()
@@ -72,7 +75,7 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<SnsClient, PublishB
           .messageGroupId(StringUtils.isNotBlank(entry.getGroupId()) ? entry.getGroupId() : null)
           .messageDeduplicationId(StringUtils.isNotBlank(entry.getDeduplicationId()) ? entry.getDeduplicationId() : null)
           .messageAttributes(messageAttributes.messageAttributes(entry.getMessageHeaders()))
-          .message(convertPayload(entry.getValue()))
+          .message(entry.getMessage())
           .build())
         .collect(Collectors.toList());
       return PublishBatchRequest.builder().publishBatchRequestEntries(entries).topicArn(topicArn).build();

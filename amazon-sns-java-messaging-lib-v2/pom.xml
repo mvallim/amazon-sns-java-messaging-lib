@@ -11,6 +11,8 @@
 	
 	<artifactId>amazon-sns-java-messaging-lib-v2</artifactId>
 
+	<name>${project.artifactId}</name>
+
 	<properties>
 		<aws-java-sdk-bom.version>2.20.162</aws-java-sdk-bom.version>
 	</properties>
