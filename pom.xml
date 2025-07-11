@@ -1,12 +1,10 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.github.mvallim</groupId>
 	<artifactId>amazon-sns-java-messaging-lib</artifactId>
-	<version>1.0.7-SNAPSHOT</version>
+	<version>1.0.7</version>
 	<packaging>pom</packaging>
 
 	<name>${project.artifactId}</name>
@@ -77,7 +75,7 @@
 		<url>scm:git:https://github.com/mvallim/amazon-sns-java-messaging-lib.git</url>
 		<connection>scm:git:https://github.com/mvallim/amazon-sns-java-messaging-lib.git</connection>
 		<developerConnection>scm:git:https://github.com/mvallim/amazon-sns-java-messaging-lib.git</developerConnection>
-		<tag>HEAD</tag>
+		<tag>v1.0.7</tag>
 	</scm>
 
 	<description>Request Batch combine multiple requests to optimally utilise the network.</description>
