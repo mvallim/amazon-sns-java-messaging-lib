@@ -20,6 +20,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
+import java.util.function.UnaryOperator;
 
 import com.amazon.sns.messaging.lib.concurrent.RingBufferBlockingQueue;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
@@ -38,27 +39,44 @@ public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<SnsClient, P
       final TopicProperty topicProperty,
       final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
       final BlockingQueue<RequestEntry<E>> topicRequests,
-      final ObjectMapper objectMapper) {
+      final ObjectMapper objectMapper,
+      final UnaryOperator<PublishBatchRequest> publishDecorator) {
     super(
       new AmazonSnsProducer<>(pendingRequests, topicRequests, Executors.newSingleThreadExecutor()),
-      new AmazonSnsConsumer<>(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, getAmazonSnsThreadPoolExecutor(topicProperty))
+      new AmazonSnsConsumer<>(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, getAmazonSnsThreadPoolExecutor(topicProperty), publishDecorator)
     );
   }
 
-  public AmazonSnsTemplate(final SnsClient amazonSNS, final TopicProperty topicProperty, final BlockingQueue<RequestEntry<E>> topicRequests, final ObjectMapper objectMapper) {
-    this(amazonSNS, topicProperty, new ConcurrentHashMap<>(), topicRequests, objectMapper);
+  public AmazonSnsTemplate(final SnsClient amazonSnsClient, final TopicProperty topicProperty) {
+    this(amazonSnsClient, topicProperty, UnaryOperator.identity());
   }
 
-  public AmazonSnsTemplate(final SnsClient amazonSNS, final TopicProperty topicProperty, final BlockingQueue<RequestEntry<E>> topicRequests) {
-    this(amazonSNS, topicProperty, topicRequests, new ObjectMapper());
+  public AmazonSnsTemplate(final SnsClient amazonSnsClient, final TopicProperty topicProperty, final UnaryOperator<PublishBatchRequest> publishDecorator) {
+    this(amazonSnsClient, topicProperty, new ObjectMapper(), publishDecorator);
   }
 
-  public AmazonSnsTemplate(final SnsClient amazonSNS, final TopicProperty topicProperty, final ObjectMapper objectMapper) {
-    this(amazonSNS, topicProperty, new RingBufferBlockingQueue<>(topicProperty.getMaximumPoolSize() * topicProperty.getMaxBatchSize()), objectMapper);
+  public AmazonSnsTemplate(final SnsClient amazonSnsClient, final TopicProperty topicProperty, final BlockingQueue<RequestEntry<E>> topicRequests) {
+    this(amazonSnsClient, topicProperty, topicRequests, UnaryOperator.identity());
   }
 
-  public AmazonSnsTemplate(final SnsClient amazonSNS, final TopicProperty topicProperty) {
-    this(amazonSNS, topicProperty, new ObjectMapper());
+  public AmazonSnsTemplate(final SnsClient amazonSnsClient, final TopicProperty topicProperty, final BlockingQueue<RequestEntry<E>> topicRequests, final UnaryOperator<PublishBatchRequest> publishDecorator) {
+    this(amazonSnsClient, topicProperty, topicRequests, new ObjectMapper(), publishDecorator);
+  }
+
+  public AmazonSnsTemplate(final SnsClient amazonSnsClient, final TopicProperty topicProperty, final ObjectMapper objectMapper) {
+    this(amazonSnsClient, topicProperty, objectMapper, UnaryOperator.identity());
+  }
+
+  public AmazonSnsTemplate(final SnsClient amazonSnsClient, final TopicProperty topicProperty, final ObjectMapper objectMapper, final UnaryOperator<PublishBatchRequest> publishDecorator) {
+    this(amazonSnsClient, topicProperty, new RingBufferBlockingQueue<>(topicProperty.getMaximumPoolSize() * topicProperty.getMaxBatchSize()), objectMapper, publishDecorator);
+  }
+
+  public AmazonSnsTemplate(final SnsClient amazonSnsClient, final TopicProperty topicProperty, final BlockingQueue<RequestEntry<E>> topicRequests, final ObjectMapper objectMapper) {
+    this(amazonSnsClient, topicProperty, topicRequests, objectMapper, UnaryOperator.identity());
+  }
+
+  public AmazonSnsTemplate(final SnsClient amazonSnsClient, final TopicProperty topicProperty, final BlockingQueue<RequestEntry<E>> topicRequests, final ObjectMapper objectMapper, final UnaryOperator<PublishBatchRequest> publishDecorator) {
+    this(amazonSnsClient, topicProperty, new ConcurrentHashMap<>(), topicRequests, objectMapper, publishDecorator);
   }
 
 }

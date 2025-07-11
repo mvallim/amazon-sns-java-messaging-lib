@@ -1,0 +1,55 @@
+name: Build and Pull Request
+
+on:
+  push:
+    branches:
+      - feature/**
+      - fix/**
+    paths-ignore:
+      - "**/README.md"
+      - "**/CONTRIBUTING.md"
+      - "**/CONTRIBUTORS.txt"
+      - "**/LICENSE"
+
+env:
+  TYPE: ${{ startsWith(github.ref_name, 'feature') && 'Feature' || 'Fix'}}
+  LABELS: ${{ startsWith(github.ref_name, 'feature') && 'automatic,feature' || 'automatic,fix' }}
+  TARGET_BRANCH: develop
+
+permissions:
+  pull-requests: write
+
+jobs:
+  set-outputs:
+    runs-on: ubuntu-latest
+    outputs:
+      type: ${{ steps.environment.outputs.type }}
+      labels: ${{ steps.environment.outputs.labels }}
+      target-branch: ${{ steps.environment.outputs.target-branch }}
+    steps:
+      - id: environment
+        name: Set output environment passed to the reusable workflow
+        run: |
+          echo "type=$TYPE" >> $GITHUB_OUTPUT
+          echo "labels=$LABELS" >> $GITHUB_OUTPUT
+          echo "target-branch=$TARGET_BRANCH" >> $GITHUB_OUTPUT
+
+  ci:
+    uses: ./.github/workflows/ci-maven.yml
+    secrets: inherit
+
+  gates:
+    needs: ci
+    if: success()
+    uses: ./.github/workflows/ci-gates.yml
+    secrets: inherit
+  
+  pull-request:
+    needs: [gates, set-outputs]
+    if: success()
+    uses: ./.github/workflows/ci-pull-request.yml
+    secrets: inherit
+    with:
+      type: ${{ needs.set-outputs.outputs.type }}
+      labels: ${{ needs.set-outputs.outputs.labels }}
+      target-branch: ${{ needs.set-outputs.outputs.target-branch }}

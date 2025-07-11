@@ -1,7 +1,6 @@
 # Amazon SNS Java Messaging Lib
 
-![Java CI with Maven](https://github.com/mvallim/amazon-sns-java-messaging-lib/workflows/Java%20CI%20with%20Maven/badge.svg?branch=master)
-![CodeQL](https://github.com/mvallim/amazon-sns-java-messaging-lib/workflows/CodeQL/badge.svg?branch=master)
+[![Snapshot && Release](https://github.com/mvallim/amazon-sns-java-messaging-lib/actions/workflows/cd.yml/badge.svg)](https://github.com/mvallim/amazon-sns-java-messaging-lib/actions/workflows/cd.yml?branch=develop)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=amazon-sns-java-messaging-lib&metric=alert_status)](https://sonarcloud.io/dashboard?id=amazon-sns-java-messaging-lib)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=amazon-sns-java-messaging-lib&metric=coverage)](https://sonarcloud.io/dashboard?id=amazon-sns-java-messaging-lib)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.mvallim/amazon-sns-java-messaging-lib/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.mvallim/amazon-sns-java-messaging-lib)
@@ -34,20 +33,22 @@ In order to use Amazon SNS Java Messaging Lib within a Maven project, simply add
 You can pull it from the central Maven repositories:
 
 ### For AWS SDK v1
+
 ```xml
 <dependency>
     <groupId>com.github.mvallim</groupId>
     <artifactId>amazon-sns-java-messaging-lib-v1</artifactId>
-    <version>1.0.6</version>
+    <version>1.0.7</version>
 </dependency>
 ```
 
 ### For AWS SDK v2
+
 ```xml
 <dependency>
     <groupId>com.github.mvallim</groupId>
     <artifactId>amazon-sns-java-messaging-lib-v2</artifactId>
-    <version>1.0.6</version>
+    <version>1.0.7</version>
 </dependency>
 ```
 
@@ -57,7 +58,7 @@ If you want to try a snapshot version, add the following repository:
 <repository>
     <id>sonatype-snapshots</id>
     <name>Sonatype Snapshots</name>
-    <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+    <url>https://central.sonatype.com/repository/maven-snapshots</url>
     <snapshots>
         <enabled>true</enabled>
     </snapshots>
@@ -67,13 +68,15 @@ If you want to try a snapshot version, add the following repository:
 #### Gradle
 
 ### For AWS SDK v1
+
 ```groovy
-implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v1:1.0.6'
+implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v1:1.0.7'
 ```
 
 ### For AWS SDK v2
+
 ```groovy
-implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v2:1.0.6'
+implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v2:1.0.7'
 ```
 
 If you want to try a snapshot version, add the following repository:
@@ -81,7 +84,7 @@ If you want to try a snapshot version, add the following repository:
 ```groovy
 repositories {
     maven {
-        url "https://oss.sonatype.org/content/repositories/snapshots"
+        url "https://central.sonatype.com/repository/maven-snapshots"
     }
 }
 ```
@@ -146,6 +149,7 @@ final AmazonSnsTemplate<MyMessage> snsTemplate = new AmazonSnsTemplate<>(
 ```
 
 ### Standard SNS
+
 ```java
 final TopicProperty topicProperty = TopicProperty.builder()
   .fifo(false)
@@ -166,6 +170,7 @@ snsTemplate.send(requestEntry);
 ```
 
 ### FIFO SNS
+
 ```java
 final TopicProperty topicProperty = TopicProperty.builder()
   .fifo(true)
@@ -188,6 +193,7 @@ snsTemplate.send(requestEntry);
 ```
 
 ### Send With Callback
+
 ```java
 final TopicProperty topicProperty = TopicProperty.builder()
   .fifo(true)
@@ -217,6 +223,7 @@ snsTemplate.send(requestEntry).addCallback(result -> {
 ```
 
 ### Send And Wait
+
 ```java
 final TopicProperty topicProperty = TopicProperty.builder()
   .fifo(true)
@@ -244,6 +251,7 @@ snsTemplate.await().join();
 ```
 
 ### Send And Shutdown
+
 ```java
 final TopicProperty topicProperty = TopicProperty.builder()
   .fifo(true)
