@@ -18,7 +18,9 @@ package com.amazon.sns.messaging.lib.core;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.ToString;
@@ -38,14 +41,14 @@ final class RequestEntryInternalFactory {
 
   public RequestEntryInternal create(final RequestEntry<?> requestEntry, final byte[] bytes) {
     return RequestEntryInternal.builder()
-        .withCreateTime(requestEntry.getCreateTime())
-        .withDeduplicationId(requestEntry.getDeduplicationId())
-        .withGroupId(requestEntry.getGroupId())
-        .withId(requestEntry.getId())
-        .withMessageHeaders(requestEntry.getMessageHeaders())
-        .withValue(ByteBuffer.wrap(bytes))
-        .withSubject(requestEntry.getSubject())
-        .build();
+      .withCreateTime(requestEntry.getCreateTime())
+      .withDeduplicationId(requestEntry.getDeduplicationId())
+      .withGroupId(requestEntry.getGroupId())
+      .withId(requestEntry.getId())
+      .withMessageHeaders(requestEntry.getMessageHeaders())
+      .withValue(ByteBuffer.wrap(bytes))
+      .withSubject(requestEntry.getSubject())
+      .build();
   }
 
   public RequestEntryInternal create(final RequestEntry<?> requestEntry) {
@@ -57,6 +60,20 @@ final class RequestEntryInternalFactory {
     return requestEntry.getValue() instanceof String
       ? String.class.cast(requestEntry.getValue()).getBytes(StandardCharsets.UTF_8)
       : objectMapper.writeValueAsBytes(requestEntry.getValue());
+  }
+
+  @SneakyThrows
+  public Integer messageAttributesSize(final RequestEntry<?> requestEntry) {
+    final Map<String, Integer> messageAttributes = MessageAttributesInternal.INSTANCE.messageAttributes(requestEntry.getMessageHeaders());
+
+    final Integer messageAttributesKeysSize = messageAttributes.keySet().stream()
+      .map(String::length)
+      .collect(Collectors.summingInt(Number::intValue));
+
+    final Integer messageAttributesValuesSize = messageAttributes.values().stream()
+      .collect(Collectors.summingInt(Number::intValue));
+
+    return messageAttributesKeysSize + messageAttributesValuesSize;
   }
 
   @Getter
@@ -86,6 +103,39 @@ final class RequestEntryInternalFactory {
 
     public String getMessage() {
       return StandardCharsets.UTF_8.decode(value).toString();
+    }
+
+  }
+
+  @SuppressWarnings("java:S6548")
+  @NoArgsConstructor(access = AccessLevel.PRIVATE)
+  static class MessageAttributesInternal extends AbstractMessageAttributes<Integer> {
+
+    public static final MessageAttributesInternal INSTANCE = new MessageAttributesInternal();
+
+    @Override
+    public Integer getEnumMessageAttribute(final Enum<?> value) {
+      return value.name().length();
+    }
+
+    @Override
+    public Integer getStringMessageAttribute(final String value) {
+      return value.length();
+    }
+
+    @Override
+    public Integer getNumberMessageAttribute(final Number value) {
+      return value.toString().length();
+    }
+
+    @Override
+    public Integer getBinaryMessageAttribute(final ByteBuffer value) {
+      return value.remaining();
+    }
+
+    @Override
+    public Integer getStringArrayMessageAttribute(final List<?> values) {
+      return stringArray(values).length();
     }
 
   }

@@ -17,7 +17,6 @@
 package com.amazon.sns.messaging.lib.core;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -82,7 +81,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
 
     this.amazonSnsClient = amazonSnsClient;
     this.topicProperty = topicProperty;
-    this.requestEntryInternalFactory = new RequestEntryInternalFactory(objectMapper);
+    requestEntryInternalFactory = new RequestEntryInternalFactory(objectMapper);
     this.pendingRequests = pendingRequests;
     this.topicRequests = topicRequests;
     this.publishDecorator = publishDecorator;
@@ -162,11 +161,9 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
   }
 
   @SneakyThrows
-  private void validatePayloadSize(final byte[] payload) {
-    if (payload.length > BATCH_SIZE_BYTES_THRESHOLD) {
-      final String value = new String(payload, StandardCharsets.UTF_8);
-      final String message = String.format("The maximum allowed message size exceeding 256KB (262,144 bytes). Payload: %s", value);
-      throw new IOException(message);
+  private void validateMessageSize(final Integer messageSize) {
+    if (messageSize > BATCH_SIZE_BYTES_THRESHOLD) {
+      throw new IOException("The maximum allowed message size exceeding 256KB (262,144 bytes).");
     }
   }
 
@@ -190,9 +187,14 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
 
       final byte[] payload = requestEntryInternalFactory.convertPayload(request);
 
-      validatePayloadSize(payload);
+      final Integer messageBodySize = payload.length;
+      final Integer messageAttributesSize = requestEntryInternalFactory.messageAttributesSize(request);
 
-      if (canAddPayload(batchSizeBytes.addAndGet(payload.length))) {
+      final Integer messageSize = messageBodySize + messageAttributesSize;
+
+      validateMessageSize(messageSize);
+
+      if (canAddPayload(batchSizeBytes.addAndGet(messageSize))) {
         requestEntries.add(requestEntryInternalFactory.create(requests.take(), payload));
       }
     }

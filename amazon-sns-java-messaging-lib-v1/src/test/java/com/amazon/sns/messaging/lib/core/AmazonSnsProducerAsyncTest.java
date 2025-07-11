@@ -16,6 +16,7 @@
 
 package com.amazon.sns.messaging.lib.core;
 
+import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -26,12 +27,13 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,7 +63,7 @@ class AmazonSnsProducerAsyncTest {
   private AmazonSNS amazonSNS;
 
   @BeforeEach
-  public void before() throws Exception {
+  void before() {
     final TopicProperty topicProperty = TopicProperty.builder()
       .fifo(false)
       .linger(50L)
@@ -69,7 +71,7 @@ class AmazonSnsProducerAsyncTest {
       .maximumPoolSize(10)
       .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
       .build();
-    snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty, new RingBufferBlockingQueue<>(1024));
+    snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty, new RingBufferBlockingQueue<>(2048));
   }
 
   @Test
@@ -213,11 +215,11 @@ class AmazonSnsProducerAsyncTest {
         .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
         .build();
 
-    final AmazonSnsTemplate<Object> snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty);
+    snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty);
 
     when(amazonSNS.publishBatch(any())).thenAnswer(invocation -> {
       while (true) {
-        Thread.sleep(1);
+        await().pollDelay(1, TimeUnit.MILLISECONDS).until(() -> true);
       }
     });
 
@@ -226,7 +228,7 @@ class AmazonSnsProducerAsyncTest {
     }));
 
     entries(2).forEach(entry -> {
-      snsTemplate.send(entry).addCallback(null, failureCallback);;
+      snsTemplate.send(entry).addCallback(null, failureCallback);
     });
 
     verify(failureCallback, timeout(40000).times(1)).accept(any());
@@ -238,10 +240,12 @@ class AmazonSnsProducerAsyncTest {
 
     for (int i = 0; i < amount; i++) {
       entries.add(RequestEntry.builder()
-        .withId(RandomStringUtils.randomAlphabetic(36))
+        .withId(UUID.randomUUID().toString())
         .withSubject("subject")
         .withGroupId(UUID.randomUUID().toString())
         .withDeduplicationId(UUID.randomUUID().toString())
+        .withValue(Collections.singletonMap("id", UUID.randomUUID()))
+        .withMessageHeaders(Collections.singletonMap("contentType", "application/text"))
         .build());
     }
 
