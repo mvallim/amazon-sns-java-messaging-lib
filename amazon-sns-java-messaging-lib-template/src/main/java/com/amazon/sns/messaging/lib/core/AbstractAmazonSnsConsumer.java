@@ -81,7 +81,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
 
     this.amazonSnsClient = amazonSnsClient;
     this.topicProperty = topicProperty;
-    this.requestEntryInternalFactory = new RequestEntryInternalFactory(objectMapper);
+    requestEntryInternalFactory = new RequestEntryInternalFactory(objectMapper);
     this.pendingRequests = pendingRequests;
     this.topicRequests = topicRequests;
     this.publishDecorator = publishDecorator;

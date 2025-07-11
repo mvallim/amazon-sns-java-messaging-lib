@@ -27,6 +27,7 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -241,9 +242,12 @@ class AmazonSnsProducerAsyncTest {
 
     for (int i = 0; i < amount; i++) {
       entries.add(RequestEntry.builder()
+        .withId(UUID.randomUUID().toString())
         .withSubject("subject")
         .withGroupId(UUID.randomUUID().toString())
         .withDeduplicationId(UUID.randomUUID().toString())
+        .withValue(Collections.singletonMap("id", UUID.randomUUID()))
+        .withMessageHeaders(Collections.singletonMap("contentType", "application/text"))
         .build());
     }
 

@@ -34,7 +34,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -72,7 +71,7 @@ class AmazonSnsProducerAsyncTest {
       .maximumPoolSize(10)
       .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
       .build();
-    snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty, new RingBufferBlockingQueue<>(1024));
+    snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty, new RingBufferBlockingQueue<>(2048));
   }
 
   @Test
@@ -241,11 +240,11 @@ class AmazonSnsProducerAsyncTest {
 
     for (int i = 0; i < amount; i++) {
       entries.add(RequestEntry.builder()
-        .withId(RandomStringUtils.secure().nextAlphabetic(36))
+        .withId(UUID.randomUUID().toString())
         .withSubject("subject")
         .withGroupId(UUID.randomUUID().toString())
         .withDeduplicationId(UUID.randomUUID().toString())
-        .withValue(RandomStringUtils.secure().nextAlphabetic(256))
+        .withValue(Collections.singletonMap("id", UUID.randomUUID()))
         .withMessageHeaders(Collections.singletonMap("contentType", "application/text"))
         .build());
     }

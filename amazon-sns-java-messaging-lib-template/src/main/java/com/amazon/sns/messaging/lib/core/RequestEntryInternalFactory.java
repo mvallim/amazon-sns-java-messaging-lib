@@ -68,10 +68,10 @@ final class RequestEntryInternalFactory {
 
     final Integer messageAttributesKeysSize = messageAttributes.keySet().stream()
       .map(String::length)
-      .collect(Collectors.summingInt(Integer::intValue));
+      .collect(Collectors.summingInt(Number::intValue));
 
     final Integer messageAttributesValuesSize = messageAttributes.values().stream()
-      .collect(Collectors.summingInt(Integer::intValue));
+      .collect(Collectors.summingInt(Number::intValue));
 
     return messageAttributesKeysSize + messageAttributesValuesSize;
   }
