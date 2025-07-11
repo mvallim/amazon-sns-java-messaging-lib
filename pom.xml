@@ -74,9 +74,9 @@
 	</modules>
 
 	<scm>
-		<url>scm:git:git@github.com:mvallim/amazon-sns-java-messaging-lib</url>
-		<connection>scm:git:git@github.com:mvallim/amazon-sns-java-messaging-lib</connection>
-		<developerConnection>scm:git:git@github.com:mvallim/amazon-sns-java-messaging-lib</developerConnection>
+		<url>scm:git:https://github.com/mvallim/amazon-sns-java-messaging-lib.git</url>
+		<connection>scm:git:https://github.com/mvallim/amazon-sns-java-messaging-lib.git</connection>
+		<developerConnection>scm:git:https://github.com/mvallim/amazon-sns-java-messaging-lib.git</developerConnection>
 		<tag>HEAD</tag>
 	</scm>
 
