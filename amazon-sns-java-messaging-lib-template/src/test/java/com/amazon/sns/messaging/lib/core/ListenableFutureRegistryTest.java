@@ -16,8 +16,8 @@ class ListenableFutureRegistryTest {
 
   @Test
   void testSuccessWithCallbacks() {
-    final Consumer<? super ResponseSuccessEntry> successCallback = (entry) -> assertThat(entry, notNullValue());
-    final Consumer<? super ResponseFailEntry> failureCallback = (entry) -> assertThat(entry, notNullValue());
+    final Consumer<? super ResponseSuccessEntry> successCallback = entry -> assertThat(entry, notNullValue());
+    final Consumer<? super ResponseFailEntry> failureCallback = entry -> assertThat(entry, notNullValue());
 
     final ListenableFutureRegistry listenableFutureRegistry = new ListenableFutureRegistry();
 
@@ -31,7 +31,7 @@ class ListenableFutureRegistryTest {
 
   @Test
   void testSuccessWithCallback() {
-    final Consumer<? super ResponseSuccessEntry> successCallback = (entry) -> assertThat(entry, notNullValue());
+    final Consumer<? super ResponseSuccessEntry> successCallback = entry -> assertThat(entry, notNullValue());
 
     final ListenableFutureRegistry listenableFutureRegistry = new ListenableFutureRegistry();
 

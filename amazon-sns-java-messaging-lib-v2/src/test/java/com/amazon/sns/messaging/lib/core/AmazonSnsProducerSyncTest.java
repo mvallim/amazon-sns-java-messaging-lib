@@ -61,7 +61,7 @@ class AmazonSnsProducerSyncTest {
   private SnsClient amazonSNS;
 
   @BeforeEach
-  public void before() throws Exception {
+  void before() {
     final TopicProperty topicProperty = TopicProperty.builder()
       .fifo(true)
       .linger(50L)

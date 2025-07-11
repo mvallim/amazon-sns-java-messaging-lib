@@ -17,6 +17,7 @@
 package com.amazon.sns.messaging.lib.core;
 
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
+import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -46,11 +47,7 @@ class AmazonSnsThreadPoolExecutorTest {
 
     for(int i = 0; i < 300; i++) {
       amazonSnsThreadPoolExecutor.execute(() -> {
-        try {
-          Thread.sleep(1);
-        } catch (final InterruptedException e) {
-          e.printStackTrace();
-        }
+        await().pollDelay(1, TimeUnit.MILLISECONDS).until(() -> true);
       });
     }
 
@@ -95,11 +92,7 @@ class AmazonSnsThreadPoolExecutorTest {
     for(int i = 0; i < 10; i++) {
       amazonSnsThreadPoolExecutor.execute(() -> {
         while(true) {
-          try {
-            Thread.sleep(1);
-          } catch (final InterruptedException e) {
-            e.printStackTrace();
-          }
+          await().pollDelay(1, TimeUnit.MILLISECONDS).until(() -> true);
         }
       });
     }
@@ -116,16 +109,12 @@ class AmazonSnsThreadPoolExecutorTest {
   }
 
   @Test
-  void testSuccessBlockingSubmissionPolicy() throws InterruptedException {
+  void testSuccessBlockingSubmissionPolicy() {
     final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(1);
 
     amazonSnsThreadPoolExecutor.execute(() -> {
       while(true) {
-        try {
-          Thread.sleep(1);
-        } catch (final InterruptedException e) {
-          e.printStackTrace();
-        }
+        await().pollDelay(1, TimeUnit.MILLISECONDS).until(() -> true);
       }
     });
 

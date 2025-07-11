@@ -41,7 +41,7 @@ import com.amazon.sns.messaging.lib.model.RequestEntry;
 class RingBufferBlockingQueueTest {
 
   @Test
-  void testSuccess() throws InterruptedException {
+  void testSuccess() {
     final ExecutorService producer = Executors.newSingleThreadExecutor();
 
     final ScheduledExecutorService consumer = Executors.newSingleThreadScheduledExecutor();
@@ -149,7 +149,7 @@ class RingBufferBlockingQueueTest {
   }
 
   @Test
-  void testFailOfferWithParams() throws InterruptedException {
+  void testFailOfferWithParams() {
     final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
     assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.offer(RequestEntry.<Integer>builder().withValue(0).build(), 1, TimeUnit.MILLISECONDS));
   }
@@ -157,11 +157,11 @@ class RingBufferBlockingQueueTest {
   @Test
   void testFailPoll() {
     final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
-    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.poll());
+    assertThrows(UnsupportedOperationException.class, ringBlockingQueue::poll);
   }
 
   @Test
-  void testFailPollWithParams() throws InterruptedException {
+  void testFailPollWithParams() {
     final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
     assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.poll(1, TimeUnit.MILLISECONDS));
   }
@@ -169,7 +169,7 @@ class RingBufferBlockingQueueTest {
   @Test
   void testFailIterator() {
     final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
-    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.iterator());
+    assertThrows(UnsupportedOperationException.class, ringBlockingQueue::iterator);
   }
 
   @Test
@@ -181,7 +181,7 @@ class RingBufferBlockingQueueTest {
   @Test
   void testFailRemainingCapacity() {
     final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
-    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.remainingCapacity());
+    assertThrows(UnsupportedOperationException.class, ringBlockingQueue::remainingCapacity);
   }
 
   @Test

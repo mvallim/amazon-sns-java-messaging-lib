@@ -16,6 +16,7 @@
 
 package com.amazon.sns.messaging.lib.core;
 
+import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -29,6 +30,7 @@ import static org.mockito.Mockito.when;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -62,7 +64,7 @@ class AmazonSnsProducerAsyncTest {
   private SnsClient amazonSNS;
 
   @BeforeEach
-  public void before() throws Exception {
+  void before() {
     final TopicProperty topicProperty = TopicProperty.builder()
       .fifo(false)
       .linger(50L)
@@ -214,11 +216,11 @@ class AmazonSnsProducerAsyncTest {
       .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
       .build();
 
-    final AmazonSnsTemplate<Object> snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty);
+    snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty);
 
     when(amazonSNS.publishBatch(any(PublishBatchRequest.class))).thenAnswer(invocation -> {
       while (true) {
-        Thread.sleep(1);
+        await().pollDelay(1, TimeUnit.MILLISECONDS).until(() -> true);
       }
     });
 
@@ -227,7 +229,7 @@ class AmazonSnsProducerAsyncTest {
     }));
 
     entries(2).forEach(entry -> {
-      snsTemplate.send(entry).addCallback(null, failureCallback);;
+      snsTemplate.send(entry).addCallback(null, failureCallback);
     });
 
     verify(failureCallback, timeout(40000).times(1)).accept(any());

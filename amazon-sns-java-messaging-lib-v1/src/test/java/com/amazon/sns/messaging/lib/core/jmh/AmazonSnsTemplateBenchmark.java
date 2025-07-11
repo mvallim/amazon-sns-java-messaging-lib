@@ -87,13 +87,13 @@ public class AmazonSnsTemplateBenchmark {
 
   @Benchmark
   @OperationsPerInvocation(1)
-  public void testSend_1() throws InterruptedException {
+  public void testSend_1() {
     amazonSnsTemplate.send(RequestEntry.<Integer>builder().withValue(1).build());
   }
 
   @Benchmark
   @OperationsPerInvocation(10)
-  public void testSend_10() throws InterruptedException {
+  public void testSend_10() {
     for (int i = 0; i < 10; i++) {
       amazonSnsTemplate.send(RequestEntry.<Integer>builder().withValue(i).build());
     }
@@ -101,7 +101,7 @@ public class AmazonSnsTemplateBenchmark {
 
   @Benchmark
   @OperationsPerInvocation(100)
-  public void testSend_100() throws InterruptedException {
+  public void testSend_100() {
     for (int i = 0; i < 100; i++) {
       amazonSnsTemplate.send(RequestEntry.<Integer>builder().withValue(i).build());
     }
@@ -109,7 +109,7 @@ public class AmazonSnsTemplateBenchmark {
 
   @Benchmark
   @OperationsPerInvocation(1000)
-  public void testSend_1000() throws InterruptedException {
+  public void testSend_1000() {
     for (int i = 0; i < 1000; i++) {
       amazonSnsTemplate.send(RequestEntry.<Integer>builder().withValue(i).build());
     }
@@ -117,7 +117,7 @@ public class AmazonSnsTemplateBenchmark {
 
   @Benchmark
   @OperationsPerInvocation(10000)
-  public void testSend_10000() throws InterruptedException {
+  public void testSend_10000() {
     for (int i = 0; i < 10000; i++) {
       amazonSnsTemplate.send(RequestEntry.<Integer>builder().withValue(i).build());
     }
