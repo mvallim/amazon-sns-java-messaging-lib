@@ -30,7 +30,7 @@
 		<jmh.version>1.37</jmh.version>
 		<awaitility.version>4.2.2</awaitility.version>
 		<assertj-core.version>3.24.2</assertj-core.version>
-		<commons-lang3.version>3.17.0</commons-lang3.version>
+		<commons-lang3.version>3.18.0</commons-lang3.version>
 		<commons-collections4.version>4.5.0</commons-collections4.version>
 		<slf4j-api.version>2.0.6</slf4j-api.version>
 		<hamcrest.version>3.0</hamcrest.version>
