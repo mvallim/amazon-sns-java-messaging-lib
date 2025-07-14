@@ -21,7 +21,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.spy;
 
 import java.util.Collections;
 import java.util.LinkedList;
@@ -42,17 +41,18 @@ class RingBufferBlockingQueueTest {
 
   @Test
   void testSuccess() {
-    final ExecutorService producer = Executors.newSingleThreadExecutor();
+    final ExecutorService producer = Executors.newSingleThreadScheduledExecutor();
 
     final ScheduledExecutorService consumer = Executors.newSingleThreadScheduledExecutor();
 
     final List<RequestEntry<Integer>> requestEntriesOut = new LinkedList<>();
 
-    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>(5120);
+    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
 
     producer.submit(() -> {
       IntStream.range(0, 100_000).forEach(value -> {
         ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(value).build());
+        System.err.println("write: " + ringBlockingQueue.writeSequence());
       });
     });
 
@@ -61,19 +61,23 @@ class RingBufferBlockingQueueTest {
         final List<RequestEntry<Integer>> requestEntries = new LinkedList<>();
 
         while ((requestEntries.size() < 10) && Objects.nonNull(ringBlockingQueue.peek())) {
-          requestEntries.add(ringBlockingQueue.take());
+          final RequestEntry<Integer> take = ringBlockingQueue.take();
+          System.err.println("read: " + ringBlockingQueue.readSequence());
+          requestEntries.add(take);
         }
 
         requestEntriesOut.addAll(requestEntries);
       }
     }, 0, 100L, TimeUnit.MILLISECONDS);
 
-    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.writeSequence() == 99_999);
-    producer.shutdownNow();
+    await().pollInterval(5, TimeUnit.SECONDS).pollDelay(200, TimeUnit.MILLISECONDS).until(() -> {
+      return (ringBlockingQueue.writeSequence() == 99_999) && (ringBlockingQueue.readSequence() == 100_000);
+    });
 
-    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.readSequence() == 100_000);
-    consumer.shutdownNow();
+    producer.shutdown();
+    consumer.shutdown();
 
+    assertThat(ringBlockingQueue.size(), is(0));
     assertThat(ringBlockingQueue.isEmpty(), is(true));
 
     assertThat(requestEntriesOut, hasSize(100_000));
@@ -85,8 +89,8 @@ class RingBufferBlockingQueueTest {
   }
 
   @Test
-  void testSuccessWhenIsEmpty() throws InterruptedException {
-    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = spy(new RingBufferBlockingQueue<>());
+  void testSuccessWhenIsEmpty() {
+    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
 
     final ExecutorService producer = Executors.newSingleThreadExecutor();
 
@@ -97,7 +101,7 @@ class RingBufferBlockingQueueTest {
       assertThat(ringBlockingQueue.take().getValue(), is(1));
     });
 
-    Thread.sleep(2000);
+    await().pollDelay(2, TimeUnit.SECONDS).until(() -> true);
 
     producer.submit(() -> {
       ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(0).build());
@@ -114,8 +118,8 @@ class RingBufferBlockingQueueTest {
   }
 
   @Test
-  void testSuccessWhenIsFull() throws InterruptedException {
-    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = spy(new RingBufferBlockingQueue<>(1));
+  void testSuccessWhenIsFull() {
+    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>(1);
 
     final ExecutorService producer = Executors.newSingleThreadExecutor();
 
@@ -126,7 +130,7 @@ class RingBufferBlockingQueueTest {
       ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(1).build());
     });
 
-    Thread.sleep(2000);
+    await().pollDelay(2, TimeUnit.SECONDS).until(() -> true);
 
     consumer.submit(() -> {
       assertThat(ringBlockingQueue.take().getValue(), is(0));
