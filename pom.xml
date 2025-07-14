@@ -28,7 +28,7 @@
 		<junit.jupiter.version>5.10.2</junit.jupiter.version>
 		<jackson-databind.version>2.16.1</jackson-databind.version>
 		<jmh.version>1.37</jmh.version>
-		<awaitility.version>4.2.2</awaitility.version>
+		<awaitility.version>4.3.0</awaitility.version>
 		<assertj-core.version>3.24.2</assertj-core.version>
 		<commons-lang3.version>3.17.0</commons-lang3.version>
 		<commons-collections4.version>4.5.0</commons-collections4.version>
