@@ -50,7 +50,7 @@ jobs:
     uses: ./.github/workflows/ci-pull-request.yml
     secrets: inherit
     with:
-      type: Release
-      labels: automatic,release
+      type: Snapshot
+      labels: automatic,snapshot
       source-branch: master
       target-branch: ${{ needs.variables.outputs.target-branch }}
