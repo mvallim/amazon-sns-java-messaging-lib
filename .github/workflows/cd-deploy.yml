@@ -51,7 +51,7 @@ jobs:
         if: ${{ inputs.environment == 'release' }}
         name: Set output variables
         run: |
-          RELEASE_VERSION=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec | grep -e '^[^\[]' | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+')
+          RELEASE_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | grep -e '^[^\[]' | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+')
           RELEASE_TAG=v${RELEASE_VERSION}
 
           echo "release-version=$RELEASE_VERSION" >> $GITHUB_OUTPUT
