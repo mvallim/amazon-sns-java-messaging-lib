@@ -17,9 +17,9 @@ jobs:
     uses: ./.github/workflows/ci-maven.yml
     secrets: inherit
 
-  # release:
-  #   needs: ci
-  #   uses: ./.github/workflows/cd-deploy.yml
-  #   secrets: inherit
-  #   with:
-  #     environment: release
+  release:
+    needs: ci
+    uses: ./.github/workflows/cd-deploy.yml
+    secrets: inherit
+    with:
+      environment: release

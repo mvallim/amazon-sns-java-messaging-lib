@@ -41,20 +41,13 @@ jobs:
           echo "labels=$LABELS" >> $GITHUB_OUTPUT
           echo "target-branch=release/$VERSION" >> $GITHUB_OUTPUT
 
-  # ci:
-  #   needs: variables
-  #   uses: ./.github/workflows/ci-maven.yml
-  #   secrets: inherit
-
-  # gates:
-  #   needs: ci
-  #   if: success()
-  #   uses: ./.github/workflows/ci-gates.yml
-  #   secrets: inherit
+  ci:
+    needs: variables
+    uses: ./.github/workflows/ci-maven.yml
+    secrets: inherit
  
   pull-request:
-    # needs: [gates, variables]
-    needs: variables
+    needs: [ci, variables]
     if: success()
     uses: ./.github/workflows/ci-pull-request.yml
     secrets: inherit
