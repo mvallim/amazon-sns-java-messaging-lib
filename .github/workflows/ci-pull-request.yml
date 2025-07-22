@@ -54,7 +54,7 @@ jobs:
           echo "Branch '$BRANCH' successfully created!"
         fi
       env:
-        GH_TOKEN: ${{ github.token }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Create Pull Request (${{ inputs.type }})
       uses: peter-evans/create-pull-request@v7

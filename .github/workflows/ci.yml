@@ -11,6 +11,7 @@ env:
   LABELS: ${{ startsWith(github.ref_name, 'feature') && 'automatic,feature' || 'automatic,fix' }}
 
 permissions:
+  contents: write
   pull-requests: write
 
 jobs:
@@ -60,5 +61,5 @@ jobs:
     with:
       type: ${{ needs.variables.outputs.type }}
       labels: ${{ needs.variables.outputs.labels }}
-      source-branch: master
-      target-branch: ${{ needs.variables.outputs.target-branch }}
+      source-branch: ${{ github.ref_name }}
+      target-branch: develop
