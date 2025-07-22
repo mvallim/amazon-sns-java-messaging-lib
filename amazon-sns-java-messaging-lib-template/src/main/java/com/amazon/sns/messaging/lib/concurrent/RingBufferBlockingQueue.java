@@ -17,102 +17,88 @@
 package com.amazon.sns.messaging.lib.concurrent;
 
 import java.util.AbstractQueue;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.IntStream;
 
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 
-@SuppressWarnings({ "java:S2274", "unchecked" })
+@SuppressWarnings({ "java:S2274" })
 public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements BlockingQueue<E> {
 
   private static final int DEFAULT_CAPACITY = 2048;
 
-  private final Entry<E>[] buffer;
+  private final AtomicReferenceArray<Entry<E>> buffer;
 
   private final int capacity;
 
-  private final AtomicInteger writeSequence = new AtomicInteger(-1);
+  private final AtomicLong writeSequence = new AtomicLong(-1);
 
-  private final AtomicInteger readSequence = new AtomicInteger(0);
+  private final AtomicLong readSequence = new AtomicLong(0);
+
+  private final AtomicInteger size = new AtomicInteger(0);
 
   private final ReentrantLock reentrantLock;
 
-  private final Condition notEmpty;
+  private final Condition waitingConsumer;
 
-  private final Condition notFull;
+  private final Condition waitingProducer;
 
   public RingBufferBlockingQueue(final int capacity) {
     this.capacity = capacity;
-    this.buffer = new Entry[capacity];
-    Arrays.setAll(buffer, p -> new Entry<>());
+    buffer = new AtomicReferenceArray<>(capacity);
     reentrantLock = new ReentrantLock(true);
-    notEmpty = reentrantLock.newCondition();
-    notFull = reentrantLock.newCondition();
+    waitingConsumer = reentrantLock.newCondition();
+    waitingProducer = reentrantLock.newCondition();
+    IntStream.range(0, capacity).forEach(idx -> buffer.set(idx, new Entry<>()));
   }
 
   public RingBufferBlockingQueue() {
     this(DEFAULT_CAPACITY);
   }
 
-  private void enqueue(final E element) throws InterruptedException {
-    while (isFull()) {
-      notFull.await();
-    }
-
-    final int nextWriteSeq = writeSequence.get() + 1;
-    buffer[wrap(nextWriteSeq)].setValue(element);
-    writeSequence.incrementAndGet();
-    notEmpty.signal();
+  private long avoidSequenceOverflow(final long sequence) {
+    return (sequence < Long.MAX_VALUE ? sequence : wrap(sequence));
   }
 
-  private E dequeue() throws InterruptedException {
-    while (isEmpty()) {
-      notEmpty.await();
-    }
-
-    final E nextValue = buffer[wrap(readSequence.get())].getValue();
-    readSequence.incrementAndGet();
-    notFull.signal();
-    return nextValue;
-  }
-
-  private int wrap(final int sequence) {
-    return sequence % capacity;
+  private int wrap(final long sequence) {
+    return Math.toIntExact(sequence % capacity);
   }
 
   @Override
   public int size() {
-    return (writeSequence.get() - readSequence.get()) + 1;
+    return size.get();
   }
 
   @Override
   public boolean isEmpty() {
-    return writeSequence.get() < readSequence.get();
+    return size.get() == 0;
   }
 
   public boolean isFull() {
-    return size() >= capacity;
+    return size.get() >= capacity;
   }
 
-  public int writeSequence() {
+  public long writeSequence() {
     return writeSequence.get();
   }
 
-  public int readSequence() {
+  public long readSequence() {
     return readSequence.get();
   }
 
   @Override
   public E peek() {
-    return isEmpty() ? null : buffer[wrap(readSequence.get())].getValue();
+    return isEmpty() ? null : buffer.get(wrap(readSequence.get())).getValue();
   }
 
   @Override
@@ -120,7 +106,21 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   public void put(final E element) {
     try {
       reentrantLock.lock();
-      enqueue(element);
+
+      while (isFull()) {
+        waitingProducer.await();
+      }
+
+      final long prevWriteSeq = writeSequence.get();
+      final long nextWriteSeq = avoidSequenceOverflow(prevWriteSeq) + 1;
+
+      buffer.get(wrap(nextWriteSeq)).setValue(element);
+
+      writeSequence.compareAndSet(prevWriteSeq, nextWriteSeq);
+
+      size.incrementAndGet();
+
+      waitingConsumer.signal();
     } finally {
       reentrantLock.unlock();
     }
@@ -131,7 +131,25 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   public E take() {
     try {
       reentrantLock.lock();
-      return dequeue();
+
+      while (isEmpty()) {
+        waitingConsumer.await();
+      }
+
+      final long prevReadSeq = readSequence.get();
+      final long nextReadSeq = avoidSequenceOverflow(prevReadSeq) + 1;
+
+      final E nextValue = buffer.get(wrap(prevReadSeq)).getValue();
+
+      buffer.get(wrap(prevReadSeq)).setValue(null);
+
+      readSequence.compareAndSet(prevReadSeq, nextReadSeq);
+
+      size.decrementAndGet();
+
+      waitingProducer.signal();
+
+      return nextValue;
     } finally {
       reentrantLock.unlock();
     }
