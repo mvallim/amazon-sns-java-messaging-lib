@@ -5,51 +5,60 @@ on:
     branches:
       - feature/**
       - fix/**
-    paths-ignore:
-      - "**/README.md"
-      - "**/CONTRIBUTING.md"
-      - "**/CONTRIBUTORS.txt"
-      - "**/LICENSE"
 
 env:
   TYPE: ${{ startsWith(github.ref_name, 'feature') && 'Feature' || 'Fix'}}
   LABELS: ${{ startsWith(github.ref_name, 'feature') && 'automatic,feature' || 'automatic,fix' }}
-  TARGET_BRANCH: develop
 
 permissions:
   pull-requests: write
 
 jobs:
-  set-outputs:
+  variables:
     runs-on: ubuntu-latest
     outputs:
       type: ${{ steps.environment.outputs.type }}
       labels: ${{ steps.environment.outputs.labels }}
       target-branch: ${{ steps.environment.outputs.target-branch }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: "corretto"
+          cache: "maven"
+
       - id: environment
         name: Set output environment passed to the reusable workflow
         run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "type=$TYPE" >> $GITHUB_OUTPUT
           echo "labels=$LABELS" >> $GITHUB_OUTPUT
-          echo "target-branch=$TARGET_BRANCH" >> $GITHUB_OUTPUT
+          echo "target-branch=release/$VERSION" >> $GITHUB_OUTPUT
 
-  ci:
-    uses: ./.github/workflows/ci-maven.yml
-    secrets: inherit
+  # ci:
+  #   needs: variables
+  #   uses: ./.github/workflows/ci-maven.yml
+  #   secrets: inherit
 
-  gates:
-    needs: ci
-    if: success()
-    uses: ./.github/workflows/ci-gates.yml
-    secrets: inherit
-  
+  # gates:
+  #   needs: ci
+  #   if: success()
+  #   uses: ./.github/workflows/ci-gates.yml
+  #   secrets: inherit
+ 
   pull-request:
-    needs: [gates, set-outputs]
+    # needs: [gates, variables]
+    needs: variables
     if: success()
     uses: ./.github/workflows/ci-pull-request.yml
     secrets: inherit
     with:
-      type: ${{ needs.set-outputs.outputs.type }}
-      labels: ${{ needs.set-outputs.outputs.labels }}
-      target-branch: ${{ needs.set-outputs.outputs.target-branch }}
+      type: ${{ needs.variables.outputs.type }}
+      labels: ${{ needs.variables.outputs.labels }}
+      source-branch: master
+      target-branch: ${{ needs.variables.outputs.target-branch }}

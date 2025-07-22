@@ -1,0 +1,39 @@
+on:
+  pull_request_target:
+    branches:
+      - release/**
+    types:
+      - closed
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  ci:
+    if: ${{ github.event.pull_request.merged == true }}
+    uses: ./.github/workflows/ci-maven.yml
+    secrets: inherit
+
+  gates:
+    needs: ci
+    if: success()
+    uses: ./.github/workflows/ci-gates.yml
+    secrets: inherit
+
+  snapshot:
+    needs: gates
+    uses: ./.github/workflows/cd-deploy.yml
+    secrets: inherit
+    with:
+      environment: snapshot
+
+  pull-request:
+    needs: snapshot
+    uses: ./.github/workflows/ci-pull-request.yml
+    secrets: inherit
+    with:
+      type: Release
+      labels: automatic,release
+      source-branch: master
+      target-branch: master
