@@ -1,11 +1,9 @@
 name: Build and Publish Release
 
 on:
-  pull_request_target:
+  push:
     branches:
       - master
-    types:
-      - closed
 
 permissions:
   contents: write
