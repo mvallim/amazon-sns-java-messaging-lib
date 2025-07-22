@@ -1,9 +1,12 @@
+name: Build, Publish Snapshot and Pull Request
+
 on:
   pull_request_target:
-    branches:
+    branches: 
       - release/**
     types:
       - closed
+      - synchronize
 
 permissions:
   contents: write

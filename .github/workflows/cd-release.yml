@@ -1,6 +1,8 @@
+name: Build and Publish Release
+
 on:
   pull_request_target:
-    branches:
+    branches: 
       - master
     types:
       - closed
@@ -15,9 +17,9 @@ jobs:
     uses: ./.github/workflows/ci-maven.yml
     secrets: inherit
 
-  release:
-    needs: ci
-    uses: ./.github/workflows/cd-deploy.yml
-    secrets: inherit
-    with:
-      environment: release
+  # release:
+  #   needs: ci
+  #   uses: ./.github/workflows/cd-deploy.yml
+  #   secrets: inherit
+  #   with:
+  #     environment: release

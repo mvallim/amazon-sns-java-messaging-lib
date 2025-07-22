@@ -1,9 +1,12 @@
+name: Build, Gates and Pull Request
+
 on:
   pull_request_target:
-    branches:
+    branches: 
       - develop
     types:
       - closed
+      - synchronize
 
 permissions:
   contents: write
@@ -50,7 +53,7 @@ jobs:
     uses: ./.github/workflows/ci-pull-request.yml
     secrets: inherit
     with:
-      type: Release
-      labels: automatic,release
+      type: Snapshot
+      labels: automatic,snapshot
       source-branch: master
       target-branch: ${{ needs.variables.outputs.target-branch }}
