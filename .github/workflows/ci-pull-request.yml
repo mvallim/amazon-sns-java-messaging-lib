@@ -30,8 +30,8 @@ jobs:
     - name: Create branch
       run: |
         REPO="${{ github.repository }}"
-        BRANCH="${{ github.event.inputs.target-branch }}"
-        BASE="${{ github.event.inputs.source-branch }}"
+        BRANCH="${{ inputs.target-branch }}"
+        BASE="${{ inputs.source-branch }}"
 
         echo "Checking if branch '$BRANCH' exists in repository '$REPO'..."
 
