@@ -6,9 +6,6 @@ on:
       - master
     types:
       - closed
-  push:
-    branches: 
-      - develop
 
 permissions:
   contents: write
