@@ -32,7 +32,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 
-@SuppressWarnings({ "java:S2274", "unchecked" })
+@SuppressWarnings({ "java:S2274" })
 public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements BlockingQueue<E> {
 
   private static final int DEFAULT_CAPACITY = 2048;

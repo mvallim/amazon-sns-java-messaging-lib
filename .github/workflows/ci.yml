@@ -20,26 +20,12 @@ jobs:
     outputs:
       type: ${{ steps.environment.outputs.type }}
       labels: ${{ steps.environment.outputs.labels }}
-      target-branch: ${{ steps.environment.outputs.target-branch }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: 17
-          distribution: "corretto"
-          cache: "maven"
-
       - id: environment
         name: Set output environment passed to the reusable workflow
         run: |
-          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "type=$TYPE" >> $GITHUB_OUTPUT
           echo "labels=$LABELS" >> $GITHUB_OUTPUT
-          echo "target-branch=release/$VERSION" >> $GITHUB_OUTPUT
 
   ci:
     needs: variables
