@@ -59,7 +59,7 @@ jobs:
     - name: Create Pull Request (${{ inputs.type }})
       uses: peter-evans/create-pull-request@v7
       with:
-        title: Auto-created pull request into `${{ github.ref_name }}` from `${{ inputs.target-branch }}`
+        title: Auto-created pull request into `${{ inputs.target-branch }}` from `${{ github.ref_name }}`
         token: ${{ secrets.GITHUB_TOKEN }}
         committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
         author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
