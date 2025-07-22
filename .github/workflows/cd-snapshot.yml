@@ -6,7 +6,9 @@ on:
       - release/**
     types:
       - closed
-      - synchronize
+  push:
+    branches: 
+      - release/**
 
 permissions:
   contents: write
