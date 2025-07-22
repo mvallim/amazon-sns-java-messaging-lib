@@ -1,9 +1,12 @@
 name: Build, Publish Snapshot and Pull Request
 
 on:
-  push:
-    branches:
+  pull_request_target:
+    branches: 
       - release/**
+    types:
+      - closed
+      - synchronize
 
 permissions:
   contents: write
@@ -11,6 +14,7 @@ permissions:
 
 jobs:
   ci:
+    if: ${{ github.event.pull_request.merged == true }}
     uses: ./.github/workflows/ci-maven.yml
     secrets: inherit
 
