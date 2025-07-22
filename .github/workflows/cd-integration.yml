@@ -6,7 +6,9 @@ on:
       - develop
     types:
       - closed
-      - synchronize
+  push:
+    branches: 
+      - develop
 
 permissions:
   contents: write
