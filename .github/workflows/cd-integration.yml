@@ -1,14 +1,11 @@
-name: Build and Pull Request
+name: Build, Gates and Pull Request
 
 on:
-  push:
-    branches:
-      - feature/**
-      - fix/**
-
-env:
-  TYPE: ${{ startsWith(github.ref_name, 'feature') && 'Feature' || 'Fix'}}
-  LABELS: ${{ startsWith(github.ref_name, 'feature') && 'automatic,feature' || 'automatic,fix' }}
+  pull_request_target:
+    branches: 
+      - develop
+    types:
+      - closed
 
 permissions:
   contents: write
@@ -16,10 +13,10 @@ permissions:
 
 jobs:
   variables:
+    if: ${{ github.event.pull_request.merged == true }}
     runs-on: ubuntu-latest
     outputs:
-      type: ${{ steps.environment.outputs.type }}
-      labels: ${{ steps.environment.outputs.labels }}
+      version: ${{ steps.environment.outputs.version }}
       target-branch: ${{ steps.environment.outputs.target-branch }}
     steps:
       - name: Checkout repository
@@ -35,24 +32,27 @@ jobs:
       - id: environment
         name: Set output environment passed to the reusable workflow
         run: |
-          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | cut -d '-' -f 1)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "type=$TYPE" >> $GITHUB_OUTPUT
-          echo "labels=$LABELS" >> $GITHUB_OUTPUT
           echo "target-branch=release/$VERSION" >> $GITHUB_OUTPUT
 
   ci:
     needs: variables
     uses: ./.github/workflows/ci-maven.yml
     secrets: inherit
- 
-  pull-request:
-    needs: [ci, variables]
+
+  gates:
+    needs: ci
     if: success()
+    uses: ./.github/workflows/ci-gates.yml
+    secrets: inherit
+
+  pull-request:
+    needs: [gates, variables]
     uses: ./.github/workflows/ci-pull-request.yml
     secrets: inherit
     with:
-      type: ${{ needs.variables.outputs.type }}
-      labels: ${{ needs.variables.outputs.labels }}
-      source-branch: ${{ github.ref_name }}
-      target-branch: develop
+      type: Snapshot
+      labels: automatic,snapshot
+      source-branch: master
+      target-branch: ${{ needs.variables.outputs.target-branch }}
