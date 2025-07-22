@@ -1,3 +1,5 @@
+name: Build, Publish Snapshot and Pull Request
+
 on:
   pull_request_target:
     branches:
