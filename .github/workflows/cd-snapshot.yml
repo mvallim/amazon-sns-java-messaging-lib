@@ -1,7 +1,7 @@
 on:
   pull_request_target:
     branches:
-      - release/**
+      - develop
     types:
       - closed
 
@@ -10,30 +10,54 @@ permissions:
   pull-requests: write
 
 jobs:
-  ci:
+  variables:
     if: ${{ github.event.pull_request.merged == true }}
-    uses: ./.github/workflows/ci-maven.yml
-    secrets: inherit
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.environment.outputs.version }}
+      target-branch: ${{ steps.environment.outputs.target-branch }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  gates:
-    needs: ci
-    if: success()
-    uses: ./.github/workflows/ci-gates.yml
-    secrets: inherit
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: "corretto"
+          cache: "maven"
 
-  snapshot:
-    needs: gates
-    uses: ./.github/workflows/cd-deploy.yml
-    secrets: inherit
-    with:
-      environment: snapshot
+      - id: environment
+        name: Set output environment passed to the reusable workflow
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | cut -d '-' -f 1)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "target-branch=release/$VERSION" >> $GITHUB_OUTPUT
+
+#   ci:
+#     needs: variables
+#     uses: ./.github/workflows/ci-maven.yml
+#     secrets: inherit
+
+#   gates:
+#     needs: ci
+#     if: success()
+#     uses: ./.github/workflows/ci-gates.yml
+#     secrets: inherit
+
+#   snapshot:
+#     needs: gates
+#     uses: ./.github/workflows/cd-deploy.yml
+#     secrets: inherit
+#     with:
+#       environment: snapshot
 
   pull-request:
-    needs: snapshot
+    needs: variables
     uses: ./.github/workflows/ci-pull-request.yml
     secrets: inherit
     with:
       type: Release
       labels: automatic,release
       source-branch: master
-      target-branch: master
+      target-branch: ${{ needs.variables.outputs.target-branch }}
