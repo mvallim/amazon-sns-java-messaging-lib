@@ -3,7 +3,7 @@
 [![Build, Publish Snapshot and Pull Request](https://github.com/mvallim/amazon-sns-java-messaging-lib/actions/workflows/cd-snapshot.yml/badge.svg)](https://github.com/mvallim/amazon-sns-java-messaging-lib/actions/workflows/cd-snapshot.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=amazon-sns-java-messaging-lib&metric=alert_status)](https://sonarcloud.io/dashboard?id=amazon-sns-java-messaging-lib)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=amazon-sns-java-messaging-lib&metric=coverage)](https://sonarcloud.io/dashboard?id=amazon-sns-java-messaging-lib)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.mvallim/amazon-sns-java-messaging-lib/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.mvallim/amazon-sns-java-messaging-lib)
+[![Maven Central](https://img.shields.io/maven-central/v/com.github.mvallim/amazon-sns-java-messaging-lib)](https://img.shields.io/maven-central/v/com.github.mvallim/amazon-sns-java-messaging-lib)
 [![Hex.pm](https://img.shields.io/hexpm/l/plug.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
 The Amazon SNS Java Messaging Library holds the compatible classes, that are used for communicating with Amazon Simple Notification Service. This project builds on top of the AWS SDK for Java to use Amazon SNS provider for the messaging applications without running any additional software.
