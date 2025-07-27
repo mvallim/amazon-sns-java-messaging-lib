@@ -37,25 +37,25 @@ public final class ExecutorsProvider {
 
   static {
     if (ExecutorsProvider.getJavaVersion() >= 21) {
-      ExecutorsProvider.supplierExecutorService = ExecutorsProvider::getVirtualThreadExecutor;
+      ExecutorsProvider.supplierExecutorService = ExecutorsProvider::getVirtualExecutorService;
       ExecutorsProvider.LOGGER.info("Java version is {}, using virtual thread executor", ExecutorsProvider.getJavaVersion());
     } else {
-      ExecutorsProvider.supplierExecutorService = ExecutorsProvider::getDefaultThreadExecutor;
+      ExecutorsProvider.supplierExecutorService = ExecutorsProvider::getDefaultExecutorService;
       ExecutorsProvider.LOGGER.info("Java version is {}, using default thread executor", ExecutorsProvider.getJavaVersion());
     }
   }
   
-  public static ExecutorService getThreadExecutor() {
+  public static ExecutorService getExecutorService() {
     return ExecutorsProvider.supplierExecutorService.get();
   }
   
   @SneakyThrows
-  private static ExecutorService getDefaultThreadExecutor() {
+  private static ExecutorService getDefaultExecutorService() {
     return Executors.newSingleThreadExecutor();
   }
   
   @SneakyThrows
-  private static ExecutorService getVirtualThreadExecutor() {
+  private static ExecutorService getVirtualExecutorService() {
     final Class<?> clazzThread = Executors.class;
     final Method ofVirtualMethod = clazzThread.getMethod("newVirtualThreadPerTaskExecutor");
     return ExecutorService.class.cast(ofVirtualMethod.invoke(null));

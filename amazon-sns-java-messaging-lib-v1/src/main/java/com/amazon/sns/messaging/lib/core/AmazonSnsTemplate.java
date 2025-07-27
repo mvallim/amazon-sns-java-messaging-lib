@@ -41,7 +41,7 @@ public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<AmazonSNS, P
       final ObjectMapper objectMapper,
       final UnaryOperator<PublishBatchRequest> publishDecorator) {
     super(
-      new AmazonSnsProducer<>(pendingRequests, topicRequests, ExecutorsProvider.getThreadExecutor()),
+      new AmazonSnsProducer<>(pendingRequests, topicRequests, ExecutorsProvider.getExecutorService()),
       new AmazonSnsConsumer<>(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, AbstractAmazonSnsTemplate.getAmazonSnsThreadPoolExecutor(topicProperty), publishDecorator)
     );
   }

@@ -41,7 +41,7 @@ class RingBufferBlockingQueueTest {
 
   @Test
   void testSuccess() {
-    final ExecutorService producer = ExecutorsProvider.getThreadExecutor();
+    final ExecutorService producer = ExecutorsProvider.getExecutorService();
 
     final ScheduledExecutorService consumer = Executors.newSingleThreadScheduledExecutor(ThreadFactoryProvider.getThreadFactory());
 
@@ -90,9 +90,9 @@ class RingBufferBlockingQueueTest {
   void testSuccessWhenIsEmpty() {
     final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
 
-    final ExecutorService producer = ExecutorsProvider.getThreadExecutor();
+    final ExecutorService producer = ExecutorsProvider.getExecutorService();
 
-    final ExecutorService consumer = ExecutorsProvider.getThreadExecutor();
+    final ExecutorService consumer = ExecutorsProvider.getExecutorService();
 
     consumer.submit(() -> {
       assertThat(ringBlockingQueue.take().getValue(), is(0));
@@ -119,9 +119,9 @@ class RingBufferBlockingQueueTest {
   void testSuccessWhenIsFull() {
     final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>(1);
 
-    final ExecutorService producer = ExecutorsProvider.getThreadExecutor();
+    final ExecutorService producer = ExecutorsProvider.getExecutorService();
 
-    final ExecutorService consumer = ExecutorsProvider.getThreadExecutor();
+    final ExecutorService consumer = ExecutorsProvider.getExecutorService();
 
     producer.submit(() -> {
       ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(0).build());
