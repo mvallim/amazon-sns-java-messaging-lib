@@ -19,6 +19,7 @@ package com.amazon.sns.messaging.lib.core;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
+import com.amazon.sns.messaging.lib.concurrent.AmazonSnsThreadPoolExecutor;
 import com.amazon.sns.messaging.lib.instrument.AmazonSnsThreadPoolExecutorJmx;
 import com.amazon.sns.messaging.lib.instrument.MBeanRegistrar;
 import com.amazon.sns.messaging.lib.model.RequestEntry;

@@ -14,15 +14,13 @@
  * limitations under the License.
  */
 
-package com.amazon.sns.messaging.lib.core;
+package com.amazon.sns.messaging.lib.concurrent;
 
 import java.util.Objects;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import com.amazon.sns.messaging.lib.concurrent.ThreadFactoryProvider;
 
 public class AmazonSnsThreadPoolExecutor extends ThreadPoolExecutor {
   

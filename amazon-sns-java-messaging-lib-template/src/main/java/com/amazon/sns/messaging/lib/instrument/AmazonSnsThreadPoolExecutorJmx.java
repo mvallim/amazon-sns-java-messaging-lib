@@ -16,7 +16,7 @@
 
 package com.amazon.sns.messaging.lib.instrument;
 
-import com.amazon.sns.messaging.lib.core.AmazonSnsThreadPoolExecutor;
+import com.amazon.sns.messaging.lib.concurrent.AmazonSnsThreadPoolExecutor;
 
 import lombok.RequiredArgsConstructor;
 

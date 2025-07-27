@@ -26,6 +26,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
 
+import com.amazon.sns.messaging.lib.concurrent.AmazonSnsThreadPoolExecutor;
+
 // @formatter:off
 class AmazonSnsThreadPoolExecutorTest {
 
