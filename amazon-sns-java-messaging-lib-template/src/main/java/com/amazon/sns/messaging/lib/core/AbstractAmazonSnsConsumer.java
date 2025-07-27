@@ -37,6 +37,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.amazon.sns.messaging.lib.concurrent.ThreadFactoryProvider;
 import com.amazon.sns.messaging.lib.core.RequestEntryInternalFactory.RequestEntryInternal;
 import com.amazon.sns.messaging.lib.model.PublishRequestBuilder;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
@@ -50,11 +51,11 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
 
   private static final Integer KB = 1024;
 
-  private static final Integer BATCH_SIZE_BYTES_THRESHOLD = 256 * KB;
+  private static final Integer BATCH_SIZE_BYTES_THRESHOLD = 256 * AbstractAmazonSnsConsumer.KB;
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAmazonSnsConsumer.class);
 
-  private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+  private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(ThreadFactoryProvider.getThreadFactory());
 
   protected final C amazonSnsClient;
 
@@ -168,13 +169,13 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
   }
 
   private boolean canAddToBatch(final int batchSizeBytes, final int requestEntriesSize, final RequestEntry<E> request) {
-    return (batchSizeBytes < BATCH_SIZE_BYTES_THRESHOLD)
+    return (batchSizeBytes < AbstractAmazonSnsConsumer.BATCH_SIZE_BYTES_THRESHOLD)
       && (requestEntriesSize < topicProperty.getMaxBatchSize())
       && Objects.nonNull(request);
   }
 
   private boolean canAddPayload(final int batchSizeBytes) {
-    return batchSizeBytes <= BATCH_SIZE_BYTES_THRESHOLD;
+    return batchSizeBytes <= AbstractAmazonSnsConsumer.BATCH_SIZE_BYTES_THRESHOLD;
   }
 
   @SneakyThrows

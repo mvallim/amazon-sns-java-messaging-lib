@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.amazon.sns.messaging.lib.core;
+package com.amazon.sns.messaging.lib.concurrent;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
@@ -24,14 +24,14 @@ import java.util.concurrent.TimeUnit;
 
 import lombok.SneakyThrows;
 
-class BlockingSubmissionPolicy implements RejectedExecutionHandler {
-
+public class BlockingSubmissionPolicy implements RejectedExecutionHandler {
+  
   private final long timeout;
-
+  
   public BlockingSubmissionPolicy(final long timeout) {
     this.timeout = timeout;
   }
-
+  
   @Override
   @SneakyThrows
   public void rejectedExecution(final Runnable runnable, final ThreadPoolExecutor executor) {
@@ -40,5 +40,5 @@ class BlockingSubmissionPolicy implements RejectedExecutionHandler {
       throw new RejectedExecutionException("Timeout");
     }
   }
-
+  
 }
