@@ -20,6 +20,7 @@
 		<maven.compile.encoding>UTF-8</maven.compile.encoding>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
+		<maven.compiler.optimize>true</maven.compiler.optimize>
 
 		<!-- Dependencies -->
 		<lombok.version>1.18.38</lombok.version>
@@ -395,7 +396,6 @@
 					<target>${java.version}</target>
 					<encoding>${project.build.sourceEncoding}</encoding>
 					<debug>true</debug>
-					<optimize>true</optimize>
 					<showDeprecation>true</showDeprecation>
 					<showWarnings>true</showWarnings>
 					<annotationProcessorPaths>
