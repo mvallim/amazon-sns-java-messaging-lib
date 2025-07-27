@@ -382,7 +382,6 @@
 							<goal>report</goal>
 						</goals>
 						<configuration>
-							<append>true</append>
 							<dataFile>../target/site/${project.artifactId}/jacoco.exe</dataFile>
 							<outputDirectory>../target/site/${project.artifactId}</outputDirectory>
 						</configuration>
@@ -448,6 +447,16 @@
 			</properties>
 		</profile>
 
+		<profile>
+			<id>21</id>
+			<activation>
+				<jdk>21</jdk>
+			</activation>
+			<properties>
+				<java.version>21</java.version>
+			</properties>
+		</profile>
+			
 		<profile>
 			<id>sonar</id>
 			<properties>
