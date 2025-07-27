@@ -41,9 +41,9 @@ class RingBufferBlockingQueueTest {
 
   @Test
   void testSuccess() {
-    final ExecutorService producer = Executors.newSingleThreadScheduledExecutor();
+    final ExecutorService producer = ExecutorsProvider.getExecutorService();
 
-    final ScheduledExecutorService consumer = Executors.newSingleThreadScheduledExecutor();
+    final ScheduledExecutorService consumer = Executors.newSingleThreadScheduledExecutor(ThreadFactoryProvider.getThreadFactory());
 
     final List<RequestEntry<Integer>> requestEntriesOut = new LinkedList<>();
 
@@ -52,7 +52,6 @@ class RingBufferBlockingQueueTest {
     producer.submit(() -> {
       IntStream.range(0, 100_000).forEach(value -> {
         ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(value).build());
-        System.err.println("write: " + ringBlockingQueue.writeSequence());
       });
     });
 
@@ -62,7 +61,6 @@ class RingBufferBlockingQueueTest {
 
         while ((requestEntries.size() < 10) && Objects.nonNull(ringBlockingQueue.peek())) {
           final RequestEntry<Integer> take = ringBlockingQueue.take();
-          System.err.println("read: " + ringBlockingQueue.readSequence());
           requestEntries.add(take);
         }
 
@@ -92,9 +90,9 @@ class RingBufferBlockingQueueTest {
   void testSuccessWhenIsEmpty() {
     final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
 
-    final ExecutorService producer = Executors.newSingleThreadExecutor();
+    final ExecutorService producer = ExecutorsProvider.getExecutorService();
 
-    final ExecutorService consumer = Executors.newSingleThreadExecutor();
+    final ExecutorService consumer = ExecutorsProvider.getExecutorService();
 
     consumer.submit(() -> {
       assertThat(ringBlockingQueue.take().getValue(), is(0));
@@ -121,9 +119,9 @@ class RingBufferBlockingQueueTest {
   void testSuccessWhenIsFull() {
     final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>(1);
 
-    final ExecutorService producer = Executors.newSingleThreadExecutor();
+    final ExecutorService producer = ExecutorsProvider.getExecutorService();
 
-    final ExecutorService consumer = Executors.newSingleThreadExecutor();
+    final ExecutorService consumer = ExecutorsProvider.getExecutorService();
 
     producer.submit(() -> {
       ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(0).build());
