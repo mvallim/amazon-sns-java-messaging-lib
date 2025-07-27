@@ -32,7 +32,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 
-@SuppressWarnings({ "java:S2274" })
 public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements BlockingQueue<E> {
 
   private static final int DEFAULT_CAPACITY = 2048;
@@ -55,15 +54,15 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
 
   public RingBufferBlockingQueue(final int capacity) {
     this.capacity = capacity;
-    buffer = new AtomicReferenceArray<>(capacity);
-    reentrantLock = new ReentrantLock(true);
-    waitingConsumer = reentrantLock.newCondition();
-    waitingProducer = reentrantLock.newCondition();
-    IntStream.range(0, capacity).forEach(idx -> buffer.set(idx, new Entry<>()));
+    this.buffer = new AtomicReferenceArray<>(capacity);
+    this.reentrantLock = new ReentrantLock(true);
+    this.waitingConsumer = this.reentrantLock.newCondition();
+    this.waitingProducer = this.reentrantLock.newCondition();
+    IntStream.range(0, capacity).forEach(idx -> this.buffer.set(idx, new Entry<>()));
   }
 
   public RingBufferBlockingQueue() {
-    this(DEFAULT_CAPACITY);
+    this(RingBufferBlockingQueue.DEFAULT_CAPACITY);
   }
 
   private long avoidSequenceOverflow(final long sequence) {
@@ -71,34 +70,38 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   }
 
   private int wrap(final long sequence) {
-    return Math.toIntExact(sequence % capacity);
+    return Math.toIntExact(sequence % this.capacity);
   }
-
+  
+  public int capacity() {
+    return this.capacity;
+  }
+  
   @Override
   public int size() {
-    return size.get();
+    return this.size.get();
   }
 
   @Override
   public boolean isEmpty() {
-    return size.get() == 0;
+    return this.size.get() == 0;
   }
 
   public boolean isFull() {
-    return size.get() >= capacity;
+    return this.size.get() >= this.capacity;
   }
 
   public long writeSequence() {
-    return writeSequence.get();
+    return this.writeSequence.get();
   }
 
   public long readSequence() {
-    return readSequence.get();
+    return this.readSequence.get();
   }
 
   @Override
   public E peek() {
-    return isEmpty() ? null : buffer.get(wrap(readSequence.get())).getValue();
+    return isEmpty() ? null : this.buffer.get(wrap(this.readSequence.get())).getValue();
   }
 
   @Override

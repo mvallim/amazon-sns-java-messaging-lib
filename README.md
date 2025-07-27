@@ -16,7 +16,7 @@ Combine multiple requests to optimally utilise the network.
 
 Article [Martin Fowler](https://martinfowler.com) [Request Batch](https://martinfowler.com/articles/patterns-of-distributed-systems/request-batch.html)
 
-_**Compatible JDK 8, 11 and 17**_
+_**Compatible JDK 8, 11, 17 and 21**_
 
 _**Compatible AWS JDK v1 >= 1.12**_
 
@@ -38,7 +38,7 @@ You can pull it from the central Maven repositories:
 <dependency>
     <groupId>com.github.mvallim</groupId>
     <artifactId>amazon-sns-java-messaging-lib-v1</artifactId>
-    <version>1.0.8</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
@@ -48,7 +48,7 @@ You can pull it from the central Maven repositories:
 <dependency>
     <groupId>com.github.mvallim</groupId>
     <artifactId>amazon-sns-java-messaging-lib-v2</artifactId>
-    <version>1.0.8</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
@@ -70,13 +70,13 @@ If you want to try a snapshot version, add the following repository:
 ### For AWS SDK v1
 
 ```groovy
-implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v1:1.0.8'
+implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v1:1.1.0'
 ```
 
 ### For AWS SDK v2
 
 ```groovy
-implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v2:1.0.8'
+implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v2:1.1.0'
 ```
 
 If you want to try a snapshot version, add the following repository:

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.amazon.sns.messaging.lib.core;
+package com.amazon.sns.messaging.lib.concurrent;
 
 import java.util.Objects;
 import java.util.concurrent.SynchronousQueue;
@@ -23,49 +23,53 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class AmazonSnsThreadPoolExecutor extends ThreadPoolExecutor {
-
+  
   private final AtomicInteger activeTaskCount = new AtomicInteger();
-
+  
   private final AtomicInteger failedTaskCount = new AtomicInteger();
-
+  
   private final AtomicInteger succeededTaskCount = new AtomicInteger();
-
+  
   public AmazonSnsThreadPoolExecutor(final int maximumPoolSize) {
-    super(0, maximumPoolSize, 60, TimeUnit.SECONDS, new SynchronousQueue<>(), new BlockingSubmissionPolicy(30000));
+    super(0, maximumPoolSize, 60, TimeUnit.SECONDS, new SynchronousQueue<>(), ThreadFactoryProvider.getThreadFactory(), new BlockingSubmissionPolicy(30000));
   }
-
+  
   public int getActiveTaskCount() {
-    return activeTaskCount.get();
+    return this.activeTaskCount.get();
   }
-
+  
   public int getFailedTaskCount() {
-    return failedTaskCount.get();
+    return this.failedTaskCount.get();
   }
-
+  
   public int getSucceededTaskCount() {
-    return succeededTaskCount.get();
+    return this.succeededTaskCount.get();
   }
-
+  
+  public int getQueueSize() {
+    return getQueue().size();
+  }
+  
   @Override
   protected void beforeExecute(final Thread thread, final Runnable runnable) {
     try {
       super.beforeExecute(thread, runnable);
     } finally {
-      activeTaskCount.incrementAndGet();
+      this.activeTaskCount.incrementAndGet();
     }
   }
-
+  
   @Override
   protected void afterExecute(final Runnable runnable, final Throwable throwable) {
     try {
       super.afterExecute(runnable, throwable);
     } finally {
       if (Objects.nonNull(throwable)) {
-        failedTaskCount.incrementAndGet();
+        this.failedTaskCount.incrementAndGet();
       } else {
-        succeededTaskCount.incrementAndGet();
+        this.succeededTaskCount.incrementAndGet();
       }
-      activeTaskCount.decrementAndGet();
+      this.activeTaskCount.decrementAndGet();
     }
   }
 
