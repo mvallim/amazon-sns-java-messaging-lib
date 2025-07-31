@@ -24,6 +24,8 @@ import java.util.function.UnaryOperator;
 import com.amazon.sns.messaging.lib.concurrent.ExecutorsProvider;
 import com.amazon.sns.messaging.lib.concurrent.RingBufferBlockingQueue;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
+import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
+import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
 import com.amazon.sns.messaging.lib.model.TopicProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -37,7 +39,7 @@ public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<SnsClient, P
   private AmazonSnsTemplate(
       final SnsClient amazonSnsClient,
       final TopicProperty topicProperty,
-      final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
+      final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
       final BlockingQueue<RequestEntry<E>> topicRequests,
       final ObjectMapper objectMapper,
       final UnaryOperator<PublishBatchRequest> publishDecorator) {

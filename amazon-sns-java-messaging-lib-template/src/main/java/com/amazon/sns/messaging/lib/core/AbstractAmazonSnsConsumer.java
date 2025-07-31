@@ -17,6 +17,7 @@
 package com.amazon.sns.messaging.lib.core;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -29,6 +30,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 
@@ -41,6 +43,8 @@ import com.amazon.sns.messaging.lib.concurrent.ThreadFactoryProvider;
 import com.amazon.sns.messaging.lib.core.RequestEntryInternalFactory.RequestEntryInternal;
 import com.amazon.sns.messaging.lib.model.PublishRequestBuilder;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
+import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
+import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
 import com.amazon.sns.messaging.lib.model.TopicProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -63,7 +67,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
 
   private final RequestEntryInternalFactory requestEntryInternalFactory;
 
-  protected final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests;
+  protected final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests;
 
   private final BlockingQueue<RequestEntry<E>> topicRequests;
 
@@ -75,7 +79,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
       final C amazonSnsClient,
       final TopicProperty topicProperty,
       final ObjectMapper objectMapper,
-      final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
+      final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
       final BlockingQueue<RequestEntry<E>> topicRequests,
       final ExecutorService executorService,
       final UnaryOperator<R> publishDecorator) {
@@ -216,17 +220,10 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
   @SneakyThrows
   public CompletableFuture<Void> await() {
     return CompletableFuture.runAsync(() -> {
-      while (
-        MapUtils.isNotEmpty(this.pendingRequests) ||
-        CollectionUtils.isNotEmpty(this.topicRequests)) {
-        sleep(topicProperty.getLinger());
+      while (MapUtils.isNotEmpty(this.pendingRequests) || CollectionUtils.isNotEmpty(this.topicRequests)) {
+        LockSupport.parkNanos(Duration.ofMillis(topicProperty.getLinger()).toNanos());
       }
     });
-  }
-
-  @SneakyThrows
-  private static void sleep(final long millis) {
-    Thread.sleep(millis);
   }
 
 }

@@ -21,12 +21,14 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
+import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
+import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
 
 // @formatter:off
 class AmazonSnsProducer<E> extends AbstractAmazonSnsProducer<E> {
 
   public AmazonSnsProducer(
-      final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
+      final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
       final BlockingQueue<RequestEntry<E>> topicRequests,
       final ExecutorService executorService) {
     super(pendingRequests, topicRequests, executorService);

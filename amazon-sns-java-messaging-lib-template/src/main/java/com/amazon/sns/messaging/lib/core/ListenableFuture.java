@@ -18,6 +18,9 @@ package com.amazon.sns.messaging.lib.core;
 
 import java.util.function.Consumer;
 
+import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
+import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
+
 // @formatter:off
 public interface ListenableFuture<S, F> {
 
@@ -26,6 +29,10 @@ public interface ListenableFuture<S, F> {
   default void addCallback(final Consumer<? super S> successCallback) {
     addCallback(successCallback, result -> { });
   }
+
+  void success(final ResponseSuccessEntry entry);
+
+  void fail(final ResponseFailEntry entry);
 
 }
 // @formatter:on

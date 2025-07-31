@@ -52,7 +52,7 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishB
     final AmazonSNS amazonSnsClient,
     final TopicProperty topicProperty,
     final ObjectMapper objectMapper,
-    final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
+    final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
     final BlockingQueue<RequestEntry<E>> topicRequests,
     final ExecutorService executorService,
     final UnaryOperator<PublishBatchRequest> publishDecorator) {
@@ -73,7 +73,7 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishB
           .withSubject(StringUtils.isNotBlank(entry.getSubject()) ? entry.getSubject() : null)
           .withMessageGroupId(StringUtils.isNotBlank(entry.getGroupId()) ? entry.getGroupId() : null)
           .withMessageDeduplicationId(StringUtils.isNotBlank(entry.getDeduplicationId()) ? entry.getDeduplicationId() : null)
-          .withMessageAttributes(messageAttributes.messageAttributes(entry.getMessageHeaders()))
+          .withMessageAttributes(AmazonSnsConsumer.messageAttributes.messageAttributes(entry.getMessageHeaders()))
           .withMessage(entry.getMessage()))
         .collect(Collectors.toList());
       return new PublishBatchRequest().withPublishBatchRequestEntries(entries).withTopicArn(topicArn);
@@ -85,10 +85,10 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishB
     final String code = throwable instanceof AmazonServiceException ? AmazonServiceException.class.cast(throwable).getErrorCode() : "000";
     final String message = throwable instanceof AmazonServiceException ? AmazonServiceException.class.cast(throwable).getErrorMessage() : throwable.getMessage();
 
-    LOGGER.error(throwable.getMessage(), throwable);
+    AmazonSnsConsumer.LOGGER.error(throwable.getMessage(), throwable);
 
     publishBatchRequest.getPublishBatchRequestEntries().forEach(entry -> {
-      final ListenableFutureRegistry listenableFuture = pendingRequests.remove(entry.getId());
+      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> listenableFuture = pendingRequests.remove(entry.getId());
       listenableFuture.fail(ResponseFailEntry.builder()
         .withId(entry.getId())
         .withCode(code)
@@ -101,7 +101,7 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishB
   @Override
   protected void handleResponse(final PublishBatchResult publishBatchResult) {
     publishBatchResult.getSuccessful().forEach(entry -> {
-      final ListenableFutureRegistry listenableFuture = pendingRequests.remove(entry.getId());
+      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> listenableFuture = pendingRequests.remove(entry.getId());
       listenableFuture.success(ResponseSuccessEntry.builder()
         .withId(entry.getId())
         .withMessageId(entry.getMessageId())
@@ -110,7 +110,7 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishB
     });
 
     publishBatchResult.getFailed().forEach(entry -> {
-      final ListenableFutureRegistry listenableFuture = pendingRequests.remove(entry.getId());
+      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> listenableFuture = pendingRequests.remove(entry.getId());
       listenableFuture.fail(ResponseFailEntry.builder()
         .withId(entry.getId())
         .withCode(entry.getCode())
