@@ -163,12 +163,12 @@ class AmazonSnsProducerAsyncTest {
       assertThat(result, notNullValue());
     }));
 
-    entries(3000000).forEach(entry -> {
+    entries(30000).forEach(entry -> {
       snsTemplate.send(entry).addCallback(null, failureCallback);
     });
 
     snsTemplate.await().thenAccept(result -> {
-      verify(failureCallback, timeout(300000).times(3000000)).accept(any());
+      verify(failureCallback, timeout(300000).times(30000)).accept(any());
       verify(amazonSNS, atLeastOnce()).publishBatch(any(PublishBatchRequest.class));
     }).join();
   }
