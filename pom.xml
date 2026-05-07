@@ -448,8 +448,8 @@
 				<sonar.language>java</sonar.language>
 				<sonar.projectBaseDir>..</sonar.projectBaseDir>
 				<sonar.coverage.jacoco.xmlReportPaths>target/site/**/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
-				<sonar.sources>../src/main/java</sonar.sources>
-				<sonar.tests>../src/test/java</sonar.tests>
+				<sonar.sources>src/main/java</sonar.sources>
+				<sonar.tests>src/test/java</sonar.tests>
 				<sonar.inclusions>**/main/**</sonar.inclusions>
 				<sonar.scm.exclusions.disabled>false</sonar.scm.exclusions.disabled>
 				<sonar.modules>amazon-sns-java-messaging-lib-template,amazon-sns-java-messaging-lib-v1,amazon-sns-java-messaging-lib-v2</sonar.modules>
