@@ -468,6 +468,10 @@
 				<sonar.exclusions>**/test/**</sonar.exclusions>
 				<sonar.sourceEncoding>${maven.compile.encoding}</sonar.sourceEncoding>
 				<sonar.scm.exclusions.disabled>false</sonar.scm.exclusions.disabled>
+				<sonar.modules>amazon-sns-java-messaging-lib-template,amazon-sns-java-messaging-lib-v1,amazon-sns-java-messaging-lib-v2</sonar.modules>
+				<amazon-sns-java-messaging-lib-template.sonar.projectName>com.github.mvallim:amazon-sns-java-messaging-lib-template</amazon-sns-java-messaging-lib-template.sonar.projectName>
+				<amazon-sns-java-messaging-lib-v1.sonar.projectName>com.github.mvallim:amazon-sns-java-messaging-lib-v1</amazon-sns-java-messaging-lib-v1.sonar.projectName>
+				<amazon-sns-java-messaging-lib-v2.sonar.projectName>com.github.mvallim:amazon-sns-java-messaging-lib-v2</amazon-sns-java-messaging-lib-v2.sonar.projectName>
 				<sonar.coverage.exclusions>
 					**/amazon-sns-java-messaging-lib-template/**,
 					**/model/**,
