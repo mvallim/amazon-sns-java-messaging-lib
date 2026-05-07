@@ -50,22 +50,6 @@
 		<jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
 		<sonar-maven-plugin.version>4.0.0.4121</sonar-maven-plugin.version>
 		<central-publishing-maven-plugin.version>0.8.0</central-publishing-maven-plugin.version>
-
-		<sonar.coverage.exclusions>
-			**/AbstractAmazonSnsConsumer.**,
-			**/AbstractAmazonSnsProducer.**,
-			**/AbstractAmazonSnsTemplate.**,
-			**/AbstractMessageAttributes.**,
-			**/model/**,
-			**/package-info.**,
-			**/generated-sources/**,
-			**/generated-test-sources/**,
-			**/src/test/**
-		</sonar.coverage.exclusions>
-
-		<sonar.exclusions>
-			**/src/test/**
-		</sonar.exclusions>
 	</properties>
 
 	<modules>
@@ -468,8 +452,7 @@
 				<sonar.exclusions>**/test/**</sonar.exclusions>
 				<sonar.sourceEncoding>${maven.compile.encoding}</sonar.sourceEncoding>
 				<sonar.scm.exclusions.disabled>false</sonar.scm.exclusions.disabled>
-				<sonar.modules>amazon-sns-java-messaging-lib-template,amazon-sns-java-messaging-lib-v1,amazon-sns-java-messaging-lib-v2</sonar.modules>
-				<amazon-sns-java-messaging-lib-template.sonar.projectName>com.github.mvallim:amazon-sns-java-messaging-lib-template</amazon-sns-java-messaging-lib-template.sonar.projectName>
+				<sonar.modules>amazon-sns-java-messaging-lib-v1,amazon-sns-java-messaging-lib-v2</sonar.modules>
 				<amazon-sns-java-messaging-lib-v1.sonar.projectName>com.github.mvallim:amazon-sns-java-messaging-lib-v1</amazon-sns-java-messaging-lib-v1.sonar.projectName>
 				<amazon-sns-java-messaging-lib-v2.sonar.projectName>com.github.mvallim:amazon-sns-java-messaging-lib-v2</amazon-sns-java-messaging-lib-v2.sonar.projectName>
 				<sonar.coverage.exclusions>
