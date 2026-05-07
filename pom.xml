@@ -446,16 +446,45 @@
 				<sonar.projectVersion>${project.version}</sonar.projectVersion>
 				<sonar.sourceEncoding>${maven.compile.encoding}</sonar.sourceEncoding>
 				<sonar.language>java</sonar.language>
-				<sonar.projectBaseDir>..</sonar.projectBaseDir>
+				<sonar.projectBaseDir>.</sonar.projectBaseDir>
 				<sonar.coverage.jacoco.xmlReportPaths>target/site/**/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 				<sonar.sources>src/main/java</sonar.sources>
 				<sonar.tests>src/test/java</sonar.tests>
-				<sonar.inclusions>**/main/**</sonar.inclusions>
+				<!-- <sonar.inclusions>**/main/**</sonar.inclusions> -->
 				<sonar.scm.exclusions.disabled>false</sonar.scm.exclusions.disabled>
 				<sonar.modules>amazon-sns-java-messaging-lib-template,amazon-sns-java-messaging-lib-v1,amazon-sns-java-messaging-lib-v2</sonar.modules>
 				<amazon-sns-java-messaging-lib-template.sonar.projectName>com.github.mvallim:amazon-sns-java-messaging-lib-template</amazon-sns-java-messaging-lib-template.sonar.projectName>
 				<amazon-sns-java-messaging-lib-v1.sonar.projectName>com.github.mvallim:amazon-sns-java-messaging-lib-v1</amazon-sns-java-messaging-lib-v1.sonar.projectName>
 				<amazon-sns-java-messaging-lib-v2.sonar.projectName>com.github.mvallim:amazon-sns-java-messaging-lib-v2</amazon-sns-java-messaging-lib-v2.sonar.projectName>
+
+				<sonar.cpd.exclusions>
+					**/AmazonSnsThreadPoolExecutor.java,
+					**/BlockingSubmissionPolicy.java,
+					**/ExecutorsProvider.java,
+					**/RingBufferBlockingQueue.java,
+					**/ThreadFactoryProvider.java,
+					**/AbstractAmazonSnsConsumer.java,
+					**/AbstractAmazonSnsProducer.java,
+					**/AbstractAmazonSnsTemplate.java,
+					**/AbstractMessageAttributes.java,
+					**/ListenableFuture.java,
+					**/ListenableFutureRegistry.java,
+					**/RequestEntryInternalFactory.java,
+					**/AmazonSnsThreadPoolExecutorJmx.java,
+					**/AmazonSnsThreadPoolExecutorJmxMBean.java,
+					**/MBeanRegistrar.java,
+					**/RingBufferBlockingQueueJmx.java,
+					**/RingBufferBlockingQueueJmxMBean.java,
+					**/PublishRequestBuilder.java,
+					**/RequestEntry.java,
+					**/ResponseFailEntry.java,
+					**/ResponseSuccessEntry.java,
+					**/TopicProperty.java,
+					**/AmazonSnsConsumer.java,
+					**/AmazonSnsProducer.java,
+					**/AmazonSnsTemplate.java,
+					**/MessageAttributes.java
+				</sonar.cpd.exclusions>
 
 				<sonar.exclusions>
 					**/package-info.**,
