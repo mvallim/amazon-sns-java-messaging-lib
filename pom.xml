@@ -48,24 +48,8 @@
 		<maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
 		<maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
 		<jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
-		<sonar-maven-plugin.version>4.0.0.4121</sonar-maven-plugin.version>
+		<sonar-maven-plugin.version>4.0.1.6619</sonar-maven-plugin.version>
 		<central-publishing-maven-plugin.version>0.8.0</central-publishing-maven-plugin.version>
-
-		<sonar.coverage.exclusions>
-			**/AbstractAmazonSnsConsumer.**,
-			**/AbstractAmazonSnsProducer.**,
-			**/AbstractAmazonSnsTemplate.**,
-			**/AbstractMessageAttributes.**,
-			**/model/**,
-			**/package-info.**,
-			**/generated-sources/**,
-			**/generated-test-sources/**,
-			**/src/test/**
-		</sonar.coverage.exclusions>
-
-		<sonar.exclusions>
-			**/src/test/**
-		</sonar.exclusions>
 	</properties>
 
 	<modules>
@@ -356,7 +340,7 @@
 						<format>XML</format>
 					</formats>
 					<excludes>
-						<exclude>**/model/**</exclude>
+						<!-- <exclude>**/amazon-sns-java-messaging-lib-template/**</exclude> -->
 						<exclude>**/package-info.**</exclude>
 						<exclude>**/generated-sources/**</exclude>
 						<exclude>**/generated-test-sources/**</exclude>
@@ -370,7 +354,7 @@
 							<goal>prepare-agent</goal>
 						</goals>
 						<configuration>
-							<append>true</append>
+							<append>false</append>
 							<propertyName>jacoco.argLine</propertyName>
 							<destFile>../target/site/${project.artifactId}/jacoco.exe</destFile>
 						</configuration>
@@ -460,17 +444,25 @@
 				<sonar.projectKey>${project.artifactId}</sonar.projectKey>
 				<sonar.projectName>${project.artifactId}</sonar.projectName>
 				<sonar.projectVersion>${project.version}</sonar.projectVersion>
+				<sonar.sourceEncoding>${maven.compile.encoding}</sonar.sourceEncoding>
+				<sonar.language>java</sonar.language>
 				<sonar.projectBaseDir>.</sonar.projectBaseDir>
+				<sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
 				<sonar.coverage.jacoco.xmlReportPaths>target/site/**/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 				<sonar.sources>src/main/java</sonar.sources>
 				<sonar.tests>src/test/java</sonar.tests>
-				<sonar.inclusions>**/main/**</sonar.inclusions>
-				<sonar.exclusions>**/test/**</sonar.exclusions>
-				<sonar.sourceEncoding>${maven.compile.encoding}</sonar.sourceEncoding>
 				<sonar.scm.exclusions.disabled>false</sonar.scm.exclusions.disabled>
+
+				<sonar.exclusions>
+					<!-- **/amazon-sns-java-messaging-lib-template/**, -->
+					**/package-info.**,
+					**/generated-sources/**,
+					**/generated-test-sources/**,
+					**/test/**
+				</sonar.exclusions>
+
 				<sonar.coverage.exclusions>
-					**/amazon-sns-java-messaging-lib-template/**,
-					**/model/**,
+					<!-- **/amazon-sns-java-messaging-lib-template/**, -->
 					**/package-info.**,
 					**/generated-sources/**,
 					**/generated-test-sources/**,
