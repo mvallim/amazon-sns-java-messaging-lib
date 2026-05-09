@@ -16,8 +16,8 @@
 
 package com.amazon.sns.messaging.lib.core;
 
-import java.io.IOException;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 
 import com.amazon.sns.messaging.lib.concurrent.ThreadFactoryProvider;
 import com.amazon.sns.messaging.lib.core.RequestEntryInternalFactory.RequestEntryInternal;
+import com.amazon.sns.messaging.lib.exception.MaximumAllowedMessageException;
 import com.amazon.sns.messaging.lib.model.PublishRequestBuilder;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
@@ -130,6 +131,22 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
       while (requestsWaitedFor(topicRequests, topicProperty.getLinger()) || maxBatchSizeReached(topicRequests)) {
         createBatch(topicRequests).ifPresent(this::publishBatch);
       }
+    } catch (final MaximumAllowedMessageException ex) {
+      final RequestEntry<?> request = ex.getRequest();
+
+      final byte[] payload = requestEntryInternalFactory.convertPayload(request);
+
+      final RequestEntryInternal requestEntry = requestEntryInternalFactory.create(request, payload);
+
+      final R publishBatchRequest = PublishRequestBuilder.<R, RequestEntryInternal>builder()
+        .supplier(supplierPublishRequest())
+        .entries(Collections.singletonList(requestEntry))
+        .topicArn(topicProperty.getTopicArn())
+        .build();
+
+      handleError(publishBatchRequest, ex);
+
+      LOGGER.error(ex.getMessage(), ex);
     } catch (final Exception ex) {
       LOGGER.error(ex.getMessage(), ex);
     }
@@ -166,9 +183,9 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
   }
 
   @SneakyThrows
-  private void validateMessageSize(final Integer messageSize) {
+  private void validateMessageSize(final Integer messageSize, final RequestEntry<E> requestEntry) {
     if (messageSize > BATCH_SIZE_BYTES_THRESHOLD) {
-      throw new IOException("The maximum allowed message size exceeding 256KB (262,144 bytes).");
+      throw new MaximumAllowedMessageException("The maximum allowed message size exceeding 256KB (262,144 bytes).", requestEntry);
     }
   }
 
@@ -197,7 +214,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
 
       final Integer messageSize = messageBodySize + messageAttributesSize;
 
-      validateMessageSize(messageSize);
+      validateMessageSize(messageSize, request);
 
       if (canAddPayload(batchSizeBytes.addAndGet(messageSize))) {
         requestEntries.add(requestEntryInternalFactory.create(requests.take(), payload));
