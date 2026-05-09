@@ -28,6 +28,10 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 
+/**
+ * Provides {@link ThreadFactory} instances, selecting between virtual thread factories
+ * (Java 21+) and default thread factories based on the runtime Java version.
+ */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ThreadFactoryProvider {
   
@@ -45,15 +49,30 @@ public final class ThreadFactoryProvider {
     }
   }
   
+  /**
+   * Returns a {@link ThreadFactory} appropriate for the current Java version.
+   *
+   * @return a virtual thread factory (Java 21+) or the default thread factory
+   */
   public static ThreadFactory getThreadFactory() {
     return ThreadFactoryProvider.supplierThreadFactory.get();
   }
   
+  /**
+   * Creates a default thread factory for Java versions below 21.
+   *
+   * @return the default thread factory
+   */
   @SneakyThrows
   private static ThreadFactory getDefaultThreadFactory() {
     return Executors.defaultThreadFactory();
   }
   
+  /**
+   * Creates a virtual thread factory using reflection (Java 21+).
+   *
+   * @return a virtual thread factory
+   */
   @SneakyThrows
   private static ThreadFactory getVirtualThreadFactory() {
     final Class<?> clazzThread = Thread.class;
@@ -64,6 +83,11 @@ public final class ThreadFactoryProvider {
     return ThreadFactory.class.cast(factoryMethod.invoke(result));
   }
 
+  /**
+   * Parses the Java runtime version.
+   *
+   * @return the major Java version number
+   */
   private static int getJavaVersion() {
     String version = System.getProperty("java.version");
     

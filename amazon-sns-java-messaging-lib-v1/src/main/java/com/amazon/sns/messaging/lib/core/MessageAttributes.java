@@ -22,28 +22,47 @@ import java.util.List;
 import com.amazonaws.services.sns.model.MessageAttributeValue;
 
 // @formatter:off
+/**
+ * AWS SDK v1 implementation of {@link AbstractMessageAttributes}. Converts message header
+ * entries into v1 {@link MessageAttributeValue} objects.
+ */
 class MessageAttributes extends AbstractMessageAttributes<MessageAttributeValue> {
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected MessageAttributeValue getEnumMessageAttribute(final Enum<?> value) {
     return new MessageAttributeValue().withDataType(STRING).withStringValue(value.name());
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected MessageAttributeValue getStringMessageAttribute(final String value) {
     return new MessageAttributeValue().withDataType(STRING).withStringValue(value);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected MessageAttributeValue getNumberMessageAttribute(final Number value) {
     return new MessageAttributeValue().withDataType(NUMBER + "." + value.getClass().getName()).withStringValue(value.toString());
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected MessageAttributeValue getBinaryMessageAttribute(final ByteBuffer value) {
     return new MessageAttributeValue().withDataType(BINARY).withBinaryValue(value);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected MessageAttributeValue getStringArrayMessageAttribute(final List<?> values) {
     return new MessageAttributeValue().withDataType(STRING_ARRAY).withStringValue(stringArray(values));

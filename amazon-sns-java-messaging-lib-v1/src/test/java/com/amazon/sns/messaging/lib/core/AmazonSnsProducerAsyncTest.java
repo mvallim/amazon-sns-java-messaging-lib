@@ -27,11 +27,13 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -71,6 +73,7 @@ class AmazonSnsProducerAsyncTest {
       .maximumPoolSize(10)
       .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
       .build();
+
     snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty, new RingBufferBlockingQueue<>(2048));
   }
 
@@ -136,9 +139,15 @@ class AmazonSnsProducerAsyncTest {
       assertThat(result, notNullValue());
     }));
 
+    final List<ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> listenableFutures = new LinkedList<>();
+
     entries(30000).forEach(entry -> {
-      snsTemplate.send(entry).addCallback(successCallback);
+      listenableFutures.add(snsTemplate.send(entry));
     });
+
+    LockSupport.parkNanos(Duration.ofMillis(500).toNanos());
+
+    listenableFutures.forEach(listenableFuture -> listenableFuture.addCallback(successCallback));
 
     snsTemplate.await().thenAccept(result -> {
       verify(successCallback, timeout(300000).times(30000)).accept(any());
@@ -208,12 +217,12 @@ class AmazonSnsProducerAsyncTest {
   @Test
   void testSuccessBlockingSubmissionPolicy() {
     final TopicProperty topicProperty = TopicProperty.builder()
-        .fifo(false)
-        .linger(50L)
-        .maxBatchSize(1)
-        .maximumPoolSize(1)
-        .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
-        .build();
+      .fifo(false)
+      .linger(50L)
+      .maxBatchSize(1)
+      .maximumPoolSize(1)
+      .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
+      .build();
 
     snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty);
 

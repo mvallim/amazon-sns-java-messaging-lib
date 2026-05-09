@@ -22,6 +22,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
 
+/**
+ * Represents a failed publish result from Amazon SNS, containing the error details.
+ */
 @Getter
 @ToString
 @Builder(setterPrefix = "with")
@@ -29,12 +32,24 @@ public class ResponseFailEntry implements Serializable {
 
   private static final long serialVersionUID = 6271096607211902145L;
 
+  /**
+   * The unique identifier of the original request.
+   */
   private final String id;
 
+  /**
+   * The error message.
+   */
   private final String message;
 
+  /**
+   * The error code.
+   */
   private final String code;
 
+  /**
+   * Whether the error is attributed to the sender.
+   */
   private final Boolean senderFault;
 
 }

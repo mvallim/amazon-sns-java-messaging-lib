@@ -20,19 +20,37 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
 
+/**
+ * Configuration properties for an Amazon SNS topic.
+ */
 @Getter
 @Builder
 @ToString
 public class TopicProperty {
 
+  /**
+   * Whether the topic is a FIFO topic.
+   */
   private final boolean fifo;
 
+  /**
+   * The maximum number of threads in the pool for concurrent publishing.
+   */
   private final Integer maximumPoolSize;
 
+  /**
+   * The ARN of the SNS topic.
+   */
   private final String topicArn;
 
+  /**
+   * The batching linger time in milliseconds.
+   */
   private final long linger;
 
+  /**
+   * The maximum number of messages per batch.
+   */
   private final int maxBatchSize;
 
 }
