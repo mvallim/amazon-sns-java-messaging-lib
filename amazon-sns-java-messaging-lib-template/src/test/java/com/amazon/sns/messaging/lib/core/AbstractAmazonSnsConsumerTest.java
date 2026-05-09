@@ -36,7 +36,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
@@ -50,6 +49,7 @@ import org.mockito.Mock;
 import org.mockito.Mock.Strictness;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.amazon.sns.messaging.lib.concurrent.RingBufferBlockingQueue;
 import com.amazon.sns.messaging.lib.core.RequestEntryInternalFactory.RequestEntryInternal;
 import com.amazon.sns.messaging.lib.exception.MaximumAllowedMessageException;
 import com.amazon.sns.messaging.lib.helpers.TryConsumer;
@@ -91,7 +91,7 @@ class AbstractAmazonSnsConsumerTest {
   void setUp() {
     objectMapper = new ObjectMapper();
     pendingRequests = new ConcurrentHashMap<>();
-    topicRequests = new LinkedBlockingQueue<>();
+    topicRequests = new RingBufferBlockingQueue<>();
     publishDecorator = UnaryOperator.identity();
 
     when(topicProperty.getTopicArn()).thenReturn(TOPIC_ARN);
@@ -132,9 +132,6 @@ class AbstractAmazonSnsConsumerTest {
 
   @Test
   void testAwaitCompletesWhenPendingRequestsAndTopicRequestsAreEmpty() throws Exception {
-    pendingRequests.clear();
-    topicRequests.clear();
-
     context(consumer -> {
       final CompletableFuture<Void> future = consumer.await();
       future.get(2, TimeUnit.SECONDS);
@@ -331,7 +328,7 @@ class AbstractAmazonSnsConsumerTest {
   void testTopicRequestsPollRemovesEntry() throws InterruptedException {
     topicRequests.put(buildRequestEntry("payload"));
 
-    final RequestEntry<String> polled = topicRequests.poll();
+    final RequestEntry<String> polled = topicRequests.take();
 
     assertThat(polled, is(notNullValue()));
     assertThat(topicRequests.isEmpty(), is(true));
@@ -562,7 +559,6 @@ class AbstractAmazonSnsConsumerTest {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     protected BiFunction<String, List<RequestEntryInternal>, Object> supplierPublishRequest() {
       return (topicArn, entries) -> {
         publishedBatchSizes.add(entries.size());

@@ -34,25 +34,25 @@ import lombok.Setter;
 import lombok.SneakyThrows;
 
 public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements BlockingQueue<E> {
-  
+
   private static final int DEFAULT_CAPACITY = 2048;
-  
+
   private final AtomicReferenceArray<Entry<E>> buffer;
-  
+
   private final int capacity;
-  
+
   private final AtomicLong writeSequence = new AtomicLong(-1);
-  
+
   private final AtomicLong readSequence = new AtomicLong(0);
-  
+
   private final AtomicInteger size = new AtomicInteger(0);
-  
+
   private final ReentrantLock reentrantLock;
-  
+
   private final Condition waitingConsumer;
-  
+
   private final Condition waitingProducer;
-  
+
   public RingBufferBlockingQueue(final int capacity) {
     this.capacity = capacity;
     buffer = new AtomicReferenceArray<>(capacity);
@@ -61,15 +61,15 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
     waitingProducer = reentrantLock.newCondition();
     IntStream.range(0, capacity).forEach(idx -> buffer.set(idx, new Entry<>()));
   }
-  
+
   public RingBufferBlockingQueue() {
     this(RingBufferBlockingQueue.DEFAULT_CAPACITY);
   }
-  
+
   private long avoidSequenceOverflow(final long sequence) {
     return (sequence < Long.MAX_VALUE ? sequence : wrap(sequence));
   }
-  
+
   private int wrap(final long sequence) {
     return Math.toIntExact(sequence % capacity);
   }
@@ -82,29 +82,29 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   public int size() {
     return size.get();
   }
-  
+
   @Override
   public boolean isEmpty() {
     return size.get() == 0;
   }
-  
+
   public boolean isFull() {
     return size.get() >= capacity;
   }
-  
+
   public long writeSequence() {
     return writeSequence.get();
   }
-  
+
   public long readSequence() {
     return readSequence.get();
   }
-  
+
   @Override
   public E peek() {
     return isEmpty() ? null : buffer.get(wrap(readSequence.get())).getValue();
   }
-  
+
   @Override
   @SneakyThrows
   @Locked("reentrantLock")
@@ -124,7 +124,7 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
 
     waitingConsumer.signal();
   }
-  
+
   @Override
   @SneakyThrows
   @Locked("reentrantLock")
@@ -132,74 +132,74 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
     while (isEmpty()) {
       waitingConsumer.await();
     }
-    
+
     final long prevReadSeq = readSequence.get();
     final long nextReadSeq = avoidSequenceOverflow(prevReadSeq) + 1;
-    
+
     final E nextValue = buffer.get(wrap(prevReadSeq)).getValue();
-    
+
     buffer.get(wrap(prevReadSeq)).setValue(null);
-    
+
     readSequence.compareAndSet(prevReadSeq, nextReadSeq);
-    
+
     size.decrementAndGet();
-    
+
     waitingProducer.signal();
-    
+
     return nextValue;
   }
-  
+
   @Override
   public boolean offer(final E element) {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public boolean offer(final E element, final long timeout, final TimeUnit unit) throws InterruptedException {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public E poll() {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public E poll(final long timeout, final TimeUnit unit) throws InterruptedException {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public Iterator<E> iterator() {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public boolean add(final E element) {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public int remainingCapacity() {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public int drainTo(final Collection<? super E> collection) {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public int drainTo(final Collection<? super E> collection, final int maxElements) {
     throw new UnsupportedOperationException();
   }
-  
+
   @Getter
   @Setter
   static class Entry<E> {
-    
+
     private E value;
-    
+
   }
-  
+
 }

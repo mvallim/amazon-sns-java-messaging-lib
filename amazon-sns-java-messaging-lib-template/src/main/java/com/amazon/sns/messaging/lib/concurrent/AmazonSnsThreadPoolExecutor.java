@@ -22,55 +22,60 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class AmazonSnsThreadPoolExecutor extends ThreadPoolExecutor {
-  
+public class AmazonSnsThreadPoolExecutor extends ThreadPoolExecutor implements AutoCloseable {
+
   private final AtomicInteger activeTaskCount = new AtomicInteger();
-  
+
   private final AtomicInteger failedTaskCount = new AtomicInteger();
-  
+
   private final AtomicInteger succeededTaskCount = new AtomicInteger();
-  
+
   public AmazonSnsThreadPoolExecutor(final int maximumPoolSize) {
     super(0, maximumPoolSize, 60, TimeUnit.SECONDS, new SynchronousQueue<>(), ThreadFactoryProvider.getThreadFactory(), new BlockingSubmissionPolicy(30000));
   }
-  
+
   public int getActiveTaskCount() {
-    return this.activeTaskCount.get();
+    return activeTaskCount.get();
   }
-  
+
   public int getFailedTaskCount() {
-    return this.failedTaskCount.get();
+    return failedTaskCount.get();
   }
-  
+
   public int getSucceededTaskCount() {
-    return this.succeededTaskCount.get();
+    return succeededTaskCount.get();
   }
-  
+
   public int getQueueSize() {
     return getQueue().size();
   }
-  
+
   @Override
   protected void beforeExecute(final Thread thread, final Runnable runnable) {
     try {
       super.beforeExecute(thread, runnable);
     } finally {
-      this.activeTaskCount.incrementAndGet();
+      activeTaskCount.incrementAndGet();
     }
   }
-  
+
   @Override
   protected void afterExecute(final Runnable runnable, final Throwable throwable) {
     try {
       super.afterExecute(runnable, throwable);
     } finally {
       if (Objects.nonNull(throwable)) {
-        this.failedTaskCount.incrementAndGet();
+        failedTaskCount.incrementAndGet();
       } else {
-        this.succeededTaskCount.incrementAndGet();
+        succeededTaskCount.incrementAndGet();
       }
-      this.activeTaskCount.decrementAndGet();
+      activeTaskCount.decrementAndGet();
     }
+  }
+
+  @Override
+  public void close() throws Exception {
+    shutdown();
   }
 
 }

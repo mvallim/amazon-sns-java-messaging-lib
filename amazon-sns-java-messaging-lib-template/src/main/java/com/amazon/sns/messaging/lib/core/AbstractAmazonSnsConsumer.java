@@ -131,25 +131,6 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
       while (requestsWaitedFor(topicRequests, topicProperty.getLinger()) || maxBatchSizeReached(topicRequests)) {
         createBatch(topicRequests).ifPresent(this::publishBatch);
       }
-    } catch (final MaximumAllowedMessageException ex) {
-      final RequestEntry<E> request = ex.getRequest();
-
-      if (topicRequests.remove(request)) {
-        final byte[] payload = requestEntryInternalFactory.convertPayload(request);
-
-        final RequestEntryInternal requestEntry = requestEntryInternalFactory.create(request, payload);
-
-        final R publishBatchRequest = PublishRequestBuilder.<R, RequestEntryInternal>builder()
-          .supplier(supplierPublishRequest())
-          .entries(Collections.singletonList(requestEntry))
-          .topicArn(topicProperty.getTopicArn())
-          .build();
-
-        handleError(publishBatchRequest, ex);
-
-        LOGGER.error(ex.getMessage(), ex);
-      }
-
     } catch (final Exception ex) {
       LOGGER.error(ex.getMessage(), ex);
     }
@@ -185,12 +166,6 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
     return requests.size() > topicProperty.getMaxBatchSize();
   }
 
-  private void validateMessageSize(final Integer messageSize, final RequestEntry<E> requestEntry) {
-    if (messageSize > BATCH_SIZE_BYTES_THRESHOLD) {
-      throw new MaximumAllowedMessageException("The maximum allowed message size exceeding 256KB (262,144 bytes).", requestEntry);
-    }
-  }
-
   private boolean canAddToBatch(final int batchSizeBytes, final int requestEntriesSize, final RequestEntry<E> request) {
     return (batchSizeBytes < AbstractAmazonSnsConsumer.BATCH_SIZE_BYTES_THRESHOLD)
       && (requestEntriesSize < topicProperty.getMaxBatchSize())
@@ -216,7 +191,15 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
 
       final Integer messageSize = messageBodySize + messageAttributesSize;
 
-      validateMessageSize(messageSize, request);
+      if (messageSize > BATCH_SIZE_BYTES_THRESHOLD) {
+        final R publishBatchRequest = PublishRequestBuilder.<R, RequestEntryInternal>builder()
+          .supplier(supplierPublishRequest())
+          .entries(Collections.singletonList(requestEntryInternalFactory.create(request, payload)))
+          .topicArn(topicProperty.getTopicArn())
+          .build();
+
+        handleError(publishBatchRequest, new MaximumAllowedMessageException("The maximum allowed message size exceeding 256KB (262,144 bytes).", requests.take()));
+      }
 
       if (canAddPayload(batchSizeBytes.addAndGet(messageSize))) {
         requestEntries.add(requestEntryInternalFactory.create(requests.take(), payload));

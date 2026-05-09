@@ -25,13 +25,24 @@ import java.util.function.Consumer;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mock.Strictness;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
 
+@ExtendWith(MockitoExtension.class)
 class ListenableFutureTest {
 
   private ListenableFutureImpl listenableFuture;
+
+  @Mock(strictness = Strictness.LENIENT)
+  private Consumer<ResponseSuccessEntry> successCallback;
+
+  @Mock(strictness = Strictness.LENIENT)
+  private Consumer<ResponseFailEntry> failureCallback;
 
   @BeforeEach
   void setUp() {
@@ -39,10 +50,7 @@ class ListenableFutureTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   void testAddCallbackInvokesSuccessCallbackOnSuccess() {
-    final Consumer<ResponseSuccessEntry> successCallback = mock(Consumer.class);
-    final Consumer<ResponseFailEntry> failureCallback = mock(Consumer.class);
     final ResponseSuccessEntry entry = mock(ResponseSuccessEntry.class);
 
     listenableFuture.addCallback(successCallback, failureCallback);
@@ -52,10 +60,7 @@ class ListenableFutureTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   void testAddCallbackInvokesFailureCallbackOnFail() {
-    final Consumer<ResponseSuccessEntry> successCallback = mock(Consumer.class);
-    final Consumer<ResponseFailEntry> failureCallback = mock(Consumer.class);
     final ResponseFailEntry entry = mock(ResponseFailEntry.class);
 
     listenableFuture.addCallback(successCallback, failureCallback);
@@ -65,9 +70,7 @@ class ListenableFutureTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   void testAddCallbackWithSuccessOnlyInvokesSuccessCallbackOnSuccess() {
-    final Consumer<ResponseSuccessEntry> successCallback = mock(Consumer.class);
     final ResponseSuccessEntry entry = mock(ResponseSuccessEntry.class);
 
     listenableFuture.addCallback(successCallback);
@@ -77,9 +80,7 @@ class ListenableFutureTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   void testAddCallbackWithSuccessOnlyDoesNotThrowOnFail() {
-    final Consumer<ResponseSuccessEntry> successCallback = mock(Consumer.class);
     final ResponseFailEntry entry = mock(ResponseFailEntry.class);
 
     listenableFuture.addCallback(successCallback);
@@ -88,10 +89,7 @@ class ListenableFutureTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   void testSuccessDoesNotInvokeFailureCallback() {
-    final Consumer<ResponseSuccessEntry> successCallback = mock(Consumer.class);
-    final Consumer<ResponseFailEntry> failureCallback = mock(Consumer.class);
     final ResponseSuccessEntry entry = mock(ResponseSuccessEntry.class);
 
     listenableFuture.addCallback(successCallback, failureCallback);
@@ -101,10 +99,7 @@ class ListenableFutureTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   void testFailDoesNotInvokeSuccessCallback() {
-    final Consumer<ResponseSuccessEntry> successCallback = mock(Consumer.class);
-    final Consumer<ResponseFailEntry> failureCallback = mock(Consumer.class);
     final ResponseFailEntry entry = mock(ResponseFailEntry.class);
 
     listenableFuture.addCallback(successCallback, failureCallback);
@@ -114,7 +109,6 @@ class ListenableFutureTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   void testAddCallbackDefaultFailureCallbackIsNoOp() {
     final boolean[] called = { false };
     final Consumer<ResponseSuccessEntry> successCallback = result -> called[0] = true;
