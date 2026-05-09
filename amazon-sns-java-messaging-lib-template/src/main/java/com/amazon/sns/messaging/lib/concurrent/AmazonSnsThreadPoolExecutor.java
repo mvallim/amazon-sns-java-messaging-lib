@@ -22,7 +22,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class AmazonSnsThreadPoolExecutor extends ThreadPoolExecutor implements AutoCloseable {
+public class AmazonSnsThreadPoolExecutor extends ThreadPoolExecutor {
 
   private final AtomicInteger activeTaskCount = new AtomicInteger();
 
@@ -71,11 +71,6 @@ public class AmazonSnsThreadPoolExecutor extends ThreadPoolExecutor implements A
       }
       activeTaskCount.decrementAndGet();
     }
-  }
-
-  @Override
-  public void close() throws Exception {
-    shutdown();
   }
 
 }

@@ -31,94 +31,94 @@ class AmazonSnsThreadPoolExecutorTest {
 
   @Test
   void testSuccessCounters() throws Exception {
-    try(final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10)) {
-      assertThat(amazonSnsThreadPoolExecutor.getActiveTaskCount(), is(0));
-      assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
-      assertThat(amazonSnsThreadPoolExecutor.getFailedTaskCount(), is(0));
-      assertThat(amazonSnsThreadPoolExecutor.getCorePoolSize(), is(0));
-    }
+    final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10);
+
+    assertThat(amazonSnsThreadPoolExecutor.getActiveTaskCount(), is(0));
+    assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
+    assertThat(amazonSnsThreadPoolExecutor.getFailedTaskCount(), is(0));
+    assertThat(amazonSnsThreadPoolExecutor.getCorePoolSize(), is(0));
   }
 
   @Test
   void testSuccessSucceededTaskCount() throws Exception {
-    try(final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10)) {
-      assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
+    final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10);
 
-      for(int i = 0; i < 300; i++) {
-        amazonSnsThreadPoolExecutor.execute(() -> {
-          await().pollDelay(1, TimeUnit.MILLISECONDS).until(() -> true);
-        });
-      }
+    assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
 
-      amazonSnsThreadPoolExecutor.shutdown();
-
-      if (!amazonSnsThreadPoolExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
-        amazonSnsThreadPoolExecutor.shutdownNow();
-      }
-
-      assertThat(amazonSnsThreadPoolExecutor.getActiveTaskCount(), is(0));
-      assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(300));
-      assertThat(amazonSnsThreadPoolExecutor.getFailedTaskCount(), is(0));
+    for(int i = 0; i < 300; i++) {
+      amazonSnsThreadPoolExecutor.execute(() -> {
+        await().pollDelay(1, TimeUnit.MILLISECONDS).until(() -> true);
+      });
     }
+
+    amazonSnsThreadPoolExecutor.shutdown();
+
+    if (!amazonSnsThreadPoolExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
+      amazonSnsThreadPoolExecutor.shutdownNow();
+    }
+
+    assertThat(amazonSnsThreadPoolExecutor.getActiveTaskCount(), is(0));
+    assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(300));
+    assertThat(amazonSnsThreadPoolExecutor.getFailedTaskCount(), is(0));
   }
 
   @Test
   void testSuccessFailedTaskCount() throws Exception {
-    try(final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10)) {
-      assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
+    final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10);
 
-      for(int i = 0; i < 300; i++) {
-        amazonSnsThreadPoolExecutor.execute(() -> { throw new RuntimeException(); });
-      }
+    assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
 
-      amazonSnsThreadPoolExecutor.shutdown();
-
-      if (!amazonSnsThreadPoolExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
-        amazonSnsThreadPoolExecutor.shutdownNow();
-      }
-
-      assertThat(amazonSnsThreadPoolExecutor.getActiveTaskCount(), is(0));
-      assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
-      assertThat(amazonSnsThreadPoolExecutor.getFailedTaskCount(), is(300));
+    for(int i = 0; i < 300; i++) {
+      amazonSnsThreadPoolExecutor.execute(() -> { throw new RuntimeException(); });
     }
+
+    amazonSnsThreadPoolExecutor.shutdown();
+
+    if (!amazonSnsThreadPoolExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
+      amazonSnsThreadPoolExecutor.shutdownNow();
+    }
+
+    assertThat(amazonSnsThreadPoolExecutor.getActiveTaskCount(), is(0));
+    assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
+    assertThat(amazonSnsThreadPoolExecutor.getFailedTaskCount(), is(300));
   }
 
   @Test
   void testSuccessActiveTaskCount() throws Exception {
-    try(final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10)) {
-      assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
+    final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10);
 
-      for(int i = 0; i < 10; i++) {
-        amazonSnsThreadPoolExecutor.execute(() -> {
-          while(true) {
-            await().pollDelay(1, TimeUnit.MILLISECONDS).until(() -> true);
-          }
-        });
-      }
+    assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
 
-      amazonSnsThreadPoolExecutor.shutdown();
-
-      if (!amazonSnsThreadPoolExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
-        amazonSnsThreadPoolExecutor.shutdownNow();
-      }
-
-      assertThat(amazonSnsThreadPoolExecutor.getActiveTaskCount(), is(10));
-      assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
-      assertThat(amazonSnsThreadPoolExecutor.getFailedTaskCount(), is(0));
-    }
-  }
-
-  @Test
-  void testSuccessBlockingSubmissionPolicy() throws Exception {
-    try(final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(1)) {
+    for(int i = 0; i < 10; i++) {
       amazonSnsThreadPoolExecutor.execute(() -> {
         while(true) {
           await().pollDelay(1, TimeUnit.MILLISECONDS).until(() -> true);
         }
       });
-
-      catchThrowableOfType(() -> amazonSnsThreadPoolExecutor.execute(() -> { }), RejectedExecutionException.class);
     }
+
+    amazonSnsThreadPoolExecutor.shutdown();
+
+    if (!amazonSnsThreadPoolExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
+      amazonSnsThreadPoolExecutor.shutdownNow();
+    }
+
+    assertThat(amazonSnsThreadPoolExecutor.getActiveTaskCount(), is(10));
+    assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
+    assertThat(amazonSnsThreadPoolExecutor.getFailedTaskCount(), is(0));
+  }
+
+  @Test
+  void testSuccessBlockingSubmissionPolicy() throws Exception {
+    final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(1);
+
+    amazonSnsThreadPoolExecutor.execute(() -> {
+      while(true) {
+        await().pollDelay(1, TimeUnit.MILLISECONDS).until(() -> true);
+      }
+    });
+
+    catchThrowableOfType(() -> amazonSnsThreadPoolExecutor.execute(() -> { }), RejectedExecutionException.class);
   }
 
 }
