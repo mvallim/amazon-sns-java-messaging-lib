@@ -22,6 +22,10 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * A custom {@link ThreadPoolExecutor} that tracks active, failed, and succeeded task counts.
+ * Uses a blocking submission policy to handle rejection and a synchronous queue for task handoff.
+ */
 public class AmazonSnsThreadPoolExecutor extends ThreadPoolExecutor {
 
   private final AtomicInteger activeTaskCount = new AtomicInteger();
@@ -30,26 +34,54 @@ public class AmazonSnsThreadPoolExecutor extends ThreadPoolExecutor {
 
   private final AtomicInteger succeededTaskCount = new AtomicInteger();
 
+  /**
+   * Creates a new executor with the specified maximum pool size.
+   *
+   * @param maximumPoolSize the maximum number of threads to allow in the pool
+   */
   public AmazonSnsThreadPoolExecutor(final int maximumPoolSize) {
     super(0, maximumPoolSize, 60, TimeUnit.SECONDS, new SynchronousQueue<>(), ThreadFactoryProvider.getThreadFactory(), new BlockingSubmissionPolicy(30000));
   }
 
+  /**
+   * Returns the number of currently active tasks.
+   *
+   * @return the active task count
+   */
   public int getActiveTaskCount() {
     return activeTaskCount.get();
   }
 
+  /**
+   * Returns the number of tasks that have failed.
+   *
+   * @return the failed task count
+   */
   public int getFailedTaskCount() {
     return failedTaskCount.get();
   }
 
+  /**
+   * Returns the number of tasks that have completed successfully.
+   *
+   * @return the succeeded task count
+   */
   public int getSucceededTaskCount() {
     return succeededTaskCount.get();
   }
 
+  /**
+   * Returns the current size of the task queue.
+   *
+   * @return the queue size
+   */
   public int getQueueSize() {
     return getQueue().size();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected void beforeExecute(final Thread thread, final Runnable runnable) {
     try {
@@ -59,6 +91,9 @@ public class AmazonSnsThreadPoolExecutor extends ThreadPoolExecutor {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected void afterExecute(final Runnable runnable, final Throwable throwable) {
     try {

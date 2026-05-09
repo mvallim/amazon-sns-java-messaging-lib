@@ -24,6 +24,12 @@ import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 // @formatter:off
+/**
+ * Abstract base class for converting message header entries into typed message attribute
+ * values for Amazon SNS. Supports enum, string, number, binary, and string array attribute types.
+ *
+ * @param <V> the message attribute value type (SDK-specific)
+ */
 @SuppressWarnings("java:S6204")
 abstract class AbstractMessageAttributes<V> {
 
@@ -35,6 +41,12 @@ abstract class AbstractMessageAttributes<V> {
 
   protected static final String STRING_ARRAY = "String.Array";
 
+  /**
+   * Converts a map of message header entries to a map of SDK-specific message attribute values.
+   *
+   * @param messageHeaders the raw message headers
+   * @return a map of attribute names to attribute values
+   */
   public Map<String, V> messageAttributes(final Map<String, Object> messageHeaders) {
     final Map<String, V> messageAttributes = new HashMap<>();
 
@@ -58,6 +70,12 @@ abstract class AbstractMessageAttributes<V> {
     return messageAttributes;
   }
 
+  /**
+   * Formats a list of values as a JSON-style string array.
+   *
+   * @param values the list of values to format
+   * @return a string representation of the array, e.g. {@code ["a", "b"]}
+   */
   protected static String stringArray(final List<?> values) {
     final List<String> collect = values.stream()
       .filter(String.class::isInstance)
@@ -67,14 +85,44 @@ abstract class AbstractMessageAttributes<V> {
     return "[ " + String.join(", ", collect) + " ]";
   }
 
+  /**
+   * Converts an enum value to a message attribute.
+   *
+   * @param value the enum value
+   * @return the converted attribute value
+   */
   protected abstract V getEnumMessageAttribute(final Enum<?> value);
 
+  /**
+   * Converts a string value to a message attribute.
+   *
+   * @param value the string value
+   * @return the converted attribute value
+   */
   protected abstract V getStringMessageAttribute(final String value);
 
+  /**
+   * Converts a number value to a message attribute.
+   *
+   * @param value the number value
+   * @return the converted attribute value
+   */
   protected abstract V getNumberMessageAttribute(final Number value);
 
+  /**
+   * Converts a binary value to a message attribute.
+   *
+   * @param value the byte buffer containing binary data
+   * @return the converted attribute value
+   */
   protected abstract V getBinaryMessageAttribute(final ByteBuffer value);
 
+  /**
+   * Converts a list of string values to a message attribute.
+   *
+   * @param value the list of string values
+   * @return the converted attribute value
+   */
   protected abstract V getStringArrayMessageAttribute(final List<?> value);
 
 }

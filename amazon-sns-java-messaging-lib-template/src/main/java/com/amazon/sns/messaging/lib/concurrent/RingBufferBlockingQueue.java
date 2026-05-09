@@ -33,6 +33,13 @@ import lombok.Locked;
 import lombok.Setter;
 import lombok.SneakyThrows;
 
+/**
+ * A bounded blocking queue backed by a ring buffer (circular array). Supports blocking
+ * {@link #put(Object)} and {@link #take()} operations. Other {@link BlockingQueue} methods
+ * throw {@link UnsupportedOperationException}.
+ *
+ * @param <E> the type of elements held in this queue
+ */
 public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements BlockingQueue<E> {
 
   private static final int DEFAULT_CAPACITY = 2048;
@@ -53,6 +60,11 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
 
   private final Condition waitingProducer;
 
+  /**
+   * Creates a ring buffer with the specified capacity.
+   *
+   * @param capacity the maximum number of elements the queue can hold
+   */
   public RingBufferBlockingQueue(final int capacity) {
     this.capacity = capacity;
     buffer = new AtomicReferenceArray<>(capacity);
@@ -62,49 +74,96 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
     IntStream.range(0, capacity).forEach(idx -> buffer.set(idx, new Entry<>()));
   }
 
+  /**
+   * Creates a ring buffer with the default capacity of 2048.
+   */
   public RingBufferBlockingQueue() {
     this(RingBufferBlockingQueue.DEFAULT_CAPACITY);
   }
 
+  /**
+   * Prevents sequence overflow by wrapping around when the maximum long value is reached.
+   *
+   * @param sequence the current sequence value
+   * @return the sequence value, wrapped if necessary
+   */
   private long avoidSequenceOverflow(final long sequence) {
     return (sequence < Long.MAX_VALUE ? sequence : wrap(sequence));
   }
 
+  /**
+   * Wraps a sequence number to a valid buffer index.
+   *
+   * @param sequence the sequence number to wrap
+   * @return the buffer index
+   */
   private int wrap(final long sequence) {
     return Math.toIntExact(sequence % capacity);
   }
 
+  /**
+   * Returns the fixed capacity of this ring buffer.
+   *
+   * @return the capacity
+   */
   public int capacity() {
     return capacity;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public int size() {
     return size.get();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean isEmpty() {
     return size.get() == 0;
   }
 
+  /**
+   * Returns whether the queue is full.
+   *
+   * @return true if the queue size equals its capacity
+   */
   public boolean isFull() {
     return size.get() >= capacity;
   }
 
+  /**
+   * Returns the current write sequence number.
+   *
+   * @return the write sequence
+   */
   public long writeSequence() {
     return writeSequence.get();
   }
 
+  /**
+   * Returns the current read sequence number.
+   *
+   * @return the read sequence
+   */
   public long readSequence() {
     return readSequence.get();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public E peek() {
     return isEmpty() ? null : buffer.get(wrap(readSequence.get())).getValue();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   @SneakyThrows
   @Locked("reentrantLock")
@@ -125,6 +184,9 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
     waitingConsumer.signal();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   @SneakyThrows
   @Locked("reentrantLock")
@@ -149,46 +211,73 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
     return nextValue;
   }
 
+  /**
+   * @throws UnsupportedOperationException always
+   */
   @Override
   public boolean offer(final E element) {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * @throws UnsupportedOperationException always
+   */
   @Override
   public boolean offer(final E element, final long timeout, final TimeUnit unit) throws InterruptedException {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * @throws UnsupportedOperationException always
+   */
   @Override
   public E poll() {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * @throws UnsupportedOperationException always
+   */
   @Override
   public E poll(final long timeout, final TimeUnit unit) throws InterruptedException {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * @throws UnsupportedOperationException always
+   */
   @Override
   public Iterator<E> iterator() {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * @throws UnsupportedOperationException always
+   */
   @Override
   public boolean add(final E element) {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * @throws UnsupportedOperationException always
+   */
   @Override
   public int remainingCapacity() {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * @throws UnsupportedOperationException always
+   */
   @Override
   public int drainTo(final Collection<? super E> collection) {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * @throws UnsupportedOperationException always
+   */
   @Override
   public int drainTo(final Collection<? super E> collection, final int maxElements) {
     throw new UnsupportedOperationException();

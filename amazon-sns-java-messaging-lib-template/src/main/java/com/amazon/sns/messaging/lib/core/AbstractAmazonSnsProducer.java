@@ -34,6 +34,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 
 // @formatter:off
+/**
+ * Abstract base producer for Amazon SNS. Enqueues request entries into a blocking queue
+ * and tracks pending requests via a concurrent map. Actual consumption and batching is
+ * handled by the corresponding consumer.
+ *
+ * @param <E> the request entry payload type
+ */
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 abstract class AbstractAmazonSnsProducer<E> {
 
@@ -45,11 +52,21 @@ abstract class AbstractAmazonSnsProducer<E> {
 
   private final ExecutorService executorService;
 
+  /**
+   * Sends a request entry by enqueuing it for batch processing.
+   *
+   * @param requestEntry the request to enqueue
+   * @return a {@link ListenableFuture} that tracks the completion of this request
+   */
   @SneakyThrows
   public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry) {
     return enqueueRequest(requestEntry);
   }
 
+  /**
+   * Shuts down the producer's executor service gracefully, waiting up to 60 seconds
+   * for termination.
+   */
   @SneakyThrows
   public void shutdown() {
     LOGGER.warn("Shutdown producer {}", getClass().getSimpleName());
@@ -62,6 +79,13 @@ abstract class AbstractAmazonSnsProducer<E> {
     }
   }
 
+  /**
+   * Creates a {@link ListenableFuture} for the request, registers it in the pending map,
+   * and enqueues the request for batch processing.
+   *
+   * @param requestEntry the request to enqueue
+   * @return a future that will complete when the request is processed
+   */
   @SneakyThrows
   private ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> enqueueRequest(final RequestEntry<E> requestEntry) {
     final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> trackPendingRequest = new ListenableFutureImpl();

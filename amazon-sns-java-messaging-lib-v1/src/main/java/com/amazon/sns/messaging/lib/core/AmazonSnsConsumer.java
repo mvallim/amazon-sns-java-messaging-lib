@@ -41,6 +41,13 @@ import com.amazonaws.services.sns.model.PublishBatchResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 // @formatter:off
+/**
+ * AWS SDK v1 implementation of {@link AbstractAmazonSnsConsumer}. Uses the v1
+ * {@link AmazonSNS} client to publish {@link PublishBatchRequest} and handles
+ * the resulting {@link PublishBatchResult}.
+ *
+ * @param <E> the request entry payload type
+ */
 @SuppressWarnings("java:S6204")
 class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishBatchRequest, PublishBatchResult, E> {
 
@@ -48,6 +55,17 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishB
 
   private static final MessageAttributes messageAttributes = new MessageAttributes();
 
+  /**
+   * Creates a new v1 SNS consumer.
+   *
+   * @param amazonSnsClient  the v1 {@link AmazonSNS} client
+   * @param topicProperty    the topic configuration
+   * @param objectMapper     the Jackson ObjectMapper for payload serialization
+   * @param pendingRequests  the shared map of pending requests
+   * @param topicRequests    the shared blocking queue of requests
+   * @param executorService  the executor service for async publishing
+   * @param publishDecorator an optional decorator for the publish request
+   */
   public AmazonSnsConsumer(
     final AmazonSNS amazonSnsClient,
     final TopicProperty topicProperty,
@@ -59,11 +77,17 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishB
     super(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected PublishBatchResult publish(final PublishBatchRequest publishBatchRequest) {
     return amazonSnsClient.publishBatch(publishBatchRequest);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected BiFunction<String, List<RequestEntryInternal>, PublishBatchRequest> supplierPublishRequest() {
     return (topicArn, requestEntries) -> {
@@ -80,6 +104,9 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishB
     };
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected void handleError(final PublishBatchRequest publishBatchRequest, final Throwable throwable) {
     final String code = throwable instanceof AmazonServiceException ? AmazonServiceException.class.cast(throwable).getErrorCode() : "000";
@@ -98,6 +125,9 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishB
     });
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected void handleResponse(final PublishBatchResult publishBatchResult) {
     publishBatchResult.getSuccessful().forEach(entry -> {

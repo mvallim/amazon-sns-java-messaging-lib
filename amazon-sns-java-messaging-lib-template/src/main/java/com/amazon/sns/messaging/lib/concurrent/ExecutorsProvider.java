@@ -28,6 +28,10 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 
+/**
+ * Provides {@link ExecutorService} instances, selecting between virtual thread executors
+ * (Java 21+) and default single-thread executors based on the runtime Java version.
+ */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ExecutorsProvider {
 
@@ -45,15 +49,30 @@ public final class ExecutorsProvider {
     }
   }
   
+  /**
+   * Returns an {@link ExecutorService} appropriate for the current Java version.
+   *
+   * @return a virtual thread executor (Java 21+) or a single-thread executor
+   */
   public static ExecutorService getExecutorService() {
     return ExecutorsProvider.supplierExecutorService.get();
   }
   
+  /**
+   * Creates a single-thread executor for Java versions below 21.
+   *
+   * @return a single-thread executor
+   */
   @SneakyThrows
   private static ExecutorService getDefaultExecutorService() {
     return Executors.newSingleThreadExecutor();
   }
   
+  /**
+   * Creates a virtual thread executor using reflection (Java 21+).
+   *
+   * @return a virtual thread per task executor
+   */
   @SneakyThrows
   private static ExecutorService getVirtualExecutorService() {
     final Class<?> clazzThread = Executors.class;
@@ -61,6 +80,11 @@ public final class ExecutorsProvider {
     return ExecutorService.class.cast(ofVirtualMethod.invoke(null));
   }
 
+  /**
+   * Parses the Java runtime version.
+   *
+   * @return the major Java version number
+   */
   private static int getJavaVersion() {
     String version = System.getProperty("java.version");
     

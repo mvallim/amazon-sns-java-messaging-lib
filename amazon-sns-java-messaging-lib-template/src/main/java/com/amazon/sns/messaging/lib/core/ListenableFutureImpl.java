@@ -30,6 +30,10 @@ import lombok.AccessLevel;
 import lombok.Getter;
 
 // @formatter:off
+/**
+ * Default implementation of {@link ListenableFuture}. Supports state tracking (NEW, SUCCESS, FAILURE)
+ * and thread-safe callback registration and notification.
+ */
 class ListenableFutureImpl implements ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> {
 
   private final Object mutex = new Object();
@@ -92,14 +96,27 @@ class ListenableFutureImpl implements ListenableFuture<ResponseSuccessEntry, Res
     }
   }
 
+  /**
+   * Notifies a single success callback with the stored result.
+   *
+   * @param callback the callback to invoke
+   */
   private void notifySuccess(final Consumer<? super ResponseSuccessEntry> callback) {
     callback.accept(successResult);
   }
 
+  /**
+   * Notifies a single failure callback with the stored result.
+   *
+   * @param callback the callback to invoke
+   */
   private void notifyFailure(final Consumer<? super ResponseFailEntry> callback) {
     callback.accept(failureResult);
   }
 
+  /**
+   * The lifecycle states of a {@link ListenableFuture}.
+   */
   enum State {
     NEW, SUCCESS, FAILURE
   }
