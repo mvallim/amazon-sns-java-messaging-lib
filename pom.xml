@@ -6,7 +6,7 @@
 
 	<groupId>com.github.mvallim</groupId>
 	<artifactId>amazon-sns-java-messaging-lib</artifactId>
-	<version>1.1.0-SNAPSHOT</version>
+	<version>1.2.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<name>${project.artifactId}</name>
@@ -340,7 +340,6 @@
 						<format>XML</format>
 					</formats>
 					<excludes>
-						<!-- <exclude>**/amazon-sns-java-messaging-lib-template/**</exclude> -->
 						<exclude>**/package-info.**</exclude>
 						<exclude>**/generated-sources/**</exclude>
 						<exclude>**/generated-test-sources/**</exclude>
@@ -454,7 +453,6 @@
 				<sonar.scm.exclusions.disabled>false</sonar.scm.exclusions.disabled>
 
 				<sonar.exclusions>
-					<!-- **/amazon-sns-java-messaging-lib-template/**, -->
 					**/package-info.**,
 					**/generated-sources/**,
 					**/generated-test-sources/**,
@@ -462,7 +460,6 @@
 				</sonar.exclusions>
 
 				<sonar.coverage.exclusions>
-					<!-- **/amazon-sns-java-messaging-lib-template/**, -->
 					**/package-info.**,
 					**/generated-sources/**,
 					**/generated-test-sources/**,

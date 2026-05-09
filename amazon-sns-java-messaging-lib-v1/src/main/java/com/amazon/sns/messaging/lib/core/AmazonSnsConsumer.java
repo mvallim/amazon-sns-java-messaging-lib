@@ -41,6 +41,13 @@ import com.amazonaws.services.sns.model.PublishBatchResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 // @formatter:off
+/**
+ * AWS SDK v1 implementation of {@link AbstractAmazonSnsConsumer}. Uses the v1
+ * {@link AmazonSNS} client to publish {@link PublishBatchRequest} and handles
+ * the resulting {@link PublishBatchResult}.
+ *
+ * @param <E> the request entry payload type
+ */
 @SuppressWarnings("java:S6204")
 class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishBatchRequest, PublishBatchResult, E> {
 
@@ -48,22 +55,39 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishB
 
   private static final MessageAttributes messageAttributes = new MessageAttributes();
 
+  /**
+   * Creates a new v1 SNS consumer.
+   *
+   * @param amazonSnsClient  the v1 {@link AmazonSNS} client
+   * @param topicProperty    the topic configuration
+   * @param objectMapper     the Jackson ObjectMapper for payload serialization
+   * @param pendingRequests  the shared map of pending requests
+   * @param topicRequests    the shared blocking queue of requests
+   * @param executorService  the executor service for async publishing
+   * @param publishDecorator an optional decorator for the publish request
+   */
   public AmazonSnsConsumer(
     final AmazonSNS amazonSnsClient,
     final TopicProperty topicProperty,
     final ObjectMapper objectMapper,
-    final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
+    final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
     final BlockingQueue<RequestEntry<E>> topicRequests,
     final ExecutorService executorService,
     final UnaryOperator<PublishBatchRequest> publishDecorator) {
     super(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected PublishBatchResult publish(final PublishBatchRequest publishBatchRequest) {
     return amazonSnsClient.publishBatch(publishBatchRequest);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected BiFunction<String, List<RequestEntryInternal>, PublishBatchRequest> supplierPublishRequest() {
     return (topicArn, requestEntries) -> {
@@ -73,22 +97,25 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishB
           .withSubject(StringUtils.isNotBlank(entry.getSubject()) ? entry.getSubject() : null)
           .withMessageGroupId(StringUtils.isNotBlank(entry.getGroupId()) ? entry.getGroupId() : null)
           .withMessageDeduplicationId(StringUtils.isNotBlank(entry.getDeduplicationId()) ? entry.getDeduplicationId() : null)
-          .withMessageAttributes(messageAttributes.messageAttributes(entry.getMessageHeaders()))
+          .withMessageAttributes(AmazonSnsConsumer.messageAttributes.messageAttributes(entry.getMessageHeaders()))
           .withMessage(entry.getMessage()))
         .collect(Collectors.toList());
       return new PublishBatchRequest().withPublishBatchRequestEntries(entries).withTopicArn(topicArn);
     };
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected void handleError(final PublishBatchRequest publishBatchRequest, final Throwable throwable) {
     final String code = throwable instanceof AmazonServiceException ? AmazonServiceException.class.cast(throwable).getErrorCode() : "000";
     final String message = throwable instanceof AmazonServiceException ? AmazonServiceException.class.cast(throwable).getErrorMessage() : throwable.getMessage();
 
-    LOGGER.error(throwable.getMessage(), throwable);
+    AmazonSnsConsumer.LOGGER.error(throwable.getMessage(), throwable);
 
     publishBatchRequest.getPublishBatchRequestEntries().forEach(entry -> {
-      final ListenableFutureRegistry listenableFuture = pendingRequests.remove(entry.getId());
+      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> listenableFuture = pendingRequests.remove(entry.getId());
       listenableFuture.fail(ResponseFailEntry.builder()
         .withId(entry.getId())
         .withCode(code)
@@ -98,10 +125,13 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishB
     });
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected void handleResponse(final PublishBatchResult publishBatchResult) {
     publishBatchResult.getSuccessful().forEach(entry -> {
-      final ListenableFutureRegistry listenableFuture = pendingRequests.remove(entry.getId());
+      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> listenableFuture = pendingRequests.remove(entry.getId());
       listenableFuture.success(ResponseSuccessEntry.builder()
         .withId(entry.getId())
         .withMessageId(entry.getMessageId())
@@ -110,7 +140,7 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishB
     });
 
     publishBatchResult.getFailed().forEach(entry -> {
-      final ListenableFutureRegistry listenableFuture = pendingRequests.remove(entry.getId());
+      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> listenableFuture = pendingRequests.remove(entry.getId());
       listenableFuture.fail(ResponseFailEntry.builder()
         .withId(entry.getId())
         .withCode(entry.getCode())

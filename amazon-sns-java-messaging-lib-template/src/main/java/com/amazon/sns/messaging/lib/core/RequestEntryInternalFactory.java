@@ -34,11 +34,21 @@ import lombok.SneakyThrows;
 import lombok.ToString;
 
 // @formatter:off
+/**
+ * Factory for creating internal request entry representations and computing payload sizes.
+ */
 @RequiredArgsConstructor
 final class RequestEntryInternalFactory {
 
   private final ObjectMapper objectMapper;
 
+  /**
+   * Creates an internal request entry from a request entry and its serialized payload.
+   *
+   * @param requestEntry the source request entry
+   * @param bytes        the serialized payload bytes
+   * @return a new internal request entry
+   */
   public RequestEntryInternal create(final RequestEntry<?> requestEntry, final byte[] bytes) {
     return RequestEntryInternal.builder()
       .withCreateTime(requestEntry.getCreateTime())
@@ -51,10 +61,23 @@ final class RequestEntryInternalFactory {
       .build();
   }
 
+  /**
+   * Creates an internal request entry, serializing the payload automatically.
+   *
+   * @param requestEntry the source request entry
+   * @return a new internal request entry with serialized payload
+   */
   public RequestEntryInternal create(final RequestEntry<?> requestEntry) {
     return create(requestEntry, convertPayload(requestEntry));
   }
 
+  /**
+   * Converts the payload of a request entry to a byte array. Strings are converted
+   * using UTF-8; other types are serialized via Jackson ObjectMapper.
+   *
+   * @param requestEntry the request entry whose payload to convert
+   * @return the serialized payload bytes
+   */
   @SneakyThrows
   public byte[] convertPayload(final RequestEntry<?> requestEntry) {
     return requestEntry.getValue() instanceof String
@@ -62,6 +85,12 @@ final class RequestEntryInternalFactory {
       : objectMapper.writeValueAsBytes(requestEntry.getValue());
   }
 
+  /**
+   * Computes the total size of message attributes for a request entry.
+   *
+   * @param requestEntry the request entry
+   * @return the combined size (in bytes) of all attribute keys and values
+   */
   @SneakyThrows
   public Integer messageAttributesSize(final RequestEntry<?> requestEntry) {
     final Map<String, Integer> messageAttributes = MessageAttributesInternal.INSTANCE.messageAttributes(requestEntry.getMessageHeaders());
@@ -76,6 +105,9 @@ final class RequestEntryInternalFactory {
     return messageAttributesKeysSize + messageAttributesValuesSize;
   }
 
+  /**
+   * Internal representation of a batched request entry with a serialized payload.
+   */
   @Getter
   @ToString
   @RequiredArgsConstructor
@@ -97,10 +129,20 @@ final class RequestEntryInternalFactory {
 
     private final String deduplicationId;
 
+    /**
+     * Returns the size of the serialized payload in bytes.
+     *
+     * @return the payload size
+     */
     public int size() {
       return value.capacity();
     }
 
+    /**
+     * Decodes the payload as a UTF-8 string.
+     *
+     * @return the decoded message
+     */
     public String getMessage() {
       return StandardCharsets.UTF_8.decode(value).toString();
     }

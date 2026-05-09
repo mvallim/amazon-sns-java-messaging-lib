@@ -22,6 +22,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
 
+/**
+ * Represents a successful publish result from Amazon SNS.
+ */
 @Getter
 @ToString
 @Builder(setterPrefix = "with")
@@ -29,10 +32,19 @@ public class ResponseSuccessEntry implements Serializable {
 
   private static final long serialVersionUID = 4864967607600926557L;
 
+  /**
+   * The unique identifier of the original request.
+   */
   private final String id;
 
+  /**
+   * The message ID assigned by Amazon SNS.
+   */
   private final String messageId;
 
+  /**
+   * The sequence number (for FIFO topics).
+   */
   private final String sequenceNumber;
 
 }

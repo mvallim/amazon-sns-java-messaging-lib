@@ -24,6 +24,8 @@ import java.util.function.UnaryOperator;
 import com.amazon.sns.messaging.lib.concurrent.ExecutorsProvider;
 import com.amazon.sns.messaging.lib.concurrent.RingBufferBlockingQueue;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
+import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
+import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
 import com.amazon.sns.messaging.lib.model.TopicProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -32,12 +34,28 @@ import software.amazon.awssdk.services.sns.model.PublishBatchRequest;
 import software.amazon.awssdk.services.sns.model.PublishBatchResponse;
 
 // @formatter:off
+/**
+ * AWS SDK v2 implementation of {@link AbstractAmazonSnsTemplate}. Provides the public API for
+ * sending messages to Amazon SNS using the v2 {@link SnsClient}.
+ *
+ * @param <E> the request entry payload type
+ */
 public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<SnsClient, PublishBatchRequest, PublishBatchResponse, E> {
 
+  /**
+   * Internal constructor that wires together the producer and consumer for the v2 SDK.
+   *
+   * @param amazonSnsClient  the v2 {@link SnsClient}
+   * @param topicProperty    the topic configuration
+   * @param pendingRequests  the shared map of pending requests
+   * @param topicRequests    the shared blocking queue of requests
+   * @param objectMapper     the Jackson ObjectMapper for payload serialization
+   * @param publishDecorator a decorator for the publish batch request
+   */
   private AmazonSnsTemplate(
       final SnsClient amazonSnsClient,
       final TopicProperty topicProperty,
-      final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
+      final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
       final BlockingQueue<RequestEntry<E>> topicRequests,
       final ObjectMapper objectMapper,
       final UnaryOperator<PublishBatchRequest> publishDecorator) {
@@ -47,34 +65,94 @@ public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<SnsClient, P
     );
   }
 
+  /**
+   * Creates a new v2 SNS template with default settings.
+   *
+   * @param amazonSnsClient the v2 {@link SnsClient}
+   * @param topicProperty   the topic configuration
+   */
   public AmazonSnsTemplate(final SnsClient amazonSnsClient, final TopicProperty topicProperty) {
     this(amazonSnsClient, topicProperty, UnaryOperator.identity());
   }
 
+  /**
+   * Creates a new v2 SNS template with a custom publish decorator.
+   *
+   * @param amazonSnsClient  the v2 {@link SnsClient}
+   * @param topicProperty    the topic configuration
+   * @param publishDecorator a decorator for the publish batch request
+   */
   public AmazonSnsTemplate(final SnsClient amazonSnsClient, final TopicProperty topicProperty, final UnaryOperator<PublishBatchRequest> publishDecorator) {
     this(amazonSnsClient, topicProperty, new ObjectMapper(), publishDecorator);
   }
 
+  /**
+   * Creates a new v2 SNS template with a custom topic request queue.
+   *
+   * @param amazonSnsClient the v2 {@link SnsClient}
+   * @param topicProperty   the topic configuration
+   * @param topicRequests   the blocking queue for topic requests
+   */
   public AmazonSnsTemplate(final SnsClient amazonSnsClient, final TopicProperty topicProperty, final BlockingQueue<RequestEntry<E>> topicRequests) {
     this(amazonSnsClient, topicProperty, topicRequests, UnaryOperator.identity());
   }
 
+  /**
+   * Creates a new v2 SNS template with a custom queue and publish decorator.
+   *
+   * @param amazonSnsClient  the v2 {@link SnsClient}
+   * @param topicProperty    the topic configuration
+   * @param topicRequests    the blocking queue for topic requests
+   * @param publishDecorator a decorator for the publish batch request
+   */
   public AmazonSnsTemplate(final SnsClient amazonSnsClient, final TopicProperty topicProperty, final BlockingQueue<RequestEntry<E>> topicRequests, final UnaryOperator<PublishBatchRequest> publishDecorator) {
     this(amazonSnsClient, topicProperty, topicRequests, new ObjectMapper(), publishDecorator);
   }
 
+  /**
+   * Creates a new v2 SNS template with a custom ObjectMapper.
+   *
+   * @param amazonSnsClient the v2 {@link SnsClient}
+   * @param topicProperty   the topic configuration
+   * @param objectMapper    the Jackson ObjectMapper for payload serialization
+   */
   public AmazonSnsTemplate(final SnsClient amazonSnsClient, final TopicProperty topicProperty, final ObjectMapper objectMapper) {
     this(amazonSnsClient, topicProperty, objectMapper, UnaryOperator.identity());
   }
 
+  /**
+   * Creates a new v2 SNS template with a custom ObjectMapper and publish decorator.
+   *
+   * @param amazonSnsClient  the v2 {@link SnsClient}
+   * @param topicProperty    the topic configuration
+   * @param objectMapper     the Jackson ObjectMapper for payload serialization
+   * @param publishDecorator a decorator for the publish batch request
+   */
   public AmazonSnsTemplate(final SnsClient amazonSnsClient, final TopicProperty topicProperty, final ObjectMapper objectMapper, final UnaryOperator<PublishBatchRequest> publishDecorator) {
     this(amazonSnsClient, topicProperty, new RingBufferBlockingQueue<>(topicProperty.getMaximumPoolSize() * topicProperty.getMaxBatchSize()), objectMapper, publishDecorator);
   }
 
+  /**
+   * Creates a new v2 SNS template with a custom queue and ObjectMapper.
+   *
+   * @param amazonSnsClient the v2 {@link SnsClient}
+   * @param topicProperty   the topic configuration
+   * @param topicRequests   the blocking queue for topic requests
+   * @param objectMapper    the Jackson ObjectMapper for payload serialization
+   */
   public AmazonSnsTemplate(final SnsClient amazonSnsClient, final TopicProperty topicProperty, final BlockingQueue<RequestEntry<E>> topicRequests, final ObjectMapper objectMapper) {
     this(amazonSnsClient, topicProperty, topicRequests, objectMapper, UnaryOperator.identity());
   }
 
+  /**
+   * Creates a new v2 SNS template with full custom configuration.
+   *
+   * @param amazonSnsClient  the v2 {@link SnsClient}
+   * @param topicProperty    the topic configuration
+   * @param topicRequests    the blocking queue for topic requests
+   * @param objectMapper     the Jackson ObjectMapper for payload serialization
+   * @param publishDecorator a decorator for the publish batch request
+   */
   public AmazonSnsTemplate(final SnsClient amazonSnsClient, final TopicProperty topicProperty, final BlockingQueue<RequestEntry<E>> topicRequests, final ObjectMapper objectMapper, final UnaryOperator<PublishBatchRequest> publishDecorator) {
     this(amazonSnsClient, topicProperty, new ConcurrentHashMap<>(), topicRequests, objectMapper, publishDecorator);
   }

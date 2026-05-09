@@ -23,28 +23,47 @@ import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
 
 // @formatter:off
+/**
+ * AWS SDK v2 implementation of {@link AbstractMessageAttributes}. Converts message header
+ * entries into v2 {@link MessageAttributeValue} objects.
+ */
 class MessageAttributes extends AbstractMessageAttributes<MessageAttributeValue> {
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected MessageAttributeValue getEnumMessageAttribute(final Enum<?> value) {
     return MessageAttributeValue.builder().dataType(STRING).stringValue(value.name()).build();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected MessageAttributeValue getStringMessageAttribute(final String value) {
     return MessageAttributeValue.builder().dataType(STRING).stringValue(value).build();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected MessageAttributeValue getNumberMessageAttribute(final Number value) {
     return MessageAttributeValue.builder().dataType(NUMBER + "." + value.getClass().getName()).stringValue(value.toString()).build();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected MessageAttributeValue getBinaryMessageAttribute(final ByteBuffer value) {
     return MessageAttributeValue.builder().dataType(BINARY).binaryValue(SdkBytes.fromByteBuffer(value)).build();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected MessageAttributeValue getStringArrayMessageAttribute(final List<?> values) {
     return MessageAttributeValue.builder().dataType(STRING_ARRAY).stringValue(stringArray(values)).build();

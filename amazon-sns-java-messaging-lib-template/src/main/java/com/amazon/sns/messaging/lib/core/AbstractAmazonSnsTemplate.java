@@ -17,11 +17,8 @@
 package com.amazon.sns.messaging.lib.core;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 
 import com.amazon.sns.messaging.lib.concurrent.AmazonSnsThreadPoolExecutor;
-import com.amazon.sns.messaging.lib.instrument.AmazonSnsThreadPoolExecutorJmx;
-import com.amazon.sns.messaging.lib.instrument.MBeanRegistrar;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
@@ -31,6 +28,16 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
 // @formatter:off
+/**
+ * Abstract base template for Amazon SNS messaging. Provides the high-level API for
+ * sending messages, shutting down, and awaiting completion. Delegates to a producer
+ * and consumer for actual processing.
+ *
+ * @param <C> the Amazon SNS client type
+ * @param <R> the publish batch request type
+ * @param <O> the publish batch result type
+ * @param <E> the request entry payload type
+ */
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 abstract class AbstractAmazonSnsTemplate<C, R, O, E> {
 
@@ -38,34 +45,42 @@ abstract class AbstractAmazonSnsTemplate<C, R, O, E> {
 
   private final AbstractAmazonSnsConsumer<C, R, O, E> amazonSnsConsumer;
 
+  /**
+   * Sends a request entry to the SNS topic asynchronously.
+   *
+   * @param requestEntry the request entry containing the message payload and metadata
+   * @return a {@link ListenableFuture} that completes with the success or failure result
+   */
   public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry) {
-    return this.amazonSnsProducer.send(requestEntry);
+    return amazonSnsProducer.send(requestEntry);
   }
 
+  /**
+   * Shuts down both the producer and consumer gracefully.
+   */
   public void shutdown() {
-    this.amazonSnsProducer.shutdown();
-    this.amazonSnsConsumer.shutdown();
+    amazonSnsProducer.shutdown();
+    amazonSnsConsumer.shutdown();
   }
 
+  /**
+   * Returns a future that completes once all pending requests are drained and processed.
+   *
+   * @return a {@link CompletableFuture} that completes when the consumer has finished
+   */
   public CompletableFuture<Void> await() {
-    return this.amazonSnsConsumer.await();
+    return amazonSnsConsumer.await();
   }
 
-  @SuppressWarnings("java:S1602")
+  /**
+   * Creates an {@link AmazonSnsThreadPoolExecutor} configured for the given topic property.
+   * For FIFO topics, a single-threaded pool is used to guarantee order.
+   *
+   * @param topicProperty the topic configuration
+   * @return a configured thread pool executor
+   */
   protected static AmazonSnsThreadPoolExecutor getAmazonSnsThreadPoolExecutor(final TopicProperty topicProperty) {
-    final Supplier<AmazonSnsThreadPoolExecutor> supplier = () -> {
-      return topicProperty.isFifo() ? new AmazonSnsThreadPoolExecutor(1) : new AmazonSnsThreadPoolExecutor(topicProperty.getMaximumPoolSize());
-    };
-
-    final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = supplier.get();
-
-    final String topicArn = topicProperty.getTopicArn();
-    final String topicName = topicArn.substring(topicArn.lastIndexOf(':') + 1);
-    final String name = String.format("com.amazon.sns.messaging.lib:type=AmazonSnsThreadPoolExecutor,name=%s", topicName);
-
-    MBeanRegistrar.registerMBean(new AmazonSnsThreadPoolExecutorJmx(amazonSnsThreadPoolExecutor), name);
-
-    return amazonSnsThreadPoolExecutor;
+    return topicProperty.isFifo() ? new AmazonSnsThreadPoolExecutor(1) : new AmazonSnsThreadPoolExecutor(topicProperty.getMaximumPoolSize());
   }
 
 }

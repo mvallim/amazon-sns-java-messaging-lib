@@ -21,12 +21,27 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
+import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
+import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
 
 // @formatter:off
+/**
+ * AWS SDK v2 implementation of {@link AbstractAmazonSnsProducer}. Delegates directly to the
+ * abstract producer for request enqueuing and pending-request tracking.
+ *
+ * @param <E> the request entry payload type
+ */
 class AmazonSnsProducer<E> extends AbstractAmazonSnsProducer<E> {
 
+  /**
+   * Creates a new v2 producer.
+   *
+   * @param pendingRequests the shared map of pending requests keyed by request ID
+   * @param topicRequests   the shared blocking queue for topic requests
+   * @param executorService the executor service for async operations
+   */
   public AmazonSnsProducer(
-      final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
+      final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
       final BlockingQueue<RequestEntry<E>> topicRequests,
       final ExecutorService executorService) {
     super(pendingRequests, topicRequests, executorService);
