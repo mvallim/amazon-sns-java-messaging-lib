@@ -1,9 +1,9 @@
 # Amazon SNS Java Messaging Lib
 
-[![Snapshot && Release](https://github.com/mvallim/amazon-sns-java-messaging-lib/actions/workflows/cd.yml/badge.svg)](https://github.com/mvallim/amazon-sns-java-messaging-lib/actions/workflows/cd.yml?branch=develop)
+[![Build, Publish Snapshot and Pull Request](https://github.com/mvallim/amazon-sns-java-messaging-lib/actions/workflows/cd-snapshot.yml/badge.svg)](https://github.com/mvallim/amazon-sns-java-messaging-lib/actions/workflows/cd-snapshot.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=amazon-sns-java-messaging-lib&metric=alert_status)](https://sonarcloud.io/dashboard?id=amazon-sns-java-messaging-lib)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=amazon-sns-java-messaging-lib&metric=coverage)](https://sonarcloud.io/dashboard?id=amazon-sns-java-messaging-lib)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.mvallim/amazon-sns-java-messaging-lib/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.mvallim/amazon-sns-java-messaging-lib)
+[![Maven Central](https://img.shields.io/maven-central/v/com.github.mvallim/amazon-sns-java-messaging-lib)](https://img.shields.io/maven-central/v/com.github.mvallim/amazon-sns-java-messaging-lib)
 [![Hex.pm](https://img.shields.io/hexpm/l/plug.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
 The Amazon SNS Java Messaging Library holds the compatible classes, that are used for communicating with Amazon Simple Notification Service. This project builds on top of the AWS SDK for Java to use Amazon SNS provider for the messaging applications without running any additional software.
@@ -38,7 +38,7 @@ You can pull it from the central Maven repositories:
 <dependency>
     <groupId>com.github.mvallim</groupId>
     <artifactId>amazon-sns-java-messaging-lib-v1</artifactId>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
 </dependency>
 ```
 
@@ -48,7 +48,7 @@ You can pull it from the central Maven repositories:
 <dependency>
     <groupId>com.github.mvallim</groupId>
     <artifactId>amazon-sns-java-messaging-lib-v2</artifactId>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
 </dependency>
 ```
 
@@ -70,13 +70,13 @@ If you want to try a snapshot version, add the following repository:
 ### For AWS SDK v1
 
 ```groovy
-implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v1:1.1.0'
+implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v1:1.2.0'
 ```
 
 ### For AWS SDK v2
 
 ```groovy
-implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v2:1.1.0'
+implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v2:1.2.0'
 ```
 
 If you want to try a snapshot version, add the following repository:
