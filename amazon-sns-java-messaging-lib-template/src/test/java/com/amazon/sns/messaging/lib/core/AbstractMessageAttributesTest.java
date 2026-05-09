@@ -22,6 +22,9 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -65,28 +68,37 @@ class AbstractMessageAttributesTest {
 
   @Test
   void testMessageAttributesReturnsEmptyMapForEmptyHeaders() {
-    final Map<String, String> result = messageAttributes.messageAttributes(Map.of());
+    final Map<String, String> result = messageAttributes.messageAttributes(Collections.emptyMap());
 
     assertThat(result, is(anEmptyMap()));
   }
 
   @Test
   void testMessageAttributesMapsStringValue() {
-    final Map<String, String> result = messageAttributes.messageAttributes(Map.of("key", "hello"));
+    final Map<String, Object> map = new HashMap<>();
+    map.put("key", "hello");
+
+    final Map<String, String> result = messageAttributes.messageAttributes(map);
 
     assertThat(result, hasEntry("key", "STRING:hello"));
   }
 
   @Test
   void testMessageAttributesMapsEnumValue() {
-    final Map<String, String> result = messageAttributes.messageAttributes(Map.of("key", Thread.State.RUNNABLE));
+    final Map<String, Object> map = new HashMap<>();
+    map.put("key", Thread.State.RUNNABLE);
+
+    final Map<String, String> result = messageAttributes.messageAttributes(map);
 
     assertThat(result, hasEntry("key", "ENUM:RUNNABLE"));
   }
 
   @Test
   void testMessageAttributesMapsNumberValue() {
-    final Map<String, String> result = messageAttributes.messageAttributes(Map.of("key", 42));
+    final Map<String, Object> map = new HashMap<>();
+    map.put("key", 42);
+
+    final Map<String, String> result = messageAttributes.messageAttributes(map);
 
     assertThat(result, hasEntry("key", "NUMBER:42"));
   }
@@ -94,22 +106,33 @@ class AbstractMessageAttributesTest {
   @Test
   void testMessageAttributesMapsByteBufferValue() {
     final ByteBuffer buffer = ByteBuffer.wrap(new byte[] { 1, 2, 3 });
-    final Map<String, String> result = messageAttributes.messageAttributes(Map.of("key", buffer));
+
+    final Map<String, Object> map = new HashMap<>();
+    map.put("key", buffer);
+
+    final Map<String, String> result = messageAttributes.messageAttributes(map);
 
     assertThat(result, hasEntry("key", "BINARY:" + buffer));
   }
 
   @Test
   void testMessageAttributesMapsListValue() {
-    final List<String> list = List.of("a", "b");
-    final Map<String, String> result = messageAttributes.messageAttributes(Map.of("key", list));
+    final List<String> list = new LinkedList<>();
+    list.add("a");
+    list.add("b");
+
+    final Map<String, Object> map = new HashMap<>();
+    map.put("key", list);
+
+    final Map<String, String> result = messageAttributes.messageAttributes(map);
 
     assertThat(result, hasEntry("key", "ARRAY:" + list));
   }
 
   @Test
   void testMessageAttributesIgnoresUnsupportedValueType() {
-    final Map<String, Object> headers = Map.of("key", new Object());
+    final Map<String, Object> headers = new HashMap<>();
+    headers.put("key", new Object());
 
     final Map<String, String> result = messageAttributes.messageAttributes(headers);
 
@@ -118,7 +141,10 @@ class AbstractMessageAttributesTest {
 
   @Test
   void testMessageAttributesHandlesMultipleHeadersOfDifferentTypes() {
-    final Map<String, Object> headers = Map.of("strKey", "hello", "numKey", 99, "enumKey", Thread.State.BLOCKED);
+    final Map<String, Object> headers = new HashMap<>();
+    headers.put("strKey", "hello");
+    headers.put("numKey", 99);
+    headers.put("enumKey", Thread.State.BLOCKED);
 
     final Map<String, String> result = messageAttributes.messageAttributes(headers);
 
@@ -129,28 +155,42 @@ class AbstractMessageAttributesTest {
 
   @Test
   void testStringArrayFormatsStringsWithQuotes() {
-    final String result = AbstractMessageAttributes.stringArray(List.of("foo", "bar"));
+    final List<String> list = new LinkedList<>();
+    list.add("foo");
+    list.add("bar");
+
+    final String result = AbstractMessageAttributes.stringArray(list);
 
     assertThat(result, is("[ \"foo\", \"bar\" ]"));
   }
 
   @Test
   void testStringArrayFiltersOutNonStringElements() {
-    final String result = AbstractMessageAttributes.stringArray(List.of("valid", 123, "also-valid"));
+    final List<Object> list = new LinkedList<>();
+    list.add("valid");
+    list.add(123);
+    list.add("also-valid");
+
+    final String result = AbstractMessageAttributes.stringArray(list);
 
     assertThat(result, is("[ \"valid\", \"also-valid\" ]"));
   }
 
   @Test
   void testStringArrayReturnsEmptyBracketsForEmptyList() {
-    final String result = AbstractMessageAttributes.stringArray(List.of());
+    final String result = AbstractMessageAttributes.stringArray(Collections.emptyList());
 
     assertThat(result, is("[  ]"));
   }
 
   @Test
   void testStringArrayReturnsEmptyBracketsWhenNoStringElementsPresent() {
-    final String result = AbstractMessageAttributes.stringArray(List.of(1, 2, 3));
+    final List<Object> list = new LinkedList<>();
+    list.add(1);
+    list.add(2);
+    list.add(3);
+
+    final String result = AbstractMessageAttributes.stringArray(list);
 
     assertThat(result, is("[  ]"));
   }

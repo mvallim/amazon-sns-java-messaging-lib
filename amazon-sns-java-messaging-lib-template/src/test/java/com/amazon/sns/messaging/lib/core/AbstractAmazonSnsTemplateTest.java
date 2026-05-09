@@ -57,7 +57,7 @@ class AbstractAmazonSnsTemplateTest {
 
   @BeforeEach
   void setUp() {
-    template = new AbstractAmazonSnsTemplate<>(amazonSnsProducer, amazonSnsConsumer) {
+    template = new AbstractAmazonSnsTemplate<Object, Object, Object, String>(amazonSnsProducer, amazonSnsConsumer) {
     };
   }
 

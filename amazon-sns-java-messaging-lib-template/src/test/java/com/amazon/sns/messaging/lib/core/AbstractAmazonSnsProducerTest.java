@@ -31,6 +31,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -67,7 +68,7 @@ class AbstractAmazonSnsProducerTest {
   @BeforeEach
   void setUp() {
     pendingRequests = new ConcurrentHashMap<>();
-    producer = new AbstractAmazonSnsProducer<>(pendingRequests, topicRequests, executorService) { };
+    producer = new AbstractAmazonSnsProducer<String>(pendingRequests, topicRequests, executorService) { };
   }
 
   @Test
@@ -190,7 +191,7 @@ class AbstractAmazonSnsProducerTest {
 
   @Test
   void testShutdownForcesShutdownWhenPendingTasksRemain() throws Exception {
-    final List<Runnable> pendingTasks = List.of(mock(Runnable.class), mock(Runnable.class));
+    final List<Runnable> pendingTasks = Arrays.asList(mock(Runnable.class), mock(Runnable.class));
     when(executorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(false);
     doReturn(pendingTasks).when(executorService).shutdownNow();
 
