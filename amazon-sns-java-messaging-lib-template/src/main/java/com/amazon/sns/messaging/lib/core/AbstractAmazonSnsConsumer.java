@@ -132,21 +132,24 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
         createBatch(topicRequests).ifPresent(this::publishBatch);
       }
     } catch (final MaximumAllowedMessageException ex) {
-      final RequestEntry<?> request = ex.getRequest();
+      final RequestEntry<E> request = ex.getRequest();
 
-      final byte[] payload = requestEntryInternalFactory.convertPayload(request);
+      if (topicRequests.remove(request)) {
+        final byte[] payload = requestEntryInternalFactory.convertPayload(request);
 
-      final RequestEntryInternal requestEntry = requestEntryInternalFactory.create(request, payload);
+        final RequestEntryInternal requestEntry = requestEntryInternalFactory.create(request, payload);
 
-      final R publishBatchRequest = PublishRequestBuilder.<R, RequestEntryInternal>builder()
-        .supplier(supplierPublishRequest())
-        .entries(Collections.singletonList(requestEntry))
-        .topicArn(topicProperty.getTopicArn())
-        .build();
+        final R publishBatchRequest = PublishRequestBuilder.<R, RequestEntryInternal>builder()
+          .supplier(supplierPublishRequest())
+          .entries(Collections.singletonList(requestEntry))
+          .topicArn(topicProperty.getTopicArn())
+          .build();
 
-      handleError(publishBatchRequest, ex);
+        handleError(publishBatchRequest, ex);
 
-      LOGGER.error(ex.getMessage(), ex);
+        LOGGER.error(ex.getMessage(), ex);
+      }
+
     } catch (final Exception ex) {
       LOGGER.error(ex.getMessage(), ex);
     }
@@ -182,7 +185,6 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
     return requests.size() > topicProperty.getMaxBatchSize();
   }
 
-  @SneakyThrows
   private void validateMessageSize(final Integer messageSize, final RequestEntry<E> requestEntry) {
     if (messageSize > BATCH_SIZE_BYTES_THRESHOLD) {
       throw new MaximumAllowedMessageException("The maximum allowed message size exceeding 256KB (262,144 bytes).", requestEntry);

@@ -29,6 +29,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -527,7 +528,7 @@ class AbstractAmazonSnsConsumerTest {
     private Throwable lastError;
     private boolean throwOnPublish = false;
     private final RuntimeException publishException = new RuntimeException("publish failed");
-    private final List<Integer> publishedBatchSizes = new java.util.ArrayList<>();
+    private final List<Integer> publishedBatchSizes = new LinkedList<>();
 
     TestableAmazonSnsConsumer(
         final Object amazonSnsClient,
