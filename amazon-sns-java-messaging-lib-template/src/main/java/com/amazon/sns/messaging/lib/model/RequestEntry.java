@@ -26,6 +26,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+/**
+ * Represents a single message request to be published to an Amazon SNS topic.
+ * Contains the message payload, metadata, and optional FIFO-related identifiers.
+ *
+ * @param <T> the type of the message payload
+ */
 @Getter
 @ToString
 @NoArgsConstructor
@@ -33,21 +39,42 @@ import lombok.ToString;
 @Builder(setterPrefix = "with")
 public class RequestEntry<T> {
 
+  /**
+   * The creation timestamp in nanoseconds (from {@link System#nanoTime}).
+   */
   @Builder.Default
   private final long createTime = System.nanoTime();
 
+  /**
+   * A unique identifier for this request.
+   */
   @Builder.Default
   private final String id = UUID.randomUUID().toString();
 
+  /**
+   * The message payload value.
+   */
   private T value;
 
+  /**
+   * Optional message attributes / headers.
+   */
   @Builder.Default
   private final Map<String, Object> messageHeaders = Collections.emptyMap();
 
+  /**
+   * An optional subject line for the message.
+   */
   private String subject;
 
+  /**
+   * The message group ID for FIFO topics.
+   */
   private String groupId;
 
+  /**
+   * The message deduplication ID for FIFO topics.
+   */
   private String deduplicationId;
 
 }

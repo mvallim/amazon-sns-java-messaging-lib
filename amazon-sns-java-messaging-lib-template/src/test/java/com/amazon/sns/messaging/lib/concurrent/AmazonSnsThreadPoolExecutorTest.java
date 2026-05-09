@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.amazon.sns.messaging.lib.core;
+package com.amazon.sns.messaging.lib.concurrent;
 
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.awaitility.Awaitility.await;
@@ -26,13 +26,11 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
 
-import com.amazon.sns.messaging.lib.concurrent.AmazonSnsThreadPoolExecutor;
-
 // @formatter:off
 class AmazonSnsThreadPoolExecutorTest {
 
   @Test
-  void testSuccessCounters() {
+  void testSuccessCounters() throws Exception {
     final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10);
 
     assertThat(amazonSnsThreadPoolExecutor.getActiveTaskCount(), is(0));
@@ -42,7 +40,7 @@ class AmazonSnsThreadPoolExecutorTest {
   }
 
   @Test
-  void testSuccessSucceededTaskCount() throws InterruptedException {
+  void testSuccessSucceededTaskCount() throws Exception {
     final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10);
 
     assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
@@ -65,7 +63,7 @@ class AmazonSnsThreadPoolExecutorTest {
   }
 
   @Test
-  void testSuccessFailedTaskCount() throws InterruptedException {
+  void testSuccessFailedTaskCount() throws Exception {
     final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10);
 
     assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
@@ -86,7 +84,7 @@ class AmazonSnsThreadPoolExecutorTest {
   }
 
   @Test
-  void testSuccessActiveTaskCount() throws InterruptedException {
+  void testSuccessActiveTaskCount() throws Exception {
     final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10);
 
     assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
@@ -111,7 +109,7 @@ class AmazonSnsThreadPoolExecutorTest {
   }
 
   @Test
-  void testSuccessBlockingSubmissionPolicy() {
+  void testSuccessBlockingSubmissionPolicy() throws Exception {
     final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(1);
 
     amazonSnsThreadPoolExecutor.execute(() -> {

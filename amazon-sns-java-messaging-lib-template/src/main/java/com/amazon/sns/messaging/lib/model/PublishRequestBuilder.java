@@ -24,6 +24,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Builder utility for constructing SDK-specific publish batch requests from a topic ARN
+ * and a list of entries. Uses a {@link BiFunction} supplier for SDK-agnostic construction.
+ */
 @Getter
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class PublishRequestBuilder {
@@ -32,6 +36,12 @@ public final class PublishRequestBuilder {
     return new Builder<>();
   }
 
+  /**
+   * Builder for constructing a publish request of type {@code R} from entries of type {@code E}.
+   *
+   * @param <R> the publish request type
+   * @param <E> the entry type
+   */
   @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
   public static class Builder<R, E> {
 
@@ -56,6 +66,11 @@ public final class PublishRequestBuilder {
       return this;
     }
 
+    /**
+     * Builds the publish request by applying the supplier function.
+     *
+     * @return the constructed publish request
+     */
     public R build() {
       return supplier.apply(topicArn, entries);
     }

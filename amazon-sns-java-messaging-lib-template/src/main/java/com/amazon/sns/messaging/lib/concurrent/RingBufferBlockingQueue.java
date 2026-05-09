@@ -29,9 +29,17 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.IntStream;
 
 import lombok.Getter;
+import lombok.Locked;
 import lombok.Setter;
 import lombok.SneakyThrows;
 
+/**
+ * A bounded blocking queue backed by a ring buffer (circular array). Supports blocking
+ * {@link #put(Object)} and {@link #take()} operations. Other {@link BlockingQueue} methods
+ * throw {@link UnsupportedOperationException}.
+ *
+ * @param <E> the type of elements held in this queue
+ */
 public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements BlockingQueue<E> {
 
   private static final int DEFAULT_CAPACITY = 2048;
@@ -52,152 +60,224 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
 
   private final Condition waitingProducer;
 
+  /**
+   * Creates a ring buffer with the specified capacity.
+   *
+   * @param capacity the maximum number of elements the queue can hold
+   */
   public RingBufferBlockingQueue(final int capacity) {
     this.capacity = capacity;
-    this.buffer = new AtomicReferenceArray<>(capacity);
-    this.reentrantLock = new ReentrantLock(true);
-    this.waitingConsumer = this.reentrantLock.newCondition();
-    this.waitingProducer = this.reentrantLock.newCondition();
-    IntStream.range(0, capacity).forEach(idx -> this.buffer.set(idx, new Entry<>()));
+    buffer = new AtomicReferenceArray<>(capacity);
+    reentrantLock = new ReentrantLock(true);
+    waitingConsumer = reentrantLock.newCondition();
+    waitingProducer = reentrantLock.newCondition();
+    IntStream.range(0, capacity).forEach(idx -> buffer.set(idx, new Entry<>()));
   }
 
+  /**
+   * Creates a ring buffer with the default capacity of 2048.
+   */
   public RingBufferBlockingQueue() {
     this(RingBufferBlockingQueue.DEFAULT_CAPACITY);
   }
 
+  /**
+   * Prevents sequence overflow by wrapping around when the maximum long value is reached.
+   *
+   * @param sequence the current sequence value
+   * @return the sequence value, wrapped if necessary
+   */
   private long avoidSequenceOverflow(final long sequence) {
     return (sequence < Long.MAX_VALUE ? sequence : wrap(sequence));
   }
 
+  /**
+   * Wraps a sequence number to a valid buffer index.
+   *
+   * @param sequence the sequence number to wrap
+   * @return the buffer index
+   */
   private int wrap(final long sequence) {
-    return Math.toIntExact(sequence % this.capacity);
+    return Math.toIntExact(sequence % capacity);
   }
-  
+
+  /**
+   * Returns the fixed capacity of this ring buffer.
+   *
+   * @return the capacity
+   */
   public int capacity() {
-    return this.capacity;
+    return capacity;
   }
-  
+
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public int size() {
-    return this.size.get();
+    return size.get();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean isEmpty() {
-    return this.size.get() == 0;
+    return size.get() == 0;
   }
 
+  /**
+   * Returns whether the queue is full.
+   *
+   * @return true if the queue size equals its capacity
+   */
   public boolean isFull() {
-    return this.size.get() >= this.capacity;
+    return size.get() >= capacity;
   }
 
+  /**
+   * Returns the current write sequence number.
+   *
+   * @return the write sequence
+   */
   public long writeSequence() {
-    return this.writeSequence.get();
+    return writeSequence.get();
   }
 
+  /**
+   * Returns the current read sequence number.
+   *
+   * @return the read sequence
+   */
   public long readSequence() {
-    return this.readSequence.get();
+    return readSequence.get();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public E peek() {
-    return isEmpty() ? null : this.buffer.get(wrap(this.readSequence.get())).getValue();
+    return isEmpty() ? null : buffer.get(wrap(readSequence.get())).getValue();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   @SneakyThrows
+  @Locked("reentrantLock")
   public void put(final E element) {
-    try {
-      reentrantLock.lock();
-
-      while (isFull()) {
-        waitingProducer.await();
-      }
-
-      final long prevWriteSeq = writeSequence.get();
-      final long nextWriteSeq = avoidSequenceOverflow(prevWriteSeq) + 1;
-
-      buffer.get(wrap(nextWriteSeq)).setValue(element);
-
-      writeSequence.compareAndSet(prevWriteSeq, nextWriteSeq);
-
-      size.incrementAndGet();
-
-      waitingConsumer.signal();
-    } finally {
-      reentrantLock.unlock();
+    while (isFull()) {
+      waitingProducer.await();
     }
+
+    final long prevWriteSeq = writeSequence.get();
+    final long nextWriteSeq = avoidSequenceOverflow(prevWriteSeq) + 1;
+
+    buffer.get(wrap(nextWriteSeq)).setValue(element);
+
+    writeSequence.compareAndSet(prevWriteSeq, nextWriteSeq);
+
+    size.incrementAndGet();
+
+    waitingConsumer.signal();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   @SneakyThrows
+  @Locked("reentrantLock")
   public E take() {
-    try {
-      reentrantLock.lock();
-
-      while (isEmpty()) {
-        waitingConsumer.await();
-      }
-
-      final long prevReadSeq = readSequence.get();
-      final long nextReadSeq = avoidSequenceOverflow(prevReadSeq) + 1;
-
-      final E nextValue = buffer.get(wrap(prevReadSeq)).getValue();
-
-      buffer.get(wrap(prevReadSeq)).setValue(null);
-
-      readSequence.compareAndSet(prevReadSeq, nextReadSeq);
-
-      size.decrementAndGet();
-
-      waitingProducer.signal();
-
-      return nextValue;
-    } finally {
-      reentrantLock.unlock();
+    while (isEmpty()) {
+      waitingConsumer.await();
     }
+
+    final long prevReadSeq = readSequence.get();
+    final long nextReadSeq = avoidSequenceOverflow(prevReadSeq) + 1;
+
+    final E nextValue = buffer.get(wrap(prevReadSeq)).getValue();
+
+    buffer.get(wrap(prevReadSeq)).setValue(null);
+
+    readSequence.compareAndSet(prevReadSeq, nextReadSeq);
+
+    size.decrementAndGet();
+
+    waitingProducer.signal();
+
+    return nextValue;
   }
 
+  /**
+   * @throws UnsupportedOperationException always
+   */
   @Override
   public boolean offer(final E element) {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * @throws UnsupportedOperationException always
+   */
   @Override
   public boolean offer(final E element, final long timeout, final TimeUnit unit) throws InterruptedException {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * @throws UnsupportedOperationException always
+   */
   @Override
   public E poll() {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * @throws UnsupportedOperationException always
+   */
   @Override
   public E poll(final long timeout, final TimeUnit unit) throws InterruptedException {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * @throws UnsupportedOperationException always
+   */
   @Override
   public Iterator<E> iterator() {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * @throws UnsupportedOperationException always
+   */
   @Override
   public boolean add(final E element) {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * @throws UnsupportedOperationException always
+   */
   @Override
   public int remainingCapacity() {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * @throws UnsupportedOperationException always
+   */
   @Override
   public int drainTo(final Collection<? super E> collection) {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * @throws UnsupportedOperationException always
+   */
   @Override
   public int drainTo(final Collection<? super E> collection, final int maxElements) {
     throw new UnsupportedOperationException();

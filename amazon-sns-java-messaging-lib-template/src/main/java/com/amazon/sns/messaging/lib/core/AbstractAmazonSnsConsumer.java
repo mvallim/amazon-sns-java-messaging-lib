@@ -16,7 +16,8 @@
 
 package com.amazon.sns.messaging.lib.core;
 
-import java.io.IOException;
+import java.time.Duration;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -29,6 +30,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 
@@ -39,14 +41,27 @@ import org.slf4j.LoggerFactory;
 
 import com.amazon.sns.messaging.lib.concurrent.ThreadFactoryProvider;
 import com.amazon.sns.messaging.lib.core.RequestEntryInternalFactory.RequestEntryInternal;
+import com.amazon.sns.messaging.lib.exception.MaximumAllowedMessageException;
 import com.amazon.sns.messaging.lib.model.PublishRequestBuilder;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
+import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
+import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
 import com.amazon.sns.messaging.lib.model.TopicProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.SneakyThrows;
 
 // @formatter:off
+/**
+ * Abstract base class for Amazon SNS message consumers. Periodically drains a
+ * {@link BlockingQueue} of {@link RequestEntry} items, batches them, and publishes
+ * them to SNS. Subclasses implement the actual publish and response handling logic.
+ *
+ * @param <C> the Amazon SNS client type
+ * @param <R> the publish batch request type
+ * @param <O> the publish batch result type
+ * @param <E> the request entry payload type
+ */
 abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
 
   private static final Integer KB = 1024;
@@ -63,7 +78,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
 
   private final RequestEntryInternalFactory requestEntryInternalFactory;
 
-  protected final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests;
+  protected final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests;
 
   private final BlockingQueue<RequestEntry<E>> topicRequests;
 
@@ -71,11 +86,22 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
 
   private final ExecutorService executorService;
 
+  /**
+   * Creates a new abstract consumer.
+   *
+   * @param amazonSnsClient  the Amazon SNS client
+   * @param topicProperty    the topic configuration
+   * @param objectMapper     the Jackson ObjectMapper for payload serialization
+   * @param pendingRequests  the shared map of pending requests keyed by request ID
+   * @param topicRequests    the shared blocking queue for topic requests
+   * @param executorService  the executor service for async publishing
+   * @param publishDecorator a decorator for the publish batch request
+   */
   protected AbstractAmazonSnsConsumer(
       final C amazonSnsClient,
       final TopicProperty topicProperty,
       final ObjectMapper objectMapper,
-      final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
+      final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
       final BlockingQueue<RequestEntry<E>> topicRequests,
       final ExecutorService executorService,
       final UnaryOperator<R> publishDecorator) {
@@ -91,14 +117,42 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
     scheduledExecutorService.scheduleAtFixedRate(this, 0, topicProperty.getLinger(), TimeUnit.MILLISECONDS);
   }
 
+  /**
+   * Publishes a batch request to Amazon SNS.
+   *
+   * @param publishBatchRequest the batch request to publish
+   * @return the publish result
+   */
   protected abstract O publish(final R publishBatchRequest);
 
+  /**
+   * Handles an error that occurred during publishing.
+   *
+   * @param publishBatchRequest the batch request that failed
+   * @param throwable           the exception that was thrown
+   */
   protected abstract void handleError(final R publishBatchRequest, final Throwable throwable);
 
+  /**
+   * Handles the response from a successful publish call.
+   *
+   * @param publishBatchResult the result of the publish operation
+   */
   protected abstract void handleResponse(final O publishBatchResult);
 
+  /**
+   * Returns a factory function that creates a publish batch request from a topic ARN
+   * and a list of internal request entries.
+   *
+   * @return a bi-function mapping (topicArn, entries) to a publish batch request
+   */
   protected abstract BiFunction<String, List<RequestEntryInternal>, R> supplierPublishRequest();
 
+  /**
+   * Performs the actual publish call and dispatches the response or error.
+   *
+   * @param publishBatchRequest the batch request to publish
+   */
   private void doPublish(final R publishBatchRequest) {
     try {
       handleResponse(publish(publishDecorator.apply(publishBatchRequest)));
@@ -107,6 +161,11 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
     }
   }
 
+  /**
+   * Publishes a batch either synchronously (FIFO) or asynchronously (standard).
+   *
+   * @param publishBatchRequest the batch request to publish
+   */
   private void publishBatch(final R publishBatchRequest) {
     if (topicProperty.isFifo()) {
       doPublish(publishBatchRequest);
@@ -131,6 +190,10 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
     }
   }
 
+  /**
+   * Shuts down the consumer, waiting up to 60 seconds for both the scheduled and
+   * worker executor services to terminate.
+   */
   @SneakyThrows
   public void shutdown() {
     LOGGER.warn("Shutdown consumer {}", getClass().getSimpleName());
@@ -150,6 +213,13 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
     }
   }
 
+  /**
+   * Checks whether the oldest request has waited longer than the batching window.
+   *
+   * @param requests          the request queue
+   * @param batchingWindowInMs the batching window in milliseconds
+   * @return true if the oldest request has exceeded the window
+   */
   private boolean requestsWaitedFor(final BlockingQueue<RequestEntry<E>> requests, final long batchingWindowInMs) {
     return Optional.ofNullable(requests.peek()).map(oldestPendingRequest -> {
       final long oldestEntryWaitTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - oldestPendingRequest.getCreateTime());
@@ -157,27 +227,47 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
     }).orElse(false);
   }
 
+  /**
+   * Checks whether the queue has exceeded the maximum batch size.
+   *
+   * @param requests the request queue
+   * @return true if the queue size exceeds the configured max batch size
+   */
   private boolean maxBatchSizeReached(final BlockingQueue<RequestEntry<E>> requests) {
     return requests.size() > topicProperty.getMaxBatchSize();
   }
 
-  @SneakyThrows
-  private void validateMessageSize(final Integer messageSize) {
-    if (messageSize > BATCH_SIZE_BYTES_THRESHOLD) {
-      throw new IOException("The maximum allowed message size exceeding 256KB (262,144 bytes).");
-    }
-  }
-
+  /**
+   * Checks whether a request can be added to the current batch based on size and count limits.
+   *
+   * @param batchSizeBytes     the current batch size in bytes
+   * @param requestEntriesSize the current number of entries in the batch
+   * @param request            the next request to consider adding
+   * @return true if the request can be added
+   */
   private boolean canAddToBatch(final int batchSizeBytes, final int requestEntriesSize, final RequestEntry<E> request) {
     return (batchSizeBytes < AbstractAmazonSnsConsumer.BATCH_SIZE_BYTES_THRESHOLD)
       && (requestEntriesSize < topicProperty.getMaxBatchSize())
       && Objects.nonNull(request);
   }
 
+  /**
+   * Checks whether the accumulated payload size is still within the 256 KB threshold.
+   *
+   * @param batchSizeBytes the current batch size in bytes
+   * @return true if the batch is still within the size limit
+   */
   private boolean canAddPayload(final int batchSizeBytes) {
     return batchSizeBytes <= AbstractAmazonSnsConsumer.BATCH_SIZE_BYTES_THRESHOLD;
   }
 
+  /**
+   * Drains requests from the queue and assembles them into a publish batch request.
+   * Returns empty if no requests are available.
+   *
+   * @param requests the request queue
+   * @return an optional containing the assembled batch request, or empty
+   */
   @SneakyThrows
   private Optional<R> createBatch(final BlockingQueue<RequestEntry<E>> requests) {
     final AtomicInteger batchSizeBytes = new AtomicInteger(0);
@@ -193,7 +283,15 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
 
       final Integer messageSize = messageBodySize + messageAttributesSize;
 
-      validateMessageSize(messageSize);
+      if (messageSize > BATCH_SIZE_BYTES_THRESHOLD) {
+        final R publishBatchRequest = PublishRequestBuilder.<R, RequestEntryInternal>builder()
+          .supplier(supplierPublishRequest())
+          .entries(Collections.singletonList(requestEntryInternalFactory.create(request, payload)))
+          .topicArn(topicProperty.getTopicArn())
+          .build();
+
+        handleError(publishBatchRequest, new MaximumAllowedMessageException("The maximum allowed message size exceeding 256KB (262,144 bytes).", requests.take()));
+      }
 
       if (canAddPayload(batchSizeBytes.addAndGet(messageSize))) {
         requestEntries.add(requestEntryInternalFactory.create(requests.take(), payload));
@@ -213,20 +311,19 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
       .build());
   }
 
+  /**
+   * Returns a {@link CompletableFuture} that completes once all pending requests have
+   * been processed (i.e., both the pending requests map and the topic requests queue are empty).
+   *
+   * @return a future that completes when all requests are drained
+   */
   @SneakyThrows
   public CompletableFuture<Void> await() {
     return CompletableFuture.runAsync(() -> {
-      while (
-        MapUtils.isNotEmpty(this.pendingRequests) ||
-        CollectionUtils.isNotEmpty(this.topicRequests)) {
-        sleep(topicProperty.getLinger());
+      while (MapUtils.isNotEmpty(this.pendingRequests) || CollectionUtils.isNotEmpty(this.topicRequests)) {
+        LockSupport.parkNanos(Duration.ofMillis(topicProperty.getLinger()).toNanos());
       }
     });
-  }
-
-  @SneakyThrows
-  private static void sleep(final long millis) {
-    Thread.sleep(millis);
   }
 
 }
