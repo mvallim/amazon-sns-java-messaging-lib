@@ -37,7 +37,7 @@ class AbstractMessageAttributesTest {
 
   @BeforeEach
   void setUp() {
-    messageAttributes = new AbstractMessageAttributes<>() {
+    messageAttributes = new AbstractMessageAttributes<String>() {
 
       @Override
       protected String getEnumMessageAttribute(final Enum<?> value) {
