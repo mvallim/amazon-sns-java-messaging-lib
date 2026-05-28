@@ -16,6 +16,7 @@
 
 package com.amazon.sns.messaging.lib.core;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -178,6 +179,9 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
     }
   }
 
+  /**
+   * Periodically drains the request queue and publishes batches.
+   */
   @Override
   @SneakyThrows
   public void run() {
@@ -196,21 +200,28 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
    */
   @SneakyThrows
   public void shutdown() {
-    LOGGER.warn("Shutdown consumer {}", getClass().getSimpleName());
+    await().thenAccept(result -> {
+      try {
+        LOGGER.warn("Shutdown consumer {}", getClass().getSimpleName());
 
-    scheduledExecutorService.shutdown();
-    if (!scheduledExecutorService.awaitTermination(60, TimeUnit.SECONDS)) {
-      LOGGER.warn("Scheduled executor service did not terminate in the specified time.");
-      final List<Runnable> droppedTasks = scheduledExecutorService.shutdownNow();
-      LOGGER.warn("Scheduled executor service was abruptly shut down. {} tasks will not be executed.", droppedTasks.size());
-    }
+        scheduledExecutorService.shutdown();
+        if (!scheduledExecutorService.awaitTermination(60, TimeUnit.SECONDS)) {
+          LOGGER.warn("Scheduled executor service did not terminate in the specified time.");
+          final List<Runnable> droppedTasks = scheduledExecutorService.shutdownNow();
+          LOGGER.warn("Scheduled executor service was abruptly shut down. {} tasks will not be executed.", droppedTasks.size());
+        }
 
-    executorService.shutdown();
-    if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
-      LOGGER.warn("Executor service did not terminate in the specified time.");
-      final List<Runnable> droppedTasks = executorService.shutdownNow();
-      LOGGER.warn("Executor service was abruptly shut down. {} tasks will not be executed.", droppedTasks.size());
-    }
+        executorService.shutdown();
+        if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+          LOGGER.warn("Executor service did not terminate in the specified time.");
+          final List<Runnable> droppedTasks = executorService.shutdownNow();
+          LOGGER.warn("Executor service was abruptly shut down. {} tasks will not be executed.", droppedTasks.size());
+        }
+      } catch (final InterruptedException ex) {
+        LOGGER.error(ex.getMessage(), ex);
+        Thread.currentThread().interrupt();
+      }
+    }).join();
   }
 
   /**
@@ -290,7 +301,11 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
           .topicArn(topicProperty.getTopicArn())
           .build();
 
-        handleError(publishBatchRequest, new MaximumAllowedMessageException("The maximum allowed message size exceeding 256KB (262,144 bytes).", requests.take()));
+        final String stringPayload = new String(payload, StandardCharsets.UTF_8);
+
+        final String message = String.format("The maximum allowed message size exceeding 256KB (262,144 bytes). Payload: %s, Headers: %s", stringPayload, request.getMessageHeaders());
+
+        handleError(publishBatchRequest, new MaximumAllowedMessageException(message, requests.take()));
       }
 
       if (canAddPayload(batchSizeBytes.addAndGet(messageSize))) {
