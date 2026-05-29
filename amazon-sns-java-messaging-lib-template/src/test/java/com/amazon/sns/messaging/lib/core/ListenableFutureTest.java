@@ -18,6 +18,7 @@ package com.amazon.sns.messaging.lib.core;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -85,7 +86,7 @@ class ListenableFutureTest {
 
     listenableFuture.addCallback(successCallback);
 
-    org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> listenableFuture.fail(entry));
+    assertDoesNotThrow(() -> listenableFuture.fail(entry));
   }
 
   @Test
@@ -111,10 +112,9 @@ class ListenableFutureTest {
   @Test
   void testAddCallbackDefaultFailureCallbackIsNoOp() {
     final boolean[] called = { false };
-    final Consumer<ResponseSuccessEntry> successCallback = result -> called[0] = true;
     final ResponseFailEntry entry = mock(ResponseFailEntry.class);
 
-    listenableFuture.addCallback(successCallback);
+    listenableFuture.addCallback(successCallback -> called[0] = true);
     listenableFuture.fail(entry);
 
     assertThat(called[0], is(false));
