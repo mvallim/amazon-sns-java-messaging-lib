@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.hasSize;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -114,7 +115,7 @@ class AmazonSnsTemplateIntegrationTest {
       .name("it-fifo-topic.fifo")
       .attributes(fifoTopicAttributes)).topicArn();
 
-    final Map<QueueAttributeName, String> fifoQueueAttributes = new HashMap<>();
+    final Map<QueueAttributeName, String> fifoQueueAttributes = new EnumMap<>(QueueAttributeName.class);
     fifoQueueAttributes.put(QueueAttributeName.FIFO_QUEUE, "true");
     fifoQueueAttributes.put(QueueAttributeName.CONTENT_BASED_DEDUPLICATION, "true");
 
