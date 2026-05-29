@@ -168,14 +168,16 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
    * @param publishBatchRequest the batch request to publish
    */
   private void publishBatch(final R publishBatchRequest) {
-    if (topicProperty.isFifo()) {
-      doPublish(publishBatchRequest);
-    } else {
-      try {
-        CompletableFuture.runAsync(() -> doPublish(publishBatchRequest), executorService);
-      } catch (final Exception ex) {
-        handleError(publishBatchRequest, ex);
+    try {
+      final Runnable runnable = () -> doPublish(publishBatchRequest);
+
+      if (topicProperty.isFifo()) {
+        runnable.run();
+      } else {
+        CompletableFuture.runAsync(runnable, executorService);
       }
+    } catch (final Exception ex) {
+      handleError(publishBatchRequest, ex);
     }
   }
 
@@ -200,7 +202,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
    */
   @SneakyThrows
   public void shutdown() {
-    await().thenAccept(result -> {
+    await().thenRun(() -> {
       try {
         LOGGER.warn("Shutdown consumer {}", getClass().getSimpleName());
 

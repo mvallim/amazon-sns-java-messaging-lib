@@ -67,7 +67,7 @@ import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 // @formatter:off
 @Testcontainers
 @SuppressWarnings("resource")
-class AmazonSnsTemplateIT {
+class AmazonSnsTemplateIntegrationTest {
 
   @Container
   static LocalStackContainer localstack = new LocalStackContainer(DockerImageName.parse("localstack/localstack:3.4.0"))
