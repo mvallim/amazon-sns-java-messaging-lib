@@ -617,7 +617,7 @@ class AbstractAmazonSnsConsumerTest {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
       shutdown();
     }
 
