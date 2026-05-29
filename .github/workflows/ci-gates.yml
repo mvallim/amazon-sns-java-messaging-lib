@@ -30,7 +30,7 @@ jobs:
           restore-keys: ${{ runner.os }}-sonar-${{ hashFiles('**/pom.xml') }}
 
       - name: Build and analyze
-        run: mvn -B verify sonar:sonar -P sonar
+        run: mvn -B verify failsafe:integration-test failsafe:verify sonar:sonar -P sonar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
