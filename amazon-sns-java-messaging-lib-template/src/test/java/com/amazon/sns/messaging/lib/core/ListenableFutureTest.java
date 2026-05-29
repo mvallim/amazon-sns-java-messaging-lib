@@ -114,7 +114,7 @@ class ListenableFutureTest {
     final boolean[] called = { false };
     final ResponseFailEntry entry = mock(ResponseFailEntry.class);
 
-    listenableFuture.addCallback(successCallback -> called[0] = true);
+    listenableFuture.addCallback(callback -> called[0] = true);
     listenableFuture.fail(entry);
 
     assertThat(called[0], is(false));
