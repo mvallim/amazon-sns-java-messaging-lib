@@ -28,6 +28,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -189,10 +190,11 @@ class AbstractAmazonSnsConsumerTest {
       final RequestEntry<String> entry = buildRequestEntry("fifo-message");
       topicRequests.put(entry);
 
-      Thread.sleep(LINGER_MS * 3);
-
-      assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1));
-      assertThat(consumer.getHandleResponseCallCount(), greaterThanOrEqualTo(1));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1));
+          assertThat(consumer.getHandleResponseCallCount(), greaterThanOrEqualTo(1));
+        });
     });
   }
 
@@ -208,9 +210,10 @@ class AbstractAmazonSnsConsumerTest {
       final RequestEntry<String> entry = buildRequestEntry("non-fifo-message");
       topicRequests.put(entry);
 
-      Thread.sleep(LINGER_MS * 3);
-
-      verify(executorService, atLeastOnce()).execute(any(Runnable.class));
+      await()
+        .untilAsserted(() ->
+          verify(executorService, atLeastOnce()).execute(any(Runnable.class))
+        );
     });
   }
 
@@ -224,10 +227,11 @@ class AbstractAmazonSnsConsumerTest {
       final RequestEntry<String> entry = buildRequestEntry("error-message");
       topicRequests.put(entry);
 
-      Thread.sleep(LINGER_MS * 3);
-
-      assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
-      assertThat(consumer.getLastError(), is(notNullValue()));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
+          assertThat(consumer.getLastError(), is(notNullValue()));
+        });
     });
   }
 
@@ -240,20 +244,22 @@ class AbstractAmazonSnsConsumerTest {
 
       topicRequests.put(buildRequestEntry("fail-message"));
 
-      Thread.sleep(LINGER_MS * 3);
-
-      assertThat(consumer.getLastError(), instanceOf(RuntimeException.class));
-      assertThat(consumer.getLastError().getMessage(), containsString("publish failed"));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getLastError(), instanceOf(RuntimeException.class));
+          assertThat(consumer.getLastError().getMessage(), containsString("publish failed"));
+        });
     });
   }
 
   @Test
   void testRunDoesNotPublishWhenQueueIsEmpty() throws Exception {
-    Thread.sleep(LINGER_MS * 3);
-
     context(consumer -> {
-      assertThat(consumer.getPublishCallCount(), is(0));
-      assertThat(consumer.getHandleErrorCallCount(), is(0));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getPublishCallCount(), is(0));
+          assertThat(consumer.getHandleErrorCallCount(), is(0));
+        });
     });
   }
 
@@ -266,9 +272,10 @@ class AbstractAmazonSnsConsumerTest {
         topicRequests.put(buildRequestEntry("message-" + i));
       }
 
-      Thread.sleep(LINGER_MS * 4);
-
-      assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1));
+      await()
+        .untilAsserted(() ->
+          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1))
+        );
     });
   }
 
@@ -282,9 +289,10 @@ class AbstractAmazonSnsConsumerTest {
         topicRequests.put(buildRequestEntry("msg-" + i));
       }
 
-      Thread.sleep(LINGER_MS * 6);
-
-      assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2));
+      await()
+        .untilAsserted(() ->
+          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2))
+        );
     });
   }
 
@@ -344,9 +352,10 @@ class AbstractAmazonSnsConsumerTest {
     context(trackingDecorator, consumer -> {
       topicRequests.put(buildRequestEntry("decorated-message"));
 
-      Thread.sleep(LINGER_MS * 3);
-
-      assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1));
+      await()
+        .untilAsserted(() ->
+          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1))
+        );
     });
   }
 
@@ -357,10 +366,11 @@ class AbstractAmazonSnsConsumerTest {
     context(consumer -> {
       topicRequests.put(buildRequestEntry("identity-message"));
 
-      Thread.sleep(LINGER_MS * 3);
-
-      assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1));
-      assertThat(consumer.getHandleErrorCallCount(), is(0));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1));
+          assertThat(consumer.getHandleErrorCallCount(), is(0));
+        });
     });
   }
 
@@ -371,10 +381,11 @@ class AbstractAmazonSnsConsumerTest {
     context(consumer -> {
       topicRequests.put(buildRequestEntry("small-payload"));
 
-      Thread.sleep(LINGER_MS * 3);
-
-      assertThat(consumer.getTotalPublishedEntries(), is(1));
-      assertThat(consumer.getHandleErrorCallCount(), is(0));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getTotalPublishedEntries(), is(1));
+          assertThat(consumer.getHandleErrorCallCount(), is(0));
+        });
     });
   }
 
@@ -386,10 +397,11 @@ class AbstractAmazonSnsConsumerTest {
       final String payloadAtThreshold = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold());
       topicRequests.put(buildRequestEntry(payloadAtThreshold));
 
-      Thread.sleep(LINGER_MS * 3);
-
-      assertThat(consumer.getTotalPublishedEntries(), is(1));
-      assertThat(consumer.getHandleErrorCallCount(), is(0));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getTotalPublishedEntries(), is(1));
+          assertThat(consumer.getHandleErrorCallCount(), is(0));
+        });
     });
   }
 
@@ -401,12 +413,13 @@ class AbstractAmazonSnsConsumerTest {
       final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold() + 1);
       topicRequests.put(buildRequestEntry(oversizedPayload));
 
-      Thread.sleep(LINGER_MS * 3);
-
-      assertThat(consumer.getTotalPublishedEntries(), is(1));
-      assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
-      assertThat(consumer.getLastError(), instanceOf(MaximumAllowedMessageException.class));
-      assertThat(consumer.getLastError().getMessage(), containsString("256KB"));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getTotalPublishedEntries(), is(1));
+          assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
+          assertThat(consumer.getLastError(), instanceOf(MaximumAllowedMessageException.class));
+          assertThat(consumer.getLastError().getMessage(), containsString("256KB"));
+        });
     });
   }
 
@@ -421,10 +434,11 @@ class AbstractAmazonSnsConsumerTest {
       topicRequests.put(buildRequestEntry(buildPayloadOfBytes(halfThreshold)));
       topicRequests.put(buildRequestEntry("small-overflow"));
 
-      Thread.sleep(LINGER_MS * 6);
-
-      assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2));
-      assertThat(consumer.getTotalPublishedEntries(), is(3));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2));
+          assertThat(consumer.getTotalPublishedEntries(), is(3));
+        });
     });
   }
 
@@ -438,10 +452,11 @@ class AbstractAmazonSnsConsumerTest {
       topicRequests.put(buildRequestEntry(buildPayloadOfBytes(fullThreshold)));
       topicRequests.put(buildRequestEntry("second-entry"));
 
-      Thread.sleep(LINGER_MS * 6);
-
-      assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2));
-      assertThat(consumer.getPublishedBatchSizes().get(0), is(1));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2));
+          assertThat(consumer.getPublishedBatchSizes().get(0), is(1));
+        });
     });
   }
 
@@ -455,10 +470,11 @@ class AbstractAmazonSnsConsumerTest {
         topicRequests.put(buildRequestEntry("entry-" + i));
       }
 
-      Thread.sleep(LINGER_MS * 4);
-
-      assertThat(consumer.getTotalPublishedEntries(), is(10));
-      assertThat(consumer.getHandleErrorCallCount(), is(0));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getTotalPublishedEntries(), is(10));
+          assertThat(consumer.getHandleErrorCallCount(), is(0));
+        });
     });
   }
 
@@ -473,10 +489,11 @@ class AbstractAmazonSnsConsumerTest {
       topicRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
       topicRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
 
-      Thread.sleep(LINGER_MS * 8);
-
-      assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2));
-      assertThat(consumer.getTotalPublishedEntries(), is(3));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2));
+          assertThat(consumer.getTotalPublishedEntries(), is(3));
+        });
     });
   }
 
@@ -488,10 +505,11 @@ class AbstractAmazonSnsConsumerTest {
       final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold() + 100);
       topicRequests.put(buildRequestEntry(oversizedPayload));
 
-      Thread.sleep(LINGER_MS * 3);
-
-      assertThat(consumer.getTotalPublishedEntries(), is(1));
-      assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getTotalPublishedEntries(), is(1));
+          assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
+        });
     });
   }
 

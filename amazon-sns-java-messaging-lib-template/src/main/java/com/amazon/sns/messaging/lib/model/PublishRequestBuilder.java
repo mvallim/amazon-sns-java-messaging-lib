@@ -51,23 +51,41 @@ public final class PublishRequestBuilder {
 
     private List<E> entries;
 
+    /**
+     * Sets the supplier function for creating the publish request.
+     *
+     * @param supplier the supplier bi-function (queueUrl, entries)
+     * @return this builder
+     */
     public Builder<R, E> supplier(final BiFunction<String, List<E>, R> supplier) {
       this.supplier = supplier;
       return this;
     }
 
+    /**
+     * Sets the queue URL for the publish request.
+     *
+     * @param queueUrl the SQS queue URL
+     * @return this builder
+     */
     public Builder<R, E> topicArn(final String topicArn) {
       this.topicArn = topicArn;
       return this;
     }
 
+    /**
+     * Sets the entries for the publish request.
+     *
+     * @param entries the list of entries
+     * @return this builder
+     */
     public Builder<R, E> entries(final List<E> entries) {
       this.entries = entries;
       return this;
     }
 
     /**
-     * Builds the publish request by applying the supplier function.
+     * Builds the publish request by applying the supplier to the configured URL and entries.
      *
      * @return the constructed publish request
      */
