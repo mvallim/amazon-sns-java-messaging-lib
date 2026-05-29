@@ -68,7 +68,7 @@ class AbstractAmazonSnsProducerTest {
   @BeforeEach
   void setUp() {
     pendingRequests = new ConcurrentHashMap<>();
-    producer = new AbstractAmazonSnsProducer<>(pendingRequests, topicRequests, executorService) { };
+    producer = new AbstractAmazonSnsProducer<String>(pendingRequests, topicRequests, executorService) { };
   }
 
   @Test
