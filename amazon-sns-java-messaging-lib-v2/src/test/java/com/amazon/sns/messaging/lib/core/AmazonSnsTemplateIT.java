@@ -16,29 +16,30 @@
 
 package com.amazon.sns.messaging.lib.core;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.hamcrest.Matchers.hasSize;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.containers.localstack.LocalStackContainer.Service;
@@ -46,6 +47,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import com.amazon.sns.messaging.lib.concurrent.RingBufferBlockingQueue;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
@@ -56,7 +58,11 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sns.SnsClient;
-import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.MessageSystemAttributeName;
+import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
 // @formatter:off
 @Testcontainers
@@ -66,16 +72,21 @@ class AmazonSnsTemplateIT {
   @Container
   static LocalStackContainer localstack = new LocalStackContainer(DockerImageName.parse("localstack/localstack:3.4.0"))
     .withEnv("LOCALSTACK_HOST", "localhost:4566")
+    .withEnv("SQS_ENDPOINT_STRATEGY", "dynamic")
     .withReuse(true)
-    .withServices(Service.SNS);
+    .withServices(Service.SNS, Service.SQS);
 
   private static SnsClient snsClient;
 
+  private static SqsClient sqsClient;
+
   private static String standardTopicArn;
+
+  private static String standardQueueUrl;
 
   private static String fifoTopicArn;
 
-  private AmazonSnsTemplate<Object> snsTemplate;
+  private static String fifoQueueUrl;
 
   @BeforeAll
   static void setupClient() {
@@ -85,20 +96,49 @@ class AmazonSnsTemplateIT {
       .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())))
       .build();
 
-    standardTopicArn = snsClient.createTopic(CreateTopicRequest.builder()
-      .name("it-standard-topic")
-      .build())
-      .topicArn();
+    sqsClient = SqsClient.builder()
+      .endpointOverride(localstack.getEndpoint())
+      .region(Region.of(localstack.getRegion()))
+      .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())))
+      .build();
 
-    final Map<String, String> fifoAttrs = new HashMap<>();
-    fifoAttrs.put("FifoTopic", "true");
-    fifoAttrs.put("ContentBasedDeduplication", "true");
+    standardTopicArn = snsClient.createTopic(request -> request.name("it-standard-topic")).topicArn();
 
-    fifoTopicArn = snsClient.createTopic(CreateTopicRequest.builder()
+    standardQueueUrl = sqsClient.createQueue(request -> request.queueName("it-standard-queue")).queueUrl();
+
+    final Map<String, String> fifoTopicAttributes = new HashMap<>();
+    fifoTopicAttributes.put("FifoTopic", "true");
+    fifoTopicAttributes.put("ContentBasedDeduplication", "true");
+
+    fifoTopicArn = snsClient.createTopic(request -> request
       .name("it-fifo-topic.fifo")
-      .attributes(fifoAttrs)
-      .build())
-      .topicArn();
+      .attributes(fifoTopicAttributes)).topicArn();
+
+    final Map<QueueAttributeName, String> fifoQueueAttributes = new HashMap<>();
+    fifoQueueAttributes.put(QueueAttributeName.FIFO_QUEUE, "true");
+    fifoQueueAttributes.put(QueueAttributeName.CONTENT_BASED_DEDUPLICATION, "true");
+
+    fifoQueueUrl = sqsClient.createQueue(request -> request
+      .queueName("it-fifo-queue.fifo")
+      .attributes(fifoQueueAttributes)).queueUrl();
+
+    snsClient.subscribe(request -> request
+      .protocol("sqs")
+      .topicArn(standardTopicArn)
+      .attributes(Collections.singletonMap("RawMessageDelivery", "true"))
+      .endpoint(sqsClient.getQueueAttributes(r -> r
+        .queueUrl(standardQueueUrl)
+        .attributeNames(QueueAttributeName.QUEUE_ARN)).attributes().get(QueueAttributeName.QUEUE_ARN))
+    );
+
+    snsClient.subscribe(request -> request
+      .protocol("sqs")
+      .topicArn(fifoTopicArn)
+      .attributes(Collections.singletonMap("RawMessageDelivery", "true"))
+      .endpoint(sqsClient.getQueueAttributes(r -> r
+        .queueUrl(fifoQueueUrl)
+        .attributeNames(QueueAttributeName.QUEUE_ARN)).attributes().get(QueueAttributeName.QUEUE_ARN))
+    );
   }
 
   @AfterAll
@@ -107,57 +147,81 @@ class AmazonSnsTemplateIT {
       snsClient.close();
     }
 
+    if (Objects.nonNull(sqsClient)) {
+      sqsClient.close();
+    }
+
     if (Objects.nonNull(localstack)) {
       localstack.close();
     }
   }
 
-  private void createTemplate(final boolean fifo, final String topicArn) {
-    createTemplate(fifo, topicArn, 200L, 10, 5);
+  @BeforeEach
+  void before() {
+    purgeQueue(standardQueueUrl);
+    purgeQueue(fifoQueueUrl);
   }
 
-  private void createTemplate(final boolean fifo, final String topicArn, final long linger, final int maxBatchSize, final int maximumPoolSize) {
+  private AmazonSnsTemplate<Object> createTemplate(
+      final String topicArn,
+      final boolean fifo,
+      final long linger,
+      final int maxBatchSize,
+      final int maxPoolSize) {
+
     final TopicProperty topicProperty = TopicProperty.builder()
       .fifo(fifo)
       .linger(linger)
       .maxBatchSize(maxBatchSize)
-      .maximumPoolSize(maximumPoolSize)
+      .maximumPoolSize(maxPoolSize)
       .topicArn(topicArn)
       .build();
 
-    snsTemplate = new AmazonSnsTemplate<>(snsClient, topicProperty);
+    return new AmazonSnsTemplate<>(snsClient, topicProperty, new RingBufferBlockingQueue<>(1024));
   }
 
-  @AfterEach
-  void tearDown() {
-    if (snsTemplate != null) {
-      snsTemplate.shutdown();
-    }
+  private void purgeQueue(final String queueUrl) {
+    sqsClient.purgeQueue(request -> request.queueUrl(queueUrl));
+  }
+
+  private ReceiveMessageResponse receiveMessage(final String queueUrl, final Integer maxNumberOfMessages, final Integer waitTimeSeconds) {
+    final ReceiveMessageResponse result = sqsClient.receiveMessage(request -> request
+      .queueUrl(queueUrl)
+      .maxNumberOfMessages(maxNumberOfMessages)
+      .waitTimeSeconds(waitTimeSeconds)
+      .attributeNames(QueueAttributeName.ALL)
+      .messageAttributeNames("All"));
+
+    result.messages().forEach(message -> sqsClient.deleteMessage(request -> request.queueUrl(queueUrl).receiptHandle(message.receiptHandle())));
+
+    return result;
   }
 
   @SneakyThrows
-  private void countDownLeach(final Integer count, final Consumer<CountDownLatch> consumer) {
+  private void countDownLatch(final Integer count, final Consumer<CountDownLatch> consumer) {
     final CountDownLatch countDownLatch = new CountDownLatch(count);
 
     consumer.accept(countDownLatch);
 
-    countDownLatch.await();
+    countDownLatch.await(1L, TimeUnit.MINUTES);
   }
 
   @Test
   void testSendSingleMessage() {
-    countDownLeach(1, countDownLatch -> {
-      createTemplate(false, standardTopicArn);
+    final String messageBody = "hello-sqs-" + UUID.randomUUID();
+
+    countDownLatch(1, countDownLatch -> {
+
+      final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 100L, 10, 5);
 
       final String id = UUID.randomUUID().toString();
 
-      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = snsTemplate.send(
-          RequestEntry.builder()
-          .withId(id)
-          .withValue(Collections.singletonMap("key", "value"))
-          .build());
+      final ListenableFuture<ResponseSuccessEntry,ResponseFailEntry> future = template.send(RequestEntry.builder()
+        .withId(id)
+        .withValue(messageBody)
+        .build());
 
-      snsTemplate.await().thenRun(snsTemplate::shutdown).join();
+      template.await().thenRun(template::shutdown).join();
 
       future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -166,25 +230,35 @@ class AmazonSnsTemplateIT {
         countDownLatch.countDown();
       });
     });
+
+    final ReceiveMessageResponse result = receiveMessage(standardQueueUrl, 1, 5);
+
+    assertThat(result.messages(), hasSize(1));
+
+    final Message message = result.messages().get(0);
+    assertThat(message.body(), is(messageBody));
+    assertThat(message.messageAttributes().keySet(), hasSize(0));
   }
 
   @Test
   void testSendMultipleMessages() {
-    final int count = 100;
+    final int messageCount = 500;
 
-    countDownLeach(count, countDownLatch -> {
-      createTemplate(false, standardTopicArn);
+    countDownLatch(messageCount, countDownLatch -> {
       final List<ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> futures = new ArrayList<>();
 
-      IntStream.range(0, count).forEach(i -> {
-        futures.add(snsTemplate.send(RequestEntry.builder()
-          .withId(UUID.randomUUID().toString())
-          .withSubject("test-multi")
-          .withValue(Collections.singletonMap("index", i))
-          .build()));
+      final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 50L, 10, 10);
+
+      IntStream.range(0, messageCount).forEach(i -> {
+        futures.add(
+          template.send(RequestEntry.builder()
+            .withId(UUID.randomUUID().toString())
+            .withValue("msg-" + i + "-" + UUID.randomUUID())
+            .build())
+          );
       });
 
-      snsTemplate.await().thenRun(snsTemplate::shutdown).join();
+      template.await().thenRun(template::shutdown).join();
 
       futures.forEach(future -> future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -193,80 +267,38 @@ class AmazonSnsTemplateIT {
         countDownLatch.countDown();
       }));
     });
-  }
 
-  @Test
-  void testSendMessageWithAttributes() {
-    countDownLeach(1, countDownLatch -> {
-      createTemplate(false, standardTopicArn);
+    final List<Message> messages = new LinkedList<>();
 
-      final String id = UUID.randomUUID().toString();
+    while (messages.size() < messageCount) {
+      messages.addAll(receiveMessage(standardQueueUrl, 10, 5).messages());
+    }
 
-      final Map<String, Object> headers = new HashMap<>();
-      headers.put("contentType", "text/plain");
-      headers.put("priority", "high");
+    assertThat(messages, hasSize(messageCount));
 
-      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = snsTemplate.send(
-        RequestEntry.builder()
-          .withId(id)
-          .withValue("test-with-attributes")
-          .withMessageHeaders(headers)
-          .build());
-
-      snsTemplate.await().thenRun(snsTemplate::shutdown).join();
-
-      future.addCallback(result -> {
-        assertThat(result, notNullValue());
-        assertThat(result.getId(), is(id));
-        assertThat(result.getMessageId(), notNullValue());
-        countDownLatch.countDown();
-      });
-    });
-  }
-
-  @Test
-  void testSendToFifoTopic() {
-    countDownLeach(1, countDownLatch -> {
-      createTemplate(true, fifoTopicArn);
-
-      final String id = UUID.randomUUID().toString();
-      final String groupId = UUID.randomUUID().toString();
-
-      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = snsTemplate.send(
-        RequestEntry.builder()
-          .withId(id)
-          .withGroupId(groupId)
-          .withValue(Collections.singletonMap("fifo", true))
-          .build());
-
-      snsTemplate.await().thenRun(snsTemplate::shutdown).join();
-
-      future.addCallback(result -> {
-        assertThat(result, notNullValue());
-        assertThat(result.getId(), is(id));
-        assertThat(result.getMessageId(), notNullValue());
-        assertThat(result.getSequenceNumber(), notNullValue());
-        countDownLatch.countDown();
-      });
+    messages.forEach(message -> {
+      assertThat(message.body(), containsString("msg-"));
+      assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
   }
 
   @Test
   void testSendMessagesExceedingBatchSize() {
-    countDownLeach(1, countDownLatch -> {
-      createTemplate(false, standardTopicArn, 200L, 10, 5);
+    final int messageCount = 25;
 
-      final int count = 25;
+    countDownLatch(messageCount, countDownLatch -> {
       final List<ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> futures = new ArrayList<>();
 
-      IntStream.range(0, count).forEach(i -> {
-        futures.add(snsTemplate.send(RequestEntry.builder()
+      final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 50L, 10, 10);
+
+      IntStream.range(0, messageCount).forEach(i -> {
+        futures.add(template.send(RequestEntry.builder()
           .withId(UUID.randomUUID().toString())
-          .withValue(Collections.singletonMap("index", i))
+          .withValue("batch-test-" + i)
           .build()));
       });
 
-      snsTemplate.await().thenRun(snsTemplate::shutdown).join();
+      template.await().thenRun(template::shutdown).join();
 
       futures.forEach(future -> future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -275,93 +307,187 @@ class AmazonSnsTemplateIT {
         countDownLatch.countDown();
       }));
     });
+
+    final List<Message> messages = new LinkedList<>();
+
+    while (messages.size() < messageCount) {
+      messages.addAll(receiveMessage(standardQueueUrl, 10, 5).messages());
+    }
+
+    assertThat(messages, hasSize(messageCount));
+
+    messages.forEach(message -> {
+      assertThat(message.body(), containsString("batch-test-"));
+      assertThat(message.messageAttributes().keySet(), hasSize(0));
+    });
+  }
+
+
+  @Test
+  void testSendMessagesWithLinger() {
+    final int messageCount = 20;
+
+    countDownLatch(messageCount, countDownLatch -> {
+      final List<ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> futures = new ArrayList<>();
+
+      final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 200L, 10, 5);
+
+      IntStream.range(0, messageCount).forEach(i -> {
+        futures.add(template.send(RequestEntry.builder()
+          .withId(UUID.randomUUID().toString())
+          .withValue("linger-test-" + i)
+          .build()));
+      });
+
+      template.await().thenRun(template::shutdown).join();
+
+      futures.forEach(future -> future.addCallback(result -> {
+        assertThat(result, notNullValue());
+        assertThat(result.getId(), notNullValue());
+        assertThat(result.getMessageId(), notNullValue());
+        countDownLatch.countDown();
+      }));
+    });
+
+    final List<Message> messages = new LinkedList<>();
+
+    while (messages.size() < messageCount) {
+      messages.addAll(receiveMessage(standardQueueUrl, 10, 5).messages());
+    }
+
+    assertThat(messages, hasSize(messageCount));
+
+    messages.forEach(message -> {
+      assertThat(message.body(), containsString("linger-test-"));
+      assertThat(message.messageAttributes().keySet(), hasSize(0));
+    });
   }
 
   @Test
-  void testSendMessagesWithLinger() throws Exception {
-    createTemplate(false, standardTopicArn, 2000L, 100, 5);
+  void testSendMessageWithgetMessageAttributes() {
+    final String messageBody = "attr-test-" + UUID.randomUUID();
 
-    final String id = UUID.randomUUID().toString();
+    countDownLatch(1, countDownLatch -> {
+      final Map<String, Object> messageHeaders = new HashMap<>();
+      messageHeaders.put("string-attr", "hello");
+      messageHeaders.put("number-attr", 42);
 
-    snsTemplate.send(RequestEntry.builder()
-      .withId(id)
-      .withValue("linger-test")
-      .build());
+      final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 100L, 10, 5);
 
-    assertThrows(TimeoutException.class, () -> snsTemplate.await().get(500, TimeUnit.MILLISECONDS));
-    snsTemplate.await().get(5000, TimeUnit.MILLISECONDS);
+      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = template.send(RequestEntry.builder()
+        .withId(UUID.randomUUID().toString())
+        .withValue(messageBody)
+        .withMessageHeaders(messageHeaders)
+        .build());
+
+      template.await().thenRun(template::shutdown).join();
+
+      future.addCallback(result -> {
+        assertThat(result, notNullValue());
+        assertThat(result.getId(), notNullValue());
+        assertThat(result.getMessageId(), notNullValue());
+        countDownLatch.countDown();
+      });
+    });
+
+    final List<Message> messages = new LinkedList<>();
+
+    while (messages.size() < 1) {
+      messages.addAll(receiveMessage(standardQueueUrl, 10, 5).messages());
+    }
+
+    assertThat(messages, hasSize(1));
+
+    messages.forEach(message -> {
+      assertThat(message.body(), is(messageBody));
+      assertThat(message.messageAttributes().get("string-attr").stringValue(), is("hello"));
+      assertThat(message.messageAttributes().get("number-attr").stringValue(), is("42"));
+    });
   }
 
   @Test
   void testSendLargeMessage() {
-    countDownLeach(1, countDownLatch -> {
-      createTemplate(false, standardTopicArn, 500L, 10, 5);
+    final String largeBody = RandomStringUtils.secure().nextAlphabetic(262_144);
 
-      final String id = UUID.randomUUID().toString();
-      final String largePayload = repeat('A', 200_000);
+    countDownLatch(1, countDownLatch -> {
+      final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 200L, 5, 5);
 
-      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = snsTemplate.send(
-        RequestEntry.builder()
-          .withId(id)
-          .withValue(largePayload)
-          .build());
+      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = template.send(RequestEntry.builder()
+        .withId(UUID.randomUUID().toString())
+        .withValue(largeBody)
+        .build());
 
-      snsTemplate.await().thenRun(snsTemplate::shutdown).join();
+      template.await().thenRun(template::shutdown).join();
 
       future.addCallback(result -> {
         assertThat(result, notNullValue());
-        assertThat(result.getId(), is(id));
+        assertThat(result.getId(), notNullValue());
         assertThat(result.getMessageId(), notNullValue());
         countDownLatch.countDown();
       });
+    });
+
+    final List<Message> messages = new LinkedList<>();
+
+    while (messages.size() < 1) {
+      messages.addAll(receiveMessage(standardQueueUrl, 10, 5).messages());
+    }
+
+    assertThat(messages, hasSize(1));
+
+    messages.forEach(message -> {
+      assertThat(message.body(), is(largeBody));
+      assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
   }
 
   @Test
   void testSendMessageExceedingMaxSize() {
-    countDownLeach(1, countDownLatch -> {
-      createTemplate(false, standardTopicArn, 500L, 10, 5);
+    countDownLatch(1, countDownLatch -> {
+      final String oversizedBody = RandomStringUtils.secure().nextAlphabetic((1024 * 256) + 1);
 
-      final String id = UUID.randomUUID().toString();
+      final RequestEntry<Object> entry = RequestEntry.builder()
+        .withId(UUID.randomUUID().toString())
+        .withValue(oversizedBody)
+        .build();
 
-      final String largePayload = repeat('B', 300_000);
+      final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 100L, 10, 5);
 
-      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = snsTemplate.send(
-        RequestEntry.builder()
-          .withId(id)
-          .withValue(largePayload)
-          .build());
+      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = template.send(entry);
 
-      snsTemplate.await().thenRun(snsTemplate::shutdown).join();
-
-      final ResponseFailEntry[] failure = new ResponseFailEntry[1];
+      template.await().thenRun(template::shutdown).join();
 
       future.addCallback(null, failureResult -> {
-        failure[0] = failureResult;
+        assertThat(failureResult.getCode(), is("000"));
+        assertThat(failureResult.getId(), is(entry.getId()));
+        assertThat(failureResult.getMessage(), containsString("The maximum allowed message size exceeding 256KB (262,144 bytes)."));
+        assertThat(failureResult.getSenderFault(), is(true));
         countDownLatch.countDown();
       });
-
-      assertThat(failure[0], notNullValue());
-      assertThat(failure[0].getId(), is(id));
-      assertThat(failure[0].getMessage(), containsString("maximum allowed message size exceeding 256KB"));
     });
+
+    final List<Message> messages = receiveMessage(standardQueueUrl, 10, 5).messages();
+
+    assertThat(messages, hasSize(0));
   }
 
   @Test
   void testShutdownDrainsPendingMessages() {
-    countDownLeach(10, countDownLatch -> {
-      createTemplate(false, standardTopicArn, 200L, 10, 5);
+    final int messageCount = 5;
+
+    countDownLatch(messageCount, countDownLatch -> {
+      final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 10_000L, 10, 5);
 
       final List<ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> futures = new ArrayList<>();
 
-      IntStream.range(0, 10).forEach(i -> {
-        futures.add(snsTemplate.send(RequestEntry.builder()
+      IntStream.range(0, messageCount).forEach(i -> {
+        futures.add(template.send(RequestEntry.builder()
           .withId(UUID.randomUUID().toString())
-          .withValue("shutdown-test-" + i)
+          .withValue("drain-test-" + i)
           .build()));
       });
 
-      snsTemplate.await().thenRun(snsTemplate::shutdown).join();
+      template.await().thenRun(template::shutdown).join();
 
       futures.forEach(future -> future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -369,51 +495,116 @@ class AmazonSnsTemplateIT {
         assertThat(result.getMessageId(), notNullValue());
         countDownLatch.countDown();
       }));
+    });
+
+    final List<Message> messages = new LinkedList<>();
+
+    while (messages.size() < messageCount) {
+      messages.addAll(receiveMessage(standardQueueUrl, 10, 5).messages());
+    }
+
+    assertThat(messages, hasSize(messageCount));
+
+    messages.forEach(message -> {
+      assertThat(message.body(), containsString("drain-test-"));
+      assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
   }
 
   @Test
   void testTemplateLifecycle() {
-    countDownLeach(1, countDownLatch -> {
-      createTemplate(false, standardTopicArn, 200L, 10, 5);
+    countDownLatch(1, countDownLatch -> {
+      final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 100L, 10, 5);
 
-      final String id = UUID.randomUUID().toString();
+      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = template.send(RequestEntry.builder()
+        .withId(UUID.randomUUID().toString())
+        .withValue("lifecycle-" + UUID.randomUUID())
+        .build());
 
-      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = snsTemplate.send(
-        RequestEntry.builder()
-          .withId(id)
-          .withValue("lifecycle-test")
-          .build());
+      template.await().thenRun(template::shutdown).join();
 
-      snsTemplate.await().thenRun(snsTemplate::shutdown).join();
+      future.addCallback(result -> {
+        assertThat(result, notNullValue());
+        assertThat(result.getId(), notNullValue());
+        assertThat(result.getMessageId(), notNullValue());
+        countDownLatch.countDown();
+      });
+    });
+
+    final List<Message> messages = new LinkedList<>();
+
+    while (messages.size() < 1) {
+      messages.addAll(receiveMessage(standardQueueUrl, 10, 5).messages());
+    }
+
+    assertThat(messages, hasSize(1));
+
+    messages.forEach(message -> {
+      assertThat(message.body(), containsString("lifecycle-"));
+      assertThat(message.messageAttributes().keySet(), hasSize(0));
+    });
+  }
+
+  @Test
+  void testSendSingleFifoMessage() {
+    final String messageBody = "fifo-single-" + UUID.randomUUID();
+    final String id = UUID.randomUUID().toString();
+    final String groupId = id;
+
+    countDownLatch(1, countDownLatch -> {
+      final AmazonSnsTemplate<Object> template = createTemplate(fifoTopicArn, true, 100L, 10, 1);
+
+      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = template.send(RequestEntry.builder()
+        .withId(id)
+        .withValue(messageBody)
+        .withGroupId(groupId)
+        .build());
+
+      template.await().thenRun(template::shutdown).join();
 
       future.addCallback(result -> {
         assertThat(result, notNullValue());
         assertThat(result.getId(), is(id));
         assertThat(result.getMessageId(), notNullValue());
+        assertThat(result.getSequenceNumber(), notNullValue());
         countDownLatch.countDown();
       });
+    });
+
+    final List<Message> messages = new LinkedList<>();
+
+    while (messages.size() < 1) {
+      messages.addAll(receiveMessage(fifoQueueUrl, 10, 5).messages());
+    }
+
+    assertThat(messages, hasSize(1));
+
+    messages.forEach(message -> {
+      assertThat(message.body(), containsString("fifo-single-"));
+      assertThat(message.attributes().get(MessageSystemAttributeName.MESSAGE_GROUP_ID), is(groupId));
+      assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
   }
 
   @Test
   void testSendFifoMessagesWithOrdering() {
-    countDownLeach(10, countDownLatch -> {
-      createTemplate(true, fifoTopicArn, 200L, 10, 5);
+    final int messageCount = 100;
+    final String groupId = UUID.randomUUID().toString();
 
-      final String groupId = UUID.randomUUID().toString();
-
+    countDownLatch(1, countDownLatch -> {
       final List<ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> futures = new ArrayList<>();
 
-      IntStream.range(0, 10).forEach(i -> {
-        futures.add(snsTemplate.send(RequestEntry.builder()
+      final AmazonSnsTemplate<Object> template = createTemplate(fifoTopicArn, true, 50L, 10, 1);
+
+      IntStream.range(0, messageCount).forEach(i -> {
+        futures.add(template.send(RequestEntry.builder()
           .withId(UUID.randomUUID().toString())
+          .withValue("ordered-" + i)
           .withGroupId(groupId)
-          .withValue(Collections.singletonMap("order", i))
           .build()));
       });
 
-      snsTemplate.await().thenRun(snsTemplate::shutdown).join();
+      template.await().thenRun(template::shutdown).join();
 
       futures.forEach(future -> future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -423,43 +614,72 @@ class AmazonSnsTemplateIT {
         countDownLatch.countDown();
       }));
     });
+
+    final List<Message> messages = new LinkedList<>();
+
+    while (messages.size() < messageCount) {
+      messages.addAll(receiveMessage(fifoQueueUrl, 10, 5).messages());
+    }
+
+    assertThat(messages, hasSize(messageCount));
+
+    messages.forEach(message -> {
+      assertThat(message.body(), containsString("ordered-"));
+      assertThat(message.attributes().get(MessageSystemAttributeName.MESSAGE_GROUP_ID), is(groupId));
+      assertThat(message.messageAttributes().keySet(), hasSize(0));
+    });
   }
 
   @Test
   void testSendFifoMessageWithDeduplication() {
-    countDownLeach(1, countDownLatch -> {
-      createTemplate(true, fifoTopicArn, 200L, 10, 5);
+    final String deduplicationId = UUID.randomUUID().toString();
+    final String groupId = UUID.randomUUID().toString();
+    final String messageBody = "dedup-test-" + UUID.randomUUID();
 
-      final String id = UUID.randomUUID().toString();
-      final String groupId = UUID.randomUUID().toString();
-      final String dedupId = UUID.randomUUID().toString();
+    countDownLatch(1, countDownLatch -> {
+      final List<ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> futures = new ArrayList<>();
 
-      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = snsTemplate.send(
-        RequestEntry.builder()
-          .withId(id)
-          .withGroupId(groupId)
-          .withDeduplicationId(dedupId)
-          .withValue(Collections.singletonMap("dedup", true))
-          .build());
+      final AmazonSnsTemplate<Object> template = createTemplate(fifoTopicArn, true, 100L, 10, 1);
 
-      snsTemplate.await().thenRun(snsTemplate::shutdown).join();
+      futures.add(template.send(RequestEntry.builder()
+        .withId(UUID.randomUUID().toString())
+        .withValue(messageBody)
+        .withGroupId(groupId)
+        .withDeduplicationId(deduplicationId)
+        .build()));
 
-      future.addCallback(result -> {
+      futures.add(template.send(RequestEntry.builder()
+        .withId(UUID.randomUUID().toString())
+        .withValue(messageBody + "-duplicate")
+        .withGroupId(groupId)
+        .withDeduplicationId(deduplicationId)
+        .build()));
+
+      template.await().thenRun(template::shutdown).join();
+
+      futures.forEach(future -> future.addCallback(result -> {
         assertThat(result, notNullValue());
-        assertThat(result.getId(), is(id));
+        assertThat(result.getId(), notNullValue());
         assertThat(result.getMessageId(), notNullValue());
         assertThat(result.getSequenceNumber(), notNullValue());
         countDownLatch.countDown();
-      });
+      }));
     });
-  }
 
-  private String repeat(final char ch, final int count) {
-    final StringBuilder sb = new StringBuilder(count);
-    for (int i = 0; i < count; i++) {
-      sb.append(ch);
+    final List<Message> messages = new LinkedList<>();
+
+    while (messages.size() < 1) {
+      messages.addAll(receiveMessage(fifoQueueUrl, 10, 5).messages());
     }
-    return sb.toString();
+
+    assertThat(messages, hasSize(1));
+
+    messages.forEach(message -> {
+      assertThat(message.body(), is(messageBody));
+      assertThat(message.attributes().get(MessageSystemAttributeName.MESSAGE_GROUP_ID), is(groupId));
+      assertThat(message.attributes().get(MessageSystemAttributeName.MESSAGE_DEDUPLICATION_ID), is(deduplicationId));
+      assertThat(message.messageAttributes().keySet(), hasSize(0));
+    });
   }
 
 }
