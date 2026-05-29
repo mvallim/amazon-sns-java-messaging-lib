@@ -28,13 +28,13 @@
 		<mockito.version>4.11.0</mockito.version>
 		<junit.jupiter.version>5.10.2</junit.jupiter.version>
 		<jackson-databind.version>2.16.1</jackson-databind.version>
-		<jmh.version>1.37</jmh.version>
 		<awaitility.version>4.2.2</awaitility.version>
 		<assertj-core.version>3.24.2</assertj-core.version>
-		<commons-lang3.version>3.17.0</commons-lang3.version>
+		<commons-lang3.version>3.20.0</commons-lang3.version>
 		<commons-collections4.version>4.5.0</commons-collections4.version>
 		<slf4j-api.version>2.0.6</slf4j-api.version>
 		<hamcrest.version>3.0</hamcrest.version>
+		<testcontainers.version>1.20.4</testcontainers.version>
 
 		<!-- Plugins -->
 		<maven-clean-plugin.version>3.2.0</maven-clean-plugin.version>
@@ -107,6 +107,13 @@
 				<groupId>com.github.mvallim</groupId>
 				<artifactId>amazon-sns-java-messaging-lib-v2</artifactId>
 				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.testcontainers</groupId>
+				<artifactId>testcontainers-bom</artifactId>
+				<version>${testcontainers.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -201,22 +208,27 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.openjdk.jmh</groupId>
-			<artifactId>jmh-core</artifactId>
-			<version>${jmh.version}</version>
+			<groupId>org.assertj</groupId>
+			<artifactId>assertj-core</artifactId>
+			<version>${assertj-core.version}</version>
 			<scope>test</scope>
 		</dependency>
 
 		<dependency>
-			<groupId>org.openjdk.jmh</groupId>
-			<artifactId>jmh-generator-annprocess</artifactId>
-			<version>${jmh.version}</version>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers</artifactId>
+			<scope>test</scope>
 		</dependency>
-
+		
 		<dependency>
-			<groupId>org.assertj</groupId>
-			<artifactId>assertj-core</artifactId>
-			<version>${assertj-core.version}</version>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>localstack</artifactId>
+			<scope>test</scope>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>junit-jupiter</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -340,6 +352,8 @@
 						<format>XML</format>
 					</formats>
 					<excludes>
+						<exclude>**/ExecutorsProvider.java</exclude>
+						<exclude>**/ThreadFactoryProvider.java</exclude>
 						<exclude>**/package-info.**</exclude>
 						<exclude>**/generated-sources/**</exclude>
 						<exclude>**/generated-test-sources/**</exclude>
@@ -453,6 +467,8 @@
 				<sonar.scm.exclusions.disabled>false</sonar.scm.exclusions.disabled>
 
 				<sonar.exclusions>
+					**/ExecutorsProvider.java,
+					**/ThreadFactoryProvider.java,
 					**/package-info.**,
 					**/generated-sources/**,
 					**/generated-test-sources/**,
@@ -460,6 +476,8 @@
 				</sonar.exclusions>
 
 				<sonar.coverage.exclusions>
+					**/ExecutorsProvider.java,
+					**/ThreadFactoryProvider.java,
 					**/package-info.**,
 					**/generated-sources/**,
 					**/generated-test-sources/**,

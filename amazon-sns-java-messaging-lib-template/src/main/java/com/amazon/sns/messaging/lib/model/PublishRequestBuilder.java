@@ -25,8 +25,9 @@ import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Builder utility for constructing SDK-specific publish batch requests from a topic ARN
- * and a list of entries. Uses a {@link BiFunction} supplier for SDK-agnostic construction.
+ * Builder utility for constructing SDK-specific publish batch requests from a
+ * topic ARN and a list of entries. Uses a {@link BiFunction} supplier for
+ * SDK-agnostic construction.
  */
 @Getter
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -37,7 +38,8 @@ public final class PublishRequestBuilder {
   }
 
   /**
-   * Builder for constructing a publish request of type {@code R} from entries of type {@code E}.
+   * Builder for constructing a publish request of type {@code R} from entries of
+   * type {@code E}.
    *
    * @param <R> the publish request type
    * @param <E> the entry type
@@ -51,23 +53,42 @@ public final class PublishRequestBuilder {
 
     private List<E> entries;
 
+    /**
+     * Sets the supplier function for creating the publish request.
+     *
+     * @param supplier the supplier bi-function (queueUrl, entries)
+     * @return this builder
+     */
     public Builder<R, E> supplier(final BiFunction<String, List<E>, R> supplier) {
       this.supplier = supplier;
       return this;
     }
 
+    /**
+     * Sets the queue ARN for the publish request.
+     *
+     * @param topicArn the SNS topic ARN
+     * @return this builder
+     */
     public Builder<R, E> topicArn(final String topicArn) {
       this.topicArn = topicArn;
       return this;
     }
 
+    /**
+     * Sets the entries for the publish request.
+     *
+     * @param entries the list of entries
+     * @return this builder
+     */
     public Builder<R, E> entries(final List<E> entries) {
       this.entries = entries;
       return this;
     }
 
     /**
-     * Builds the publish request by applying the supplier function.
+     * Builds the publish request by applying the supplier to the configured URL and
+     * entries.
      *
      * @return the constructed publish request
      */
