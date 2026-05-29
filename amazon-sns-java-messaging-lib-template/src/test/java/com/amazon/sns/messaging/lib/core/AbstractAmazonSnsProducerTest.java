@@ -68,11 +68,11 @@ class AbstractAmazonSnsProducerTest {
   @BeforeEach
   void setUp() {
     pendingRequests = new ConcurrentHashMap<>();
-    producer = new AbstractAmazonSnsProducer<String>(pendingRequests, topicRequests, executorService) { };
+    producer = new AbstractAmazonSnsProducer<>(pendingRequests, topicRequests, executorService) { };
   }
 
   @Test
-  void testSendReturnsNonNullFuture() throws Exception {
+  void testSendReturnsNonNullFuture() {
     final RequestEntry<String> entry = requestEntry();
 
     final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = producer.send(entry);
@@ -81,7 +81,7 @@ class AbstractAmazonSnsProducerTest {
   }
 
   @Test
-  void testSendReturnsFutureOfCorrectType() throws Exception {
+  void testSendReturnsFutureOfCorrectType() {
     final RequestEntry<String> entry = requestEntry();
 
     final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = producer.send(entry);
@@ -90,7 +90,7 @@ class AbstractAmazonSnsProducerTest {
   }
 
   @Test
-  void testSendRegistersPendingRequest() throws Exception {
+  void testSendRegistersPendingRequest() {
     final RequestEntry<String> entry = requestEntry();
 
     producer.send(entry);
@@ -99,7 +99,7 @@ class AbstractAmazonSnsProducerTest {
   }
 
   @Test
-  void testSendEnqueuesEntryInTopicRequests() throws Exception {
+  void testSendEnqueuesEntryInTopicRequests() throws InterruptedException {
     final RequestEntry<String> entry = requestEntry();
 
     producer.send(entry);
@@ -108,7 +108,7 @@ class AbstractAmazonSnsProducerTest {
   }
 
   @Test
-  void testSendStoredFutureMatchesReturnedFuture() throws Exception {
+  void testSendStoredFutureMatchesReturnedFuture() {
     final RequestEntry<String> entry = requestEntry();
 
     final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = producer.send(entry);
@@ -117,7 +117,7 @@ class AbstractAmazonSnsProducerTest {
   }
 
   @Test
-  void testSendMultipleEntriesRegistersAllPendingRequests() throws Exception {
+  void testSendMultipleEntriesRegistersAllPendingRequests() {
     final RequestEntry<String> entry1 = requestEntry();
     final RequestEntry<String> entry2 = requestEntry();
     final RequestEntry<String> entry3 = requestEntry();
@@ -133,7 +133,7 @@ class AbstractAmazonSnsProducerTest {
   }
 
   @Test
-  void testSendMultipleEntriesEnqueuesAllInTopicRequests() throws Exception {
+  void testSendMultipleEntriesEnqueuesAllInTopicRequests() throws InterruptedException {
     final RequestEntry<String> entry1 = requestEntry();
     final RequestEntry<String> entry2 = requestEntry();
 
@@ -145,7 +145,7 @@ class AbstractAmazonSnsProducerTest {
   }
 
   @Test
-  void testSendPropagatesInterruptedExceptionFromQueue() throws Exception {
+  void testSendPropagatesInterruptedExceptionFromQueue() throws InterruptedException {
     final RequestEntry<String> entry = requestEntry();
     doThrow(InterruptedException.class).when(topicRequests).put(any());
 
@@ -153,7 +153,7 @@ class AbstractAmazonSnsProducerTest {
   }
 
   @Test
-  void testShutdownInvokesExecutorServiceShutdown() throws Exception {
+  void testShutdownInvokesExecutorServiceShutdown() throws InterruptedException {
     when(executorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(true);
 
     producer.shutdown();
@@ -162,7 +162,7 @@ class AbstractAmazonSnsProducerTest {
   }
 
   @Test
-  void testShutdownAwaitsTerminationWith60Seconds() throws Exception {
+  void testShutdownAwaitsTerminationWith60Seconds() throws InterruptedException {
     when(executorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(true);
 
     producer.shutdown();
@@ -171,7 +171,7 @@ class AbstractAmazonSnsProducerTest {
   }
 
   @Test
-  void testShutdownDoesNotCallShutdownNowWhenTerminatesInTime() throws Exception {
+  void testShutdownDoesNotCallShutdownNowWhenTerminatesInTime() throws InterruptedException {
     when(executorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(true);
 
     producer.shutdown();
@@ -180,7 +180,7 @@ class AbstractAmazonSnsProducerTest {
   }
 
   @Test
-  void testShutdownCallsShutdownNowWhenTerminationTimeoutExpires() throws Exception {
+  void testShutdownCallsShutdownNowWhenTerminationTimeoutExpires() throws InterruptedException {
     when(executorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(false);
     doReturn(Collections.emptyList()).when(executorService).shutdownNow();
 
@@ -190,7 +190,7 @@ class AbstractAmazonSnsProducerTest {
   }
 
   @Test
-  void testShutdownForcesShutdownWhenPendingTasksRemain() throws Exception {
+  void testShutdownForcesShutdownWhenPendingTasksRemain() throws InterruptedException {
     final List<Runnable> pendingTasks = Arrays.asList(mock(Runnable.class), mock(Runnable.class));
     when(executorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(false);
     doReturn(pendingTasks).when(executorService).shutdownNow();
@@ -201,7 +201,7 @@ class AbstractAmazonSnsProducerTest {
   }
 
   @Test
-  void testShutdownCompletesGracefullyWhenNoTasksAreDropped() throws Exception {
+  void testShutdownCompletesGracefullyWhenNoTasksAreDropped() throws InterruptedException {
     when(executorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(false);
     doReturn(Collections.emptyList()).when(executorService).shutdownNow();
 

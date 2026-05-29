@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
 class AmazonSnsThreadPoolExecutorTest {
 
   @Test
-  void testSuccessCounters() throws Exception {
+  void testSuccessCounters() {
     final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10);
 
     assertThat(amazonSnsThreadPoolExecutor.getActiveTaskCount(), is(0));
@@ -40,7 +40,7 @@ class AmazonSnsThreadPoolExecutorTest {
   }
 
   @Test
-  void testSuccessSucceededTaskCount() throws Exception {
+  void testSuccessSucceededTaskCount() throws InterruptedException {
     final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10);
 
     assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
@@ -63,7 +63,7 @@ class AmazonSnsThreadPoolExecutorTest {
   }
 
   @Test
-  void testSuccessFailedTaskCount() throws Exception {
+  void testSuccessFailedTaskCount() throws InterruptedException {
     final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10);
 
     assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
@@ -84,7 +84,7 @@ class AmazonSnsThreadPoolExecutorTest {
   }
 
   @Test
-  void testSuccessActiveTaskCount() throws Exception {
+  void testSuccessActiveTaskCount() throws InterruptedException {
     final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10);
 
     assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
@@ -109,7 +109,7 @@ class AmazonSnsThreadPoolExecutorTest {
   }
 
   @Test
-  void testSuccessBlockingSubmissionPolicy() throws Exception {
+  void testSuccessBlockingSubmissionPolicy() {
     final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(1);
 
     amazonSnsThreadPoolExecutor.execute(() -> {
