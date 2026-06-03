@@ -116,19 +116,26 @@ final class RequestEntryInternalFactory {
   @Builder(setterPrefix = "with")
   static class RequestEntryInternal {
 
+    /** The creation timestamp in nanoseconds. */
     private final long createTime;
 
+    /** The unique identifier of the request. */
     private final String id;
 
+    /** The serialized payload as a byte buffer. */
     @Getter(value = AccessLevel.PRIVATE)
     private final ByteBuffer value;
 
+    /** Optional message attributes / headers. */
     private final Map<String, Object> messageHeaders;
 
+    /** Optional subject line for the message. */
     private final String subject;
 
+    /** The message group ID for FIFO topics. */
     private final String groupId;
 
+    /** The message deduplication ID for FIFO topics. */
     private final String deduplicationId;
 
     /**

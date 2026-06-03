@@ -1,10 +1,7 @@
 package com.amazon.sns.messaging.lib.metrics;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -12,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 
@@ -25,34 +22,49 @@ import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
  */
 public class BlockingQueueMetricsDecorator<E> implements BlockingQueue<E> {
 
+  /** Base tag prefix for blocking queue metrics. */
   private static final String TAG_QUEUE = "blocking.queue";
 
+  /** Metric name for total put operations. */
   private static final String METRIC_PUTS_TOTAL = TAG_QUEUE.concat(".puts.total");
 
+  /** Metric name for failed put operations. */
   private static final String METRIC_PUTS_FAILED = TAG_QUEUE.concat(".puts.failed");
 
+  /** Metric name for put operation latency. */
   private static final String METRIC_PUT_DURATION = TAG_QUEUE.concat(".put.duration");
 
+  /** Metric name for total take operations. */
   private static final String METRIC_TAKES_TOTAL = TAG_QUEUE.concat(".takes.total");
 
+  /** Metric name for failed take operations. */
   private static final String METRIC_TAKES_FAILED = TAG_QUEUE.concat(".takes.failed");
 
+  /** Metric name for take operation latency. */
   private static final String METRIC_TAKE_DURATION = TAG_QUEUE.concat(".take.duration");
 
+  /** Metric name for queue size gauge. */
   private static final String METRIC_SIZE = TAG_QUEUE.concat(".size");
 
+  /** The decorated blocking queue. */
   private final BlockingQueue<E> delegate;
 
+  /** Counter for successful put operations. */
   private final Counter putsTotal;
 
+  /** Counter for put operations that threw an exception. */
   private final Counter putsFailed;
 
+  /** Timer for put operation latency. */
   private final Timer putDuration;
 
+  /** Counter for successful take operations. */
   private final Counter takesTotal;
 
+  /** Counter for take operations that threw an exception. */
   private final Counter takesFailed;
 
+  /** Timer for take operation latency. */
   private final Timer takeDuration;
 
   /**
@@ -73,7 +85,7 @@ public class BlockingQueueMetricsDecorator<E> implements BlockingQueue<E> {
 
     Optional.ofNullable(registry).ifPresent(compositeMeterRegistry::add);
 
-    final List<Tag> tags = new LinkedList<>(Collections.singleton(Tag.of("name", queueName)));
+    final Tags tags = Tags.of("name", queueName);
 
     putsTotal = Counter.builder(METRIC_PUTS_TOTAL)
       .description("Total number of successful put operations")

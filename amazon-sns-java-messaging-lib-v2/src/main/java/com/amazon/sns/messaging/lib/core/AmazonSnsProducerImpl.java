@@ -30,7 +30,7 @@ import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
  *
  * @param <E> the request entry payload type
  */
-class AmazonSnsProducer<E> extends AbstractAmazonSnsProducer<E> {
+class AmazonSnsProducerImpl<E> extends AbstractAmazonSnsProducer<E> {
 
   /**
    * Creates a new v2 producer.
@@ -38,7 +38,7 @@ class AmazonSnsProducer<E> extends AbstractAmazonSnsProducer<E> {
    * @param pendingRequests the shared map of pending requests keyed by request ID
    * @param topicRequests   the shared blocking queue for topic requests
    */
-  public AmazonSnsProducer(
+  public AmazonSnsProducerImpl(
       final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
       final BlockingQueue<RequestEntry<E>> topicRequests) {
     super(pendingRequests, topicRequests);

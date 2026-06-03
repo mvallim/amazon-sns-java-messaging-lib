@@ -557,7 +557,7 @@ class AbstractAmazonSnsConsumerTest {
     }
 
     @Override
-    protected Object publish(final Object publishBatchRequest) {
+    public Object publish(final Object publishBatchRequest) {
       publishCallCount.incrementAndGet();
       if (throwOnPublish) {
         throw publishException;
@@ -566,13 +566,13 @@ class AbstractAmazonSnsConsumerTest {
     }
 
     @Override
-    protected void handleError(final Object publishBatchRequest, final Throwable throwable) {
+    public void handleError(final Object publishBatchRequest, final Throwable throwable) {
       handleErrorCallCount.incrementAndGet();
       lastError = throwable;
     }
 
     @Override
-    protected void handleResponse(final Object publishBatchResult) {
+    public void handleResponse(final Object publishBatchResult) {
       handleResponseCallCount.incrementAndGet();
     }
 
