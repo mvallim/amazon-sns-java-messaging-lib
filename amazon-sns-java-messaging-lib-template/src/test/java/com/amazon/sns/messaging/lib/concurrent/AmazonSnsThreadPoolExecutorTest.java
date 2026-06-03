@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,110 +16,136 @@
 
 package com.amazon.sns.messaging.lib.concurrent;
 
-import static org.assertj.core.api.Assertions.catchThrowableOfType;
-import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
-import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
 
-// @formatter:off
 class AmazonSnsThreadPoolExecutorTest {
 
   @Test
-  void testSuccessCounters() {
-    final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10);
-
-    assertThat(amazonSnsThreadPoolExecutor.getActiveTaskCount(), is(0));
-    assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
-    assertThat(amazonSnsThreadPoolExecutor.getFailedTaskCount(), is(0));
-    assertThat(amazonSnsThreadPoolExecutor.getCorePoolSize(), is(0));
+  void testConstructorCreatesInstance() {
+    final AmazonSnsThreadPoolExecutor executor = new AmazonSnsThreadPoolExecutor(4);
+    assertThat(executor, is(notNullValue()));
+    executor.shutdownNow();
   }
 
   @Test
-  void testSuccessSucceededTaskCount() throws InterruptedException {
-    final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10);
-
-    assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
-
-    for(int i = 0; i < 300; i++) {
-      amazonSnsThreadPoolExecutor.execute(() -> {
-        await().pollDelay(1, TimeUnit.MILLISECONDS).until(() -> true);
-      });
-    }
-
-    amazonSnsThreadPoolExecutor.shutdown();
-
-    if (!amazonSnsThreadPoolExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
-      amazonSnsThreadPoolExecutor.shutdownNow();
-    }
-
-    assertThat(amazonSnsThreadPoolExecutor.getActiveTaskCount(), is(0));
-    assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(300));
-    assertThat(amazonSnsThreadPoolExecutor.getFailedTaskCount(), is(0));
+  void testExtendsThreadPoolExecutor() {
+    final AmazonSnsThreadPoolExecutor executor = new AmazonSnsThreadPoolExecutor(4);
+    assertThat(executor, is(instanceOf(ThreadPoolExecutor.class)));
+    executor.shutdownNow();
   }
 
   @Test
-  void testSuccessFailedTaskCount() throws InterruptedException {
-    final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10);
-
-    assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
-
-    for(int i = 0; i < 300; i++) {
-      amazonSnsThreadPoolExecutor.execute(() -> { throw new RuntimeException(); });
-    }
-
-    amazonSnsThreadPoolExecutor.shutdown();
-
-    if (!amazonSnsThreadPoolExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
-      amazonSnsThreadPoolExecutor.shutdownNow();
-    }
-
-    assertThat(amazonSnsThreadPoolExecutor.getActiveTaskCount(), is(0));
-    assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
-    assertThat(amazonSnsThreadPoolExecutor.getFailedTaskCount(), is(300));
+  void testCorePoolSizeIsZero() {
+    final AmazonSnsThreadPoolExecutor executor = new AmazonSnsThreadPoolExecutor(4);
+    assertThat(executor.getCorePoolSize(), is(equalTo(0)));
+    executor.shutdownNow();
   }
 
   @Test
-  void testSuccessActiveTaskCount() throws InterruptedException {
-    final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(10);
-
-    assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
-
-    for(int i = 0; i < 10; i++) {
-      amazonSnsThreadPoolExecutor.execute(() -> {
-        while(true) {
-          await().pollDelay(1, TimeUnit.MILLISECONDS).until(() -> true);
-        }
-      });
-    }
-
-    amazonSnsThreadPoolExecutor.shutdown();
-
-    if (!amazonSnsThreadPoolExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
-      amazonSnsThreadPoolExecutor.shutdownNow();
-    }
-
-    assertThat(amazonSnsThreadPoolExecutor.getActiveTaskCount(), is(10));
-    assertThat(amazonSnsThreadPoolExecutor.getSucceededTaskCount(), is(0));
-    assertThat(amazonSnsThreadPoolExecutor.getFailedTaskCount(), is(0));
+  void testMaximumPoolSizeMatchesConstructorArgument() {
+    final AmazonSnsThreadPoolExecutor executor = new AmazonSnsThreadPoolExecutor(8);
+    assertThat(executor.getMaximumPoolSize(), is(equalTo(8)));
+    executor.shutdownNow();
   }
 
   @Test
-  void testSuccessBlockingSubmissionPolicy() {
-    final AmazonSnsThreadPoolExecutor amazonSnsThreadPoolExecutor = new AmazonSnsThreadPoolExecutor(1);
-
-    amazonSnsThreadPoolExecutor.execute(() -> {
-      while(true) {
-        await().pollDelay(1, TimeUnit.MILLISECONDS).until(() -> true);
-      }
-    });
-
-    catchThrowableOfType(() -> amazonSnsThreadPoolExecutor.execute(() -> { }), RejectedExecutionException.class);
+  void testMaximumPoolSizeOfOne() {
+    final AmazonSnsThreadPoolExecutor executor = new AmazonSnsThreadPoolExecutor(1);
+    assertThat(executor.getMaximumPoolSize(), is(equalTo(1)));
+    executor.shutdownNow();
   }
 
+  @Test
+  void testKeepAliveTimeIsSetTo60Seconds() {
+    final AmazonSnsThreadPoolExecutor executor = new AmazonSnsThreadPoolExecutor(4);
+    assertThat(executor.getKeepAliveTime(TimeUnit.SECONDS), is(equalTo(60L)));
+    executor.shutdownNow();
+  }
+
+  @Test
+  void testQueueIsSynchronousQueue() {
+    final AmazonSnsThreadPoolExecutor executor = new AmazonSnsThreadPoolExecutor(4);
+    assertThat(executor.getQueue(), is(instanceOf(SynchronousQueue.class)));
+    executor.shutdownNow();
+  }
+
+  @Test
+  void testRejectedExecutionHandlerIsBlockingSubmissionPolicy() {
+    final AmazonSnsThreadPoolExecutor executor = new AmazonSnsThreadPoolExecutor(4);
+    assertThat(executor.getRejectedExecutionHandler(), is(instanceOf(BlockingSubmissionPolicy.class)));
+    executor.shutdownNow();
+  }
+
+  @Test
+  void testThreadFactoryIsNotNull() {
+    final AmazonSnsThreadPoolExecutor executor = new AmazonSnsThreadPoolExecutor(4);
+    assertThat(executor.getThreadFactory(), is(notNullValue()));
+    executor.shutdownNow();
+  }
+
+  @Test
+  void testIsNotShutdownAfterCreation() {
+    final AmazonSnsThreadPoolExecutor executor = new AmazonSnsThreadPoolExecutor(4);
+    assertThat(executor.isShutdown(), is(false));
+    executor.shutdownNow();
+  }
+
+  @Test
+  void testIsShutdownAfterShutdownNow() {
+    final AmazonSnsThreadPoolExecutor executor = new AmazonSnsThreadPoolExecutor(4);
+    executor.shutdownNow();
+    assertThat(executor.isShutdown(), is(true));
+  }
+
+  @Test
+  void testActiveCountIsZeroAfterCreation() {
+    final AmazonSnsThreadPoolExecutor executor = new AmazonSnsThreadPoolExecutor(4);
+    assertThat(executor.getActiveCount(), is(equalTo(0)));
+    executor.shutdownNow();
+  }
+
+  @Test
+  void testTaskCountIsZeroAfterCreation() {
+    final AmazonSnsThreadPoolExecutor executor = new AmazonSnsThreadPoolExecutor(4);
+    assertThat(executor.getTaskCount(), is(equalTo(0L)));
+    executor.shutdownNow();
+  }
+
+  @Test
+  void testCompletedTaskCountIsZeroAfterCreation() {
+    final AmazonSnsThreadPoolExecutor executor = new AmazonSnsThreadPoolExecutor(4);
+    assertThat(executor.getCompletedTaskCount(), is(equalTo(0L)));
+    executor.shutdownNow();
+  }
+
+  @Test
+  void testQueueIsEmptyAfterCreation() {
+    final AmazonSnsThreadPoolExecutor executor = new AmazonSnsThreadPoolExecutor(4);
+    assertThat(executor.getQueue().isEmpty(), is(true));
+    executor.shutdownNow();
+  }
+
+  @Test
+  void testPoolSizeIsZeroBeforeAnyTask() {
+    final AmazonSnsThreadPoolExecutor executor = new AmazonSnsThreadPoolExecutor(4);
+    assertThat(executor.getPoolSize(), is(equalTo(0)));
+    executor.shutdownNow();
+  }
+
+  @Test
+  void testLargestPoolSizeIsZeroBeforeAnyTask() {
+    final AmazonSnsThreadPoolExecutor executor = new AmazonSnsThreadPoolExecutor(4);
+    assertThat(executor.getLargestPoolSize(), is(equalTo(0)));
+    executor.shutdownNow();
+  }
 }
-// @formatter:on

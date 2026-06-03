@@ -16,96 +16,26 @@
 
 package com.amazon.sns.messaging.lib.concurrent;
 
-import java.util.Objects;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
+// @formatter:off
 /**
- * A custom {@link ThreadPoolExecutor} that tracks active, failed, and succeeded task counts.
- * Uses a blocking submission policy to handle rejection and a synchronous queue for task handoff.
+ * A {@link ThreadPoolExecutor} configured for Amazon SNS publishing. Uses a
+ * {@link SynchronousQueue} with zero core threads, allowing threads to be created
+ * on demand up to the specified maximum pool size. Tasks that cannot be accepted
+ * immediately by the queue will block up to 30 seconds via {@link BlockingSubmissionPolicy}.
  */
 public class AmazonSnsThreadPoolExecutor extends ThreadPoolExecutor {
 
-  private final AtomicInteger activeTaskCount = new AtomicInteger();
-
-  private final AtomicInteger failedTaskCount = new AtomicInteger();
-
-  private final AtomicInteger succeededTaskCount = new AtomicInteger();
-
   /**
-   * Creates a new executor with the specified maximum pool size.
+   * Creates a new thread pool executor with the given maximum pool size.
    *
-   * @param maximumPoolSize the maximum number of threads to allow in the pool
+   * @param maximumPoolSize the maximum number of threads allowed in the pool
    */
   public AmazonSnsThreadPoolExecutor(final int maximumPoolSize) {
     super(0, maximumPoolSize, 60, TimeUnit.SECONDS, new SynchronousQueue<>(), ThreadFactoryProvider.getThreadFactory(), new BlockingSubmissionPolicy(30000));
-  }
-
-  /**
-   * Returns the number of currently active tasks.
-   *
-   * @return the active task count
-   */
-  public int getActiveTaskCount() {
-    return activeTaskCount.get();
-  }
-
-  /**
-   * Returns the number of tasks that have failed.
-   *
-   * @return the failed task count
-   */
-  public int getFailedTaskCount() {
-    return failedTaskCount.get();
-  }
-
-  /**
-   * Returns the number of tasks that have completed successfully.
-   *
-   * @return the succeeded task count
-   */
-  public int getSucceededTaskCount() {
-    return succeededTaskCount.get();
-  }
-
-  /**
-   * Returns the current size of the task queue.
-   *
-   * @return the queue size
-   */
-  public int getQueueSize() {
-    return getQueue().size();
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  protected void beforeExecute(final Thread thread, final Runnable runnable) {
-    try {
-      super.beforeExecute(thread, runnable);
-    } finally {
-      activeTaskCount.incrementAndGet();
-    }
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  protected void afterExecute(final Runnable runnable, final Throwable throwable) {
-    try {
-      super.afterExecute(runnable, throwable);
-    } finally {
-      if (Objects.nonNull(throwable)) {
-        failedTaskCount.incrementAndGet();
-      } else {
-        succeededTaskCount.incrementAndGet();
-      }
-      activeTaskCount.decrementAndGet();
-    }
   }
 
 }
