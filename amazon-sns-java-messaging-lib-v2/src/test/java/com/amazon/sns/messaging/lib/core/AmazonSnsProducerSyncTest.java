@@ -71,7 +71,7 @@ class AmazonSnsProducerSyncTest {
       .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
       .build();
 
-    snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty);
+    snsTemplate = AmazonSnsTemplate.builder(amazonSNS, topicProperty).build();
   }
 
   @Test

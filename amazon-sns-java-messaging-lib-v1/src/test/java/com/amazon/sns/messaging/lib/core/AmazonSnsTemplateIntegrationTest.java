@@ -69,6 +69,7 @@ import com.amazonaws.services.sqs.model.QueueAttributeName;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.SneakyThrows;
 
 // @formatter:off
@@ -178,7 +179,10 @@ class AmazonSnsTemplateIntegrationTest {
       .topicArn(topicArn)
       .build();
 
-    return new AmazonSnsTemplate<>(snsClient, topicProperty, new RingBufferBlockingQueue<>(1024));
+    return AmazonSnsTemplate.builder(snsClient, topicProperty)
+      .meterRegistry(new SimpleMeterRegistry())
+      .topicRequests(new RingBufferBlockingQueue<>(1024))
+      .build();
   }
 
   private void purgeQueue(final String queueUrl) {
@@ -187,11 +191,11 @@ class AmazonSnsTemplateIntegrationTest {
 
   private ReceiveMessageResult receiveMessage(final String queueUrl, final Integer maxNumberOfMessages, final Integer waitTimeSeconds) {
     final ReceiveMessageResult result = sqsClient.receiveMessage(
-        new ReceiveMessageRequest(queueUrl)
-          .withMaxNumberOfMessages(maxNumberOfMessages)
-          .withWaitTimeSeconds(waitTimeSeconds)
-          .withAttributeNames(QueueAttributeName.All)
-          .withMessageAttributeNames("All"));
+      new ReceiveMessageRequest(queueUrl)
+        .withMaxNumberOfMessages(maxNumberOfMessages)
+        .withWaitTimeSeconds(waitTimeSeconds)
+        .withAttributeNames(QueueAttributeName.All)
+        .withMessageAttributeNames("All"));
 
     result.getMessages().forEach(message -> sqsClient.deleteMessage(new DeleteMessageRequest(queueUrl, message.getReceiptHandle())));
 

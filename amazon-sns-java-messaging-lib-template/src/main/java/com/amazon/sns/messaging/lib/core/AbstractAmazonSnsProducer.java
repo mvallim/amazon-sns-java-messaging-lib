@@ -16,14 +16,9 @@
 
 package com.amazon.sns.messaging.lib.core;
 
-import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
@@ -44,13 +39,11 @@ import lombok.SneakyThrows;
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 abstract class AbstractAmazonSnsProducer<E> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAmazonSnsProducer.class);
+  private final AtomicReference<State> state = new AtomicReference<>(State.RUNNIG);
 
   private final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests;
 
   private final BlockingQueue<RequestEntry<E>> topicRequests;
-
-  private final ExecutorService executorService;
 
   /**
    * Sends a request entry by enqueuing it for batch processing.
@@ -60,23 +53,25 @@ abstract class AbstractAmazonSnsProducer<E> {
    */
   @SneakyThrows
   public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry) {
-    return enqueueRequest(requestEntry);
+    if (State.RUNNIG.equals(state.get())) {
+      return enqueueRequest(requestEntry);
+    } else {
+      final ListenableFutureImpl listenableFutureImpl = new ListenableFutureImpl();
+
+      listenableFutureImpl.fail(ResponseFailEntry.builder()
+        .withCode("000")
+        .withId(requestEntry.getId())
+        .withMessage(String.format("Producer is currently in %s mode; no further messages will be accepted.", state.get().name()))
+        .withSenderFault(true)
+        .build()
+      );
+
+      return listenableFutureImpl;
+    }
   }
 
-  /**
-   * Shuts down the producer's executor service gracefully, waiting up to 60 seconds
-   * for termination.
-   */
-  @SneakyThrows
   public void shutdown() {
-    LOGGER.warn("Shutdown producer {}", getClass().getSimpleName());
-
-    executorService.shutdown();
-    if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
-      LOGGER.warn("Executor service did not terminate in the specified time.");
-      final List<Runnable> droppedTasks = executorService.shutdownNow();
-      LOGGER.warn("Executor service was abruptly shut down. {} tasks will not be executed.", droppedTasks.size());
-    }
+    state.compareAndSet(State.RUNNIG, State.SHUTDOWN);
   }
 
   /**
@@ -92,6 +87,10 @@ abstract class AbstractAmazonSnsProducer<E> {
     pendingRequests.put(requestEntry.getId(), trackPendingRequest);
     topicRequests.put(requestEntry);
     return trackPendingRequest;
+  }
+
+  enum State {
+    RUNNIG, SHUTDOWN
   }
 
 }

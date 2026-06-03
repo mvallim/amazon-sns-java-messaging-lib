@@ -54,6 +54,7 @@ import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
 import com.amazon.sns.messaging.lib.model.TopicProperty;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.SneakyThrows;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -178,7 +179,10 @@ class AmazonSnsTemplateIntegrationTest {
       .topicArn(topicArn)
       .build();
 
-    return new AmazonSnsTemplate<>(snsClient, topicProperty, new RingBufferBlockingQueue<>(1024));
+    return AmazonSnsTemplate.builder(snsClient, topicProperty)
+      .meterRegistry(new SimpleMeterRegistry())
+      .topicRequests(new RingBufferBlockingQueue<>(1024))
+      .build();
   }
 
   private void purgeQueue(final String queueUrl) {
