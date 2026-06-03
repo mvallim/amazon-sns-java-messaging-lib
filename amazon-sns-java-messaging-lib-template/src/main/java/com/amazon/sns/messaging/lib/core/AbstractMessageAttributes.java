@@ -33,12 +33,24 @@ import java.util.stream.Collectors;
 @SuppressWarnings("java:S6204")
 abstract class AbstractMessageAttributes<V> {
 
+  /**
+   * Data type constant for binary message attributes.
+   */
   protected static final String BINARY = "Binary";
 
+  /**
+   * Data type constant for string message attributes.
+   */
   protected static final String STRING = "String";
 
+  /**
+   * Data type constant for number message attributes.
+   */
   protected static final String NUMBER = "Number";
 
+  /**
+   * Data type constant for string array message attributes.
+   */
   protected static final String STRING_ARRAY = "String.Array";
 
   /**
