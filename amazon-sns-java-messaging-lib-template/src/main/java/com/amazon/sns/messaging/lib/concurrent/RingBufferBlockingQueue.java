@@ -283,6 +283,11 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * Internal entry wrapper that holds a value within the ring buffer.
+   *
+   * @param <E> the type of the value
+   */
   @Getter
   @Setter
   static class Entry<E> {

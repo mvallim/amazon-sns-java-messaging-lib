@@ -20,27 +20,20 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -58,9 +51,6 @@ class AbstractAmazonSnsProducerTest {
   @Mock
   private BlockingQueue<RequestEntry<String>> topicRequests;
 
-  @Mock
-  private ExecutorService executorService;
-
   private ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests;
 
   private AbstractAmazonSnsProducer<String> producer;
@@ -68,7 +58,37 @@ class AbstractAmazonSnsProducerTest {
   @BeforeEach
   void setUp() {
     pendingRequests = new ConcurrentHashMap<>();
-    producer = new AbstractAmazonSnsProducer<String>(pendingRequests, topicRequests, executorService) { };
+    producer = new AbstractAmazonSnsProducer<String>(pendingRequests, topicRequests) { };
+  }
+
+  @AfterEach
+  void tearDown() {
+    if (Objects.nonNull(producer)) {
+      producer.shutdown();
+    }
+  }
+
+  @Test
+  void testSendReturnsShutdownState() throws InterruptedException {
+    final CountDownLatch countDownLatch = new CountDownLatch(1);
+
+    final RequestEntry<String> entry = requestEntry();
+
+    producer.shutdown();
+
+    final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = producer.send(entry);
+
+    assertThat(future, is(notNullValue()));
+
+    future.addCallback(null, fail -> {
+      assertThat(fail.getId(), is(entry.getId()));
+      assertThat(fail.getCode(), is("000"));
+      assertThat(fail.getMessage(), is("Producer is currently in SHUTDOWN mode; no further messages will be accepted."));
+      assertThat(fail.getSenderFault(), is(true));
+      countDownLatch.countDown();
+    });
+
+    countDownLatch.await(1, TimeUnit.MINUTES);
   }
 
   @Test
@@ -150,62 +170,6 @@ class AbstractAmazonSnsProducerTest {
     doThrow(InterruptedException.class).when(topicRequests).put(any());
 
     assertThrows(InterruptedException.class, () -> producer.send(entry));
-  }
-
-  @Test
-  void testShutdownInvokesExecutorServiceShutdown() throws InterruptedException {
-    when(executorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(true);
-
-    producer.shutdown();
-
-    verify(executorService).shutdown();
-  }
-
-  @Test
-  void testShutdownAwaitsTerminationWith60Seconds() throws InterruptedException {
-    when(executorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(true);
-
-    producer.shutdown();
-
-    verify(executorService).awaitTermination(60L, TimeUnit.SECONDS);
-  }
-
-  @Test
-  void testShutdownDoesNotCallShutdownNowWhenTerminatesInTime() throws InterruptedException {
-    when(executorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(true);
-
-    producer.shutdown();
-
-    verify(executorService, never()).shutdownNow();
-  }
-
-  @Test
-  void testShutdownCallsShutdownNowWhenTerminationTimeoutExpires() throws InterruptedException {
-    when(executorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(false);
-    doReturn(Collections.emptyList()).when(executorService).shutdownNow();
-
-    producer.shutdown();
-
-    verify(executorService).shutdownNow();
-  }
-
-  @Test
-  void testShutdownForcesShutdownWhenPendingTasksRemain() throws InterruptedException {
-    final List<Runnable> pendingTasks = Arrays.asList(mock(Runnable.class), mock(Runnable.class));
-    when(executorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(false);
-    doReturn(pendingTasks).when(executorService).shutdownNow();
-
-    producer.shutdown();
-
-    verify(executorService).shutdownNow();
-  }
-
-  @Test
-  void testShutdownCompletesGracefullyWhenNoTasksAreDropped() throws InterruptedException {
-    when(executorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(false);
-    doReturn(Collections.emptyList()).when(executorService).shutdownNow();
-
-    assertDoesNotThrow(() -> producer.shutdown());
   }
 
   private RequestEntry<String> requestEntry() {

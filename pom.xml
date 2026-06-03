@@ -23,7 +23,7 @@
 		<maven.compiler.optimize>true</maven.compiler.optimize>
 
 		<!-- Dependencies -->
-		<lombok.version>1.18.38</lombok.version>
+		<lombok.version>1.18.42</lombok.version>
 		<logback.version>1.3.14</logback.version>
 		<mockito.version>4.11.0</mockito.version>
 		<junit.jupiter.version>5.10.2</junit.jupiter.version>
@@ -34,6 +34,7 @@
 		<commons-collections4.version>4.5.0</commons-collections4.version>
 		<slf4j-api.version>2.0.6</slf4j-api.version>
 		<hamcrest.version>3.0</hamcrest.version>
+		<micrometer.version>1.16.3</micrometer.version>
 		<testcontainers.version>1.20.4</testcontainers.version>
 
 		<!-- Plugins -->
@@ -47,7 +48,7 @@
 		<maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
 		<maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
 		<maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
-		<jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
+		<jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
 		<sonar-maven-plugin.version>4.0.1.6619</sonar-maven-plugin.version>
 		<central-publishing-maven-plugin.version>0.8.0</central-publishing-maven-plugin.version>
 	</properties>
@@ -109,6 +110,13 @@
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
+				<groupId>io.micrometer</groupId>
+				<artifactId>micrometer-bom</artifactId>
+				<version>${micrometer.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<dependency>
 				<groupId>org.testcontainers</groupId>
 				<artifactId>testcontainers-bom</artifactId>
 				<version>${testcontainers.version}</version>
@@ -141,6 +149,11 @@
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
 			<version>${jackson-databind.version}</version>
+		</dependency>
+		
+		<dependency>
+		    <groupId>io.micrometer</groupId>
+		    <artifactId>micrometer-core</artifactId>
 		</dependency>
 
 		<dependency>
@@ -447,7 +460,17 @@
 				<java.version>21</java.version>
 			</properties>
 		</profile>
-			
+
+		<profile>
+			<id>25</id>
+			<activation>
+				<jdk>25</jdk>
+			</activation>
+			<properties>
+				<java.version>25</java.version>
+			</properties>
+		</profile>
+					
 		<profile>
 			<id>sonar</id>
 			<properties>
