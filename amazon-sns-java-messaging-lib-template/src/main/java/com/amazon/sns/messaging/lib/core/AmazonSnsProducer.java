@@ -16,33 +16,30 @@
 
 package com.amazon.sns.messaging.lib.core;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentMap;
-
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
 
-// @formatter:off
 /**
- * AWS SDK v1 implementation of {@link AbstractAmazonSnsProducer}. Delegates directly to the
- * abstract producer for request enqueuing and pending-request tracking.
+ * Producer interface for Amazon SNS messaging. Implementations enqueue request entries
+ * for batch publishing and track pending requests for asynchronous completion.
  *
  * @param <E> the request entry payload type
  */
-class AmazonSnsProducer<E> extends AbstractAmazonSnsProducer<E> {
+public interface AmazonSnsProducer<E> {
 
   /**
-   * Creates a new v1 producer.
+   * Sends a request entry for asynchronous publishing to an SNS topic.
    *
-   * @param pendingRequests the shared map of pending requests keyed by request ID
-   * @param topicRequests   the shared blocking queue for topic requests
+   * @param requestEntry the request entry containing the message payload and metadata
+   * @return a {@link ListenableFuture} that completes when the request is processed
    */
-  public AmazonSnsProducer(
-      final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
-      final BlockingQueue<RequestEntry<E>> topicRequests) {
-    super(pendingRequests, topicRequests);
-  }
+  public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry);
+
+  /**
+   * Shuts down the producer, preventing any further messages from being accepted.
+   */
+  public void shutdown();
 
 }
 // @formatter:on

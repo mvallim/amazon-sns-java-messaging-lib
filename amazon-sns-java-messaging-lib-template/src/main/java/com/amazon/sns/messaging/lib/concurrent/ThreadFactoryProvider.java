@@ -35,8 +35,10 @@ import lombok.SneakyThrows;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ThreadFactoryProvider {
   
+  /** Class logger. */
   private static final Logger LOGGER = LoggerFactory.getLogger(ThreadFactoryProvider.class);
-  
+
+  /** Cached supplier of the appropriate thread factory for the runtime Java version. */
   private static Supplier<ThreadFactory> supplierThreadFactory;
   
   static {

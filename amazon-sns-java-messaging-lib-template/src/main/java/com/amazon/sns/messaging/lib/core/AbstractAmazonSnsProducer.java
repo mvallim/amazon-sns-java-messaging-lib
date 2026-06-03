@@ -37,12 +37,15 @@ import lombok.SneakyThrows;
  * @param <E> the request entry payload type
  */
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
-abstract class AbstractAmazonSnsProducer<E> {
+abstract class AbstractAmazonSnsProducer<E> implements AmazonSnsProducer<E> {
 
+  /** The producer lifecycle state, initially {@link State#RUNNIG}. */
   private final AtomicReference<State> state = new AtomicReference<>(State.RUNNIG);
 
+  /** Map of pending requests keyed by request ID for asynchronous completion. */
   private final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests;
 
+  /** The blocking queue for buffering requests before batch processing. */
   private final BlockingQueue<RequestEntry<E>> topicRequests;
 
   /**
@@ -51,6 +54,7 @@ abstract class AbstractAmazonSnsProducer<E> {
    * @param requestEntry the request to enqueue
    * @return a {@link ListenableFuture} that tracks the completion of this request
    */
+  @Override
   @SneakyThrows
   public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry) {
     if (State.RUNNIG.equals(state.get())) {
@@ -74,6 +78,7 @@ abstract class AbstractAmazonSnsProducer<E> {
    * Transitions the producer to the shutdown state. No further messages will be
    * accepted once shutdown.
    */
+  @Override
   public void shutdown() {
     state.compareAndSet(State.RUNNIG, State.SHUTDOWN);
   }

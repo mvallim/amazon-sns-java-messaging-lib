@@ -42,22 +42,31 @@ import lombok.SneakyThrows;
  */
 public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements BlockingQueue<E> {
 
+  /** Default capacity when no explicit capacity is provided. */
   private static final int DEFAULT_CAPACITY = 2048;
 
+  /** The ring buffer array holding queue entries. */
   private final AtomicReferenceArray<Entry<E>> buffer;
 
+  /** The fixed maximum number of elements the queue can hold. */
   private final int capacity;
 
+  /** Sequence number tracking the next write position (starts at -1 indicating no writes). */
   private final AtomicLong writeSequence = new AtomicLong(-1);
 
+  /** Sequence number tracking the next read position. */
   private final AtomicLong readSequence = new AtomicLong(0);
 
+  /** Current number of elements in the queue. */
   private final AtomicInteger size = new AtomicInteger(0);
 
+  /** Fair reentrant lock for coordinating producer/consumer access. */
   private final ReentrantLock reentrantLock;
 
+  /** Condition for consumers waiting when the queue is empty. */
   private final Condition waitingConsumer;
 
+  /** Condition for producers waiting when the queue is full. */
   private final Condition waitingProducer;
 
   /**

@@ -62,11 +62,11 @@ class AbstractAmazonSnsTemplateTest {
   @Mock
   private AbstractAmazonSnsConsumer<Object, Object, Object, String> consumerMock;
 
-  private AbstractAmazonSnsTemplate<Object, Object, Object, String> template;
+  private AbstractAmazonSnsTemplate<Object, Object, String> template;
 
   @BeforeEach
   void setUp() {
-    template = new AbstractAmazonSnsTemplate<Object, Object, Object, String>(producerMock, consumerMock) { };
+    template = new AbstractAmazonSnsTemplate<Object, Object, String>(producerMock, consumerMock) { };
   }
 
   @Test

@@ -1,8 +1,6 @@
 package com.amazon.sns.messaging.lib.metrics;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -16,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 
@@ -28,24 +26,34 @@ import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
  */
 public class ExecutorServiceMetricsDecorator implements ExecutorService {
 
+  /** Base tag prefix for executor metrics. */
   private static final String TAG_EXECUTOR = "executor";
 
+  /** Metric name for active task count gauge. */
   private static final String METRIC_ACTIVE = TAG_EXECUTOR.concat(".active");
 
+  /** Metric name for succeeded task counter. */
   private static final String METRIC_TASKS_SUCCEEDED = TAG_EXECUTOR.concat(".tasks.succeeded");
 
+  /** Metric name for failed task counter. */
   private static final String METRIC_TASKS_FAILED = TAG_EXECUTOR.concat(".tasks.failed");
 
+  /** Metric name for task duration timer. */
   private static final String METRIC_TASK_DURATION = TAG_EXECUTOR.concat(".task.duration");
 
+  /** The decorated executor service. */
   private final ExecutorService delegate;
 
+  /** Atomic gauge tracking the number of active tasks. */
   private final AtomicInteger activeTaskCount = new AtomicInteger();
 
+  /** Counter for tasks that completed without throwing an exception. */
   private final Counter succeededCounter;
 
+  /** Counter for tasks that completed by throwing an exception. */
   private final Counter failedCounter;
 
+  /** Timer for wall-clock duration of task execution. */
   private final Timer taskTimer;
 
   /**
@@ -66,7 +74,7 @@ public class ExecutorServiceMetricsDecorator implements ExecutorService {
 
     Optional.ofNullable(registry).ifPresent(compositeMeterRegistry::add);
 
-    final List<Tag> tags = new LinkedList<>(Collections.singleton(Tag.of("name", executorName)));
+    final Tags tags = Tags.of("name", executorName);
 
     Gauge.builder(METRIC_ACTIVE, activeTaskCount, AtomicInteger::get)
       .tags(tags)
