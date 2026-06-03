@@ -74,7 +74,9 @@ class AmazonSnsProducerAsyncTest {
       .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
       .build();
 
-    snsTemplate = new AmazonSnsTemplate<>(amazonSNS, topicProperty, new RingBufferBlockingQueue<>(2048));
+    snsTemplate = AmazonSnsTemplate.builder(amazonSNS, topicProperty)
+      .topicRequests(new RingBufferBlockingQueue<>(2048))
+      .build();
   }
 
   @Test

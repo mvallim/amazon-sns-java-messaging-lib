@@ -65,8 +65,14 @@ import lombok.SneakyThrows;
  */
 abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
 
+  /**
+   * Kilobyte constant used for size calculations.
+   */
   private static final Integer KB = 1024;
 
+  /**
+   * Maximum batch size threshold of 256 KB imposed by Amazon SNS.
+   */
   private static final Integer BATCH_SIZE_BYTES_THRESHOLD = 256 * AbstractAmazonSnsConsumer.KB;
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAmazonSnsConsumer.class);

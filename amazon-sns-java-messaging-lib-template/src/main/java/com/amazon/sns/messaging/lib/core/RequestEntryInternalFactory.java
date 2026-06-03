@@ -107,6 +107,8 @@ final class RequestEntryInternalFactory {
 
   /**
    * Internal representation of a batched request entry with a serialized payload.
+   *
+   * @param <E> the payload type (unused here, payload is serialized to bytes)
    */
   @Getter
   @ToString
@@ -153,28 +155,47 @@ final class RequestEntryInternalFactory {
   @NoArgsConstructor(access = AccessLevel.PRIVATE)
   static class MessageAttributesInternal extends AbstractMessageAttributes<Integer> {
 
+    /**
+     * Singleton instance of the internal message attributes calculator.
+     */
+
     public static final MessageAttributesInternal INSTANCE = new MessageAttributesInternal();
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Integer getEnumMessageAttribute(final Enum<?> value) {
       return value.name().length();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Integer getStringMessageAttribute(final String value) {
       return value.length();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Integer getNumberMessageAttribute(final Number value) {
       return value.toString().length();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Integer getBinaryMessageAttribute(final ByteBuffer value) {
       return value.remaining();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Integer getStringArrayMessageAttribute(final List<?> values) {
       return stringArray(values).length();

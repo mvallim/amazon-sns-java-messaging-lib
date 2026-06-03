@@ -33,6 +33,13 @@ import lombok.RequiredArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class PublishRequestBuilder {
 
+  /**
+   * Creates a new builder instance.
+   *
+   * @param <R> the publish request type
+   * @param <E> the entry type
+   * @return a new builder
+   */
   public static <R, E> Builder<R, E> builder() {
     return new Builder<>();
   }
