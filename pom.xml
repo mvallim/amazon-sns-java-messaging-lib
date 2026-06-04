@@ -28,7 +28,7 @@
 		<mockito.version>4.11.0</mockito.version>
 		<junit.jupiter.version>5.10.2</junit.jupiter.version>
 		<jackson-databind.version>2.16.1</jackson-databind.version>
-		<awaitility.version>4.2.2</awaitility.version>
+		<awaitility.version>4.3.0</awaitility.version>
 		<assertj-core.version>3.24.2</assertj-core.version>
 		<commons-lang3.version>3.20.0</commons-lang3.version>
 		<commons-collections4.version>4.5.0</commons-collections4.version>
@@ -38,7 +38,7 @@
 		<testcontainers.version>1.20.4</testcontainers.version>
 
 		<!-- Plugins -->
-		<maven-clean-plugin.version>3.2.0</maven-clean-plugin.version>
+		<maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
 		<maven-compiler-plugin.version>3.12.1</maven-compiler-plugin.version>
 		<maven-deploy-plugin.version>3.0.0</maven-deploy-plugin.version>
 		<maven-install-plugin.version>3.1.0</maven-install-plugin.version>
