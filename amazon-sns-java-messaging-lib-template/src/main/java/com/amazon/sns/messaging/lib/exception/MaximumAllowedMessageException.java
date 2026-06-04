@@ -25,7 +25,7 @@ import lombok.Getter;
  * SNS. Contains the offending {@link RequestEntry} for diagnostic purposes.
  */
 @Getter
-@SuppressWarnings({ "rawtypes", "unchecked" })
+@SuppressWarnings({ "rawtypes", "unchecked", "java:S1948" })
 public class MaximumAllowedMessageException extends RuntimeException {
 
   private static final long serialVersionUID = -529663449633021689L;
