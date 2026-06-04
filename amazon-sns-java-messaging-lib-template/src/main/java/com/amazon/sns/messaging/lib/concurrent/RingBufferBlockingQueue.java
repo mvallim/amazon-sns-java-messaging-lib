@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,9 +34,9 @@ import lombok.Setter;
 import lombok.SneakyThrows;
 
 /**
- * A bounded blocking queue backed by a ring buffer (circular array). Supports blocking
- * {@link #put(Object)} and {@link #take()} operations. Other {@link BlockingQueue} methods
- * throw {@link UnsupportedOperationException}.
+ * A bounded blocking queue backed by a ring buffer (circular array). Supports
+ * blocking {@link #put(Object)} and {@link #take()} operations. Other
+ * {@link BlockingQueue} methods throw {@link UnsupportedOperationException}.
  *
  * @param <E> the type of elements held in this queue
  */
@@ -51,7 +51,10 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   /** The fixed maximum number of elements the queue can hold. */
   private final int capacity;
 
-  /** Sequence number tracking the next write position (starts at -1 indicating no writes). */
+  /**
+   * Sequence number tracking the next write position (starts at -1 indicating no
+   * writes).
+   */
   private final AtomicLong writeSequence = new AtomicLong(-1);
 
   /** Sequence number tracking the next read position. */
@@ -91,7 +94,8 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   }
 
   /**
-   * Prevents sequence overflow by wrapping around when the maximum long value is reached.
+   * Prevents sequence overflow by wrapping around when the maximum long value is
+   * reached.
    *
    * @param sequence the current sequence value
    * @return the sequence value, wrapped if necessary
