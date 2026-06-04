@@ -30,7 +30,8 @@ import lombok.SneakyThrows;
  * is thrown.
  */
 public class BlockingSubmissionPolicy implements RejectedExecutionHandler {
-  
+
+  /** The maximum time to wait for queue insertion, in milliseconds. */
   private final long timeout;
   
   /**

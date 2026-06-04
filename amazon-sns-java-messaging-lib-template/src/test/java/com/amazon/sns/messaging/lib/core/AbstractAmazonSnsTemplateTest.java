@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,11 +62,11 @@ class AbstractAmazonSnsTemplateTest {
   @Mock
   private AbstractAmazonSnsConsumer<Object, Object, Object, String> consumerMock;
 
-  private AbstractAmazonSnsTemplate<Object, Object, Object, String> template;
+  private AbstractAmazonSnsTemplate<Object, Object, String> template;
 
   @BeforeEach
   void setUp() {
-    template = new AbstractAmazonSnsTemplate<Object, Object, Object, String>(producerMock, consumerMock) { };
+    template = new AbstractAmazonSnsTemplate<Object, Object, String>(producerMock, consumerMock) { };
   }
 
   @Test

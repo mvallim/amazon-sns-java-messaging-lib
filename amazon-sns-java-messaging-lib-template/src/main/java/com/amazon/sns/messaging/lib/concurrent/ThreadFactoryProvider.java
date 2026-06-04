@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,16 +29,22 @@ import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 
 /**
- * Provides {@link ThreadFactory} instances, selecting between virtual thread factories
- * (Java 21+) and default thread factories based on the runtime Java version.
+ * Provides {@link ThreadFactory} instances, selecting between virtual thread
+ * factories (Java 21+) and default thread factories based on the runtime Java
+ * version.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ThreadFactoryProvider {
-  
+
+  /** Class logger. */
   private static final Logger LOGGER = LoggerFactory.getLogger(ThreadFactoryProvider.class);
-  
+
+  /**
+   * Cached supplier of the appropriate thread factory for the runtime Java
+   * version.
+   */
   private static Supplier<ThreadFactory> supplierThreadFactory;
-  
+
   static {
     if (ThreadFactoryProvider.getJavaVersion() >= 21) {
       ThreadFactoryProvider.supplierThreadFactory = ThreadFactoryProvider::getVirtualThreadFactory;
@@ -48,7 +54,7 @@ public final class ThreadFactoryProvider {
       ThreadFactoryProvider.LOGGER.info("Java version is {}, using default thread factory", ThreadFactoryProvider.getJavaVersion());
     }
   }
-  
+
   /**
    * Returns a {@link ThreadFactory} appropriate for the current Java version.
    *
@@ -57,7 +63,7 @@ public final class ThreadFactoryProvider {
   public static ThreadFactory getThreadFactory() {
     return ThreadFactoryProvider.supplierThreadFactory.get();
   }
-  
+
   /**
    * Creates a default thread factory for Java versions below 21.
    *
@@ -67,7 +73,7 @@ public final class ThreadFactoryProvider {
   private static ThreadFactory getDefaultThreadFactory() {
     return Executors.defaultThreadFactory();
   }
-  
+
   /**
    * Creates a virtual thread factory using reflection (Java 21+).
    *
@@ -90,16 +96,16 @@ public final class ThreadFactoryProvider {
    */
   private static int getJavaVersion() {
     String version = System.getProperty("java.version");
-    
+
     if (version.startsWith("1.")) {
       version = version.substring(2);
     }
-    
+
     final int dotPos = version.indexOf('.');
     final int dashPos = version.indexOf('-');
     final int endIndex = dotPos > -1 ? dotPos : dashPos > -1 ? dashPos : 1;
-    
+
     return Integer.parseInt(version.substring(0, endIndex));
   }
-  
+
 }

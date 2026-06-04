@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ import lombok.SneakyThrows;
  * @param <O> the publish batch result type
  * @param <E> the request entry payload type
  */
-abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
+abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, AmazonSnsConsumer<R, O> {
 
   /**
    * Kilobyte constant used for size calculations.
@@ -75,22 +75,31 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
    */
   private static final Integer BATCH_SIZE_BYTES_THRESHOLD = 256 * AbstractAmazonSnsConsumer.KB;
 
+  /** Class logger. */
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAmazonSnsConsumer.class);
 
+  /** Single-thread scheduler that periodically triggers batch draining. */
   private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(ThreadFactoryProvider.getThreadFactory());
 
+  /** The Amazon SNS client used for publishing batches. */
   protected final C amazonSnsClient;
 
+  /** The topic configuration properties. */
   private final TopicProperty topicProperty;
 
+  /** Factory for creating internal request entry representations. */
   private final RequestEntryInternalFactory requestEntryInternalFactory;
 
+  /** Shared map of pending requests keyed by request ID for async completion. */
   protected final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests;
 
+  /** The blocking queue that buffers incoming topic requests. */
   private final BlockingQueue<RequestEntry<E>> topicRequests;
 
+  /** Optional decorator applied to the publish batch request before sending. */
   private final UnaryOperator<R> publishDecorator;
 
+  /** Executor service for asynchronous (non-FIFO) publishing. */
   private final ExecutorService executorService;
 
   /**
@@ -123,29 +132,6 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
 
     scheduledExecutorService.scheduleAtFixedRate(this, 0, topicProperty.getLinger(), TimeUnit.MILLISECONDS);
   }
-
-  /**
-   * Publishes a batch request to Amazon SNS.
-   *
-   * @param publishBatchRequest the batch request to publish
-   * @return the publish result
-   */
-  protected abstract O publish(final R publishBatchRequest);
-
-  /**
-   * Handles an error that occurred during publishing.
-   *
-   * @param publishBatchRequest the batch request that failed
-   * @param throwable           the exception that was thrown
-   */
-  protected abstract void handleError(final R publishBatchRequest, final Throwable throwable);
-
-  /**
-   * Handles the response from a successful publish call.
-   *
-   * @param publishBatchResult the result of the publish operation
-   */
-  protected abstract void handleResponse(final O publishBatchResult);
 
   /**
    * Returns a factory function that creates a publish batch request from a topic ARN
@@ -206,6 +192,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
    * Shuts down the consumer, waiting up to 60 seconds for both the scheduled and
    * worker executor services to terminate.
    */
+  @Override
   @SneakyThrows
   public void shutdown() {
     await().thenRun(() -> {
@@ -340,6 +327,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable {
    *
    * @return a future that completes when all requests are drained
    */
+  @Override
   @SneakyThrows
   public CompletableFuture<Void> await() {
     return CompletableFuture.runAsync(() -> {
