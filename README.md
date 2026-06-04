@@ -42,7 +42,7 @@ You can pull it from the central Maven repositories:
 <dependency>
     <groupId>com.github.mvallim</groupId>
     <artifactId>amazon-sns-java-messaging-lib-v1</artifactId>
-    <version>1.2.0</version>
+    <version>1.3.0</version>
 </dependency>
 ```
 
@@ -52,7 +52,7 @@ You can pull it from the central Maven repositories:
 <dependency>
     <groupId>com.github.mvallim</groupId>
     <artifactId>amazon-sns-java-messaging-lib-v2</artifactId>
-    <version>1.2.0</version>
+    <version>1.3.0</version>
 </dependency>
 ```
 
@@ -74,13 +74,13 @@ If you want to try a snapshot version, add the following repository:
 ### For AWS SDK v1
 
 ```groovy
-implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v1:1.2.0'
+implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v1:1.3.0'
 ```
 
 ### For AWS SDK v2
 
 ```groovy
-implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v2:1.2.0'
+implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v2:1.3.0'
 ```
 
 If you want to try a snapshot version, add the following repository:

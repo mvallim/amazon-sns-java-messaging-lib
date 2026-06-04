@@ -54,7 +54,10 @@ public final class PublishRequestBuilder {
   @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
   public static class Builder<R, E> {
 
-    /** The supplier function that creates a publish request from a topic ARN and entries. */
+    /**
+     * The supplier function that creates a publish request from a topic ARN and
+     * entries.
+     */
     private BiFunction<String, List<E>, R> supplier;
 
     /** The SNS topic ARN to publish to. */

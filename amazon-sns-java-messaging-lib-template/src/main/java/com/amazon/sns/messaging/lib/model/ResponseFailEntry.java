@@ -23,7 +23,8 @@ import lombok.Getter;
 import lombok.ToString;
 
 /**
- * Represents a failed publish result from Amazon SNS, containing the error details.
+ * Represents a failed publish result from Amazon SNS, containing the error
+ * details.
  */
 @Getter
 @ToString
