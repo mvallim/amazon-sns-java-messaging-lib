@@ -34,6 +34,8 @@ In order to use Amazon SNS Java Messaging Lib within a Maven project, simply add
 
 You can pull it from the central Maven repositories:
 
+#### Maven
+
 ### For AWS SDK v1
 
 ```xml
@@ -336,39 +338,39 @@ When a `MeterRegistry` is provided via the builder, the library records these Mi
 
 Tags: `topic` = `<topicArn>`
 
-| Metric | Type | Description |
-|---|---|---|
-| `sns.publish.attempts` | Counter | Total PublishBatch attempts |
-| `sns.publish.success` | Counter | Successful messages |
-| `sns.publish.failure` | Counter | Failed messages (dynamic tags: `error_code`, `error_type`) |
-| `sns.publish.duration` | Timer | Publish latency (p50/p95/p99) |
-| `sns.publish.batch.size` | DistributionSummary | Messages per batch |
-| `sns.publish.inflight` | Gauge | In-flight publish batches |
+| Metric                   | Type                | Description                                                |
+|--------------------------|---------------------|------------------------------------------------------------|
+| `sns.publish.attempts`   | Counter             | Total PublishBatch attempts                                |
+| `sns.publish.success`    | Counter             | Successful messages                                        |
+| `sns.publish.failure`    | Counter             | Failed messages (dynamic tags: `error_code`, `error_type`) |
+| `sns.publish.duration`   | Timer               | Publish latency (p50/p95/p99)                              |
+| `sns.publish.batch.size` | DistributionSummary | Messages per batch                                         |
+| `sns.publish.inflight`   | Gauge               | In-flight publish batches                                  |
 
 ### Blocking Queue
 
 Tags: `name` = `<queueName>`
 
-| Metric | Type | Description |
-|---|---|---|
-| `blocking.queue.puts.total` | Counter | Successful put operations |
-| `blocking.queue.puts.failed` | Counter | Put operations that threw an exception |
-| `blocking.queue.put.duration` | Timer | Put latency (percentile histogram) |
-| `blocking.queue.takes.total` | Counter | Successful take operations |
-| `blocking.queue.takes.failed` | Counter | Take operations that threw an exception |
-| `blocking.queue.take.duration` | Timer | Take latency (percentile histogram) |
-| `blocking.queue.size` | Gauge | Current queue depth |
+| Metric                         | Type    | Description                             |
+|--------------------------------|---------|-----------------------------------------|
+| `blocking.queue.puts.total`    | Counter | Successful put operations               |
+| `blocking.queue.puts.failed`   | Counter | Put operations that threw an exception  |
+| `blocking.queue.put.duration`  | Timer   | Put latency (percentile histogram)      |
+| `blocking.queue.takes.total`   | Counter | Successful take operations              |
+| `blocking.queue.takes.failed`  | Counter | Take operations that threw an exception |
+| `blocking.queue.take.duration` | Timer   | Take latency (percentile histogram)     |
+| `blocking.queue.size`          | Gauge   | Current queue depth                     |
 
 ### Executor
 
 Tags: `name` = `<executorName>`
 
-| Metric | Type | Description |
-|---|---|---|
-| `executor.active` | Gauge | Tasks currently executing |
+| Metric                     | Type    | Description                       |
+|----------------------------|---------|-----------------------------------|
+| `executor.active`          | Gauge   | Tasks currently executing         |
 | `executor.tasks.succeeded` | Counter | Tasks completed without exception |
-| `executor.tasks.failed` | Counter | Tasks completed with exception |
-| `executor.task.duration` | Timer | Task wall-clock duration |
+| `executor.tasks.failed`    | Counter | Tasks completed with exception    |
+| `executor.task.duration`   | Timer   | Task wall-clock duration          |
 
 ---
 
@@ -382,7 +384,7 @@ We use [GitHub](https://github.com/mvallim/amazon-sns-java-messaging-lib) for ve
 
 ## Authors
 
-* **Marcos Vallim** - *Founder, Author, Development, Test, Documentation* - [mvallim](https://github.com/mvallim)
+* **Marcos Vallim** - _Founder, Author, Development, Test, Documentation_ - [mvallim](https://github.com/mvallim)
 
 See also the list of [contributors](CONTRIBUTORS.txt) who participated in this project.
 

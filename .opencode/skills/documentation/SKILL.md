@@ -1,5 +1,5 @@
 ---
-name: "GenerateMarkdownDocs"
+name: "generate-markdown-docs"
 description: "Skill that analyzes code and generates technical documentation in Markdown."
 scope: "workspace"
 commands:

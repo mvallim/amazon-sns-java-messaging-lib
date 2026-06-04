@@ -4,33 +4,33 @@
 
 The library provides an asynchronous, batched messaging client for Amazon SNS, supporting both AWS SDK v1 and v2. It is organized as a multi-module Maven project:
 
-| Module | Artifact | Purpose |
-|---|---|---|
-| `amazon-sns-java-messaging-lib-template` | *(internal)* | SDK-agnostic core: batching, queuing, threading, metrics |
-| `amazon-sns-java-messaging-lib-v1` | `amazon-sns-java-messaging-lib-v1` | AWS SDK v1 implementation (`AmazonSNS` client) |
-| `amazon-sns-java-messaging-lib-v2` | `amazon-sns-java-messaging-lib-v2` | AWS SDK v2 implementation (`SnsClient`) |
+| Module                                   | Artifact                           | Purpose                                                  |
+|------------------------------------------|------------------------------------|----------------------------------------------------------|
+| `amazon-sns-java-messaging-lib-template` | *(internal)*                       | SDK-agnostic core: batching, queuing, threading, metrics |
+| `amazon-sns-java-messaging-lib-v1`       | `amazon-sns-java-messaging-lib-v1` | AWS SDK v1 implementation (`AmazonSNS` client)           |
+| `amazon-sns-java-messaging-lib-v2`       | `amazon-sns-java-messaging-lib-v2` | AWS SDK v2 implementation (`SnsClient`)                  |
 
 ### Core Components
 
-```
-┌──────────────────────────────────────────────────────────┐
+```text
+┌────────────────────────────────────────────────────────────┐
 │                    AmazonSnsTemplate<E>                    │
-├──────────────────────────────────────────────────────────┤
-│  ┌──────────────────────┐    ┌────────────────────────┐  │
+├────────────────────────────────────────────────────────────┤
+│  ┌───────────────────────┐    ┌─────────────────────────┐  │
 │  │  AmazonSnsProducer<E> │    │  AmazonSnsConsumer<R,O> │  │
-│  │  (AbstractProducer)   │    │  (AbstractConsumer)    │  │
-│  │                       │    │                        │  │
-│  │  - BlockingQueue      │    │  - ScheduledExecutor   │  │
-│  │  - PendingRequests    │    │  - Batching Logic      │  │
-│  └──────────┬───────────┘    └───────────┬────────────┘  │
-│             │                            │               │
-│         send(E)                   publishBatch(...)      │
-└─────────────┼────────────────────────────┼───────────────┘
-              │                            │
-              ▼                            ▼
-      ┌──────────────────────────────────────────┐
+│  │  (AbstractProducer)   │    │  (AbstractConsumer)     │  │
+│  │                       │    │                         │  │
+│  │  - BlockingQueue      │    │  - ScheduledExecutor    │  │
+│  │  - PendingRequests    │    │  - Batching Logic       │  │
+│  └──────────┬────────────┘    └───────────┬─────────────┘  │
+│             │                             │                │
+│         send(E)                    publishBatch(...)       │
+└─────────────┼─────────────────────────────┼────────────────┘
+              │                             │
+              ▼                             ▼
+      ┌───────────────────────────────────────────┐
       │            Amazon SNS (v1/v2)             │
-      └──────────────────────────────────────────┘
+      └───────────────────────────────────────────┘
 ```
 
 - **`AmazonSnsTemplate`** — Main entry point. Created via a fluent builder (`AmazonSnsTemplate.builder(snsClient, topicProperty)`).
@@ -115,13 +115,13 @@ For **FIFO** topics, messages are published **synchronously** on a single-thread
 
 ### TopicProperty
 
-| Property | Type | Default | Description |
-|---|---|---|---|
-| `fifo` | `boolean` | `false` | Whether the SNS topic is FIFO |
-| `topicArn` | `String` | — | The SNS topic ARN |
-| `maximumPoolSize` | `int` | — | Max threads for the producer pool |
-| `maxBatchSize` | `int` | — | Max messages per batch request |
-| `linger` | `long` (ms) | — | Time to wait before flushing a batch |
+| Property          | Type        | Default | Description                          |
+|-------------------|-------------|---------|--------------------------------------|
+| `fifo`            | `boolean`   | `false` | Whether the SNS topic is FIFO        |
+| `topicArn`        | `String`    | —       | The SNS topic ARN                    |
+| `maximumPoolSize` | `int`       | —       | Max threads for the producer pool    |
+| `maxBatchSize`    | `int`       | —       | Max messages per batch request       |
+| `linger`          | `long` (ms) | —       | Time to wait before flushing a batch |
 
 **Note**: The in-memory buffer size = `maximumPoolSize × maxBatchSize`. Large values consume proportionally more memory.
 
@@ -210,14 +210,14 @@ The library integrates with Micrometer and records the following metrics when a 
 
 Tags: `topic` = `<topicArn>`
 
-| Metric Name | Type | Description | Config |
-|---|---|---|---|
-| `sns.publish.attempts` | `Counter` | Total number of SNS PublishBatch calls attempted | — |
-| `sns.publish.success` | `Counter` | Individual SNS messages acknowledged as successful | — |
-| `sns.publish.failure` | `Counter` | Individual SNS messages that failed | Dynamic tags: `error_code`, `error_type` |
-| `sns.publish.duration` | `Timer` | End-to-end latency of SNS PublishBatch calls | Percentiles: 0.5, 0.95, 0.99 |
-| `sns.publish.batch.size` | `DistributionSummary` | Number of entries per SNS PublishBatch request | — |
-| `sns.publish.inflight` | `Gauge` | PublishBatches currently in progress | Backed by `AtomicInteger` |
+| Metric Name              | Type                  | Description                                        | Config                                   |
+|--------------------------|-----------------------|----------------------------------------------------|------------------------------------------|
+| `sns.publish.attempts`   | `Counter`             | Total number of SNS PublishBatch calls attempted   | —                                        |
+| `sns.publish.success`    | `Counter`             | Individual SNS messages acknowledged as successful | —                                        |
+| `sns.publish.failure`    | `Counter`             | Individual SNS messages that failed                | Dynamic tags: `error_code`, `error_type` |
+| `sns.publish.duration`   | `Timer`               | End-to-end latency of SNS PublishBatch calls       | Percentiles: 0.5, 0.95, 0.99             |
+| `sns.publish.batch.size` | `DistributionSummary` | Number of entries per SNS PublishBatch request     | —                                        |
+| `sns.publish.inflight`   | `Gauge`               | PublishBatches currently in progress               | Backed by `AtomicInteger`                |
 
 The `sns.publish.failure` counter is created dynamically with additional `error_code` (AWS error code string) and `error_type` (amazon_service_exception or unknown) tags.
 
@@ -225,26 +225,26 @@ The `sns.publish.failure` counter is created dynamically with additional `error_
 
 Tags: `name` = `<queueName>`
 
-| Metric Name | Type | Description | Config |
-|---|---|---|---|
-| `blocking.queue.puts.total` | `Counter` | Total number of successful put operations | — |
-| `blocking.queue.puts.failed` | `Counter` | Total number of put operations that threw an exception | — |
-| `blocking.queue.put.duration` | `Timer` | Latency of put operations (including wait time when queue is full) | Percentile histogram |
-| `blocking.queue.takes.total` | `Counter` | Total number of successful take operations | — |
-| `blocking.queue.takes.failed` | `Counter` | Total number of take operations that threw an exception | — |
-| `blocking.queue.take.duration` | `Timer` | Latency of take operations (including wait time when queue is empty) | Percentile histogram |
-| `blocking.queue.size` | `Gauge` | Current number of elements in the queue | Calls `delegate.size()` |
+| Metric Name                    | Type      | Description                                                          | Config                  |
+|--------------------------------|-----------|----------------------------------------------------------------------|-------------------------|
+| `blocking.queue.puts.total`    | `Counter` | Total number of successful put operations                            | —                       |
+| `blocking.queue.puts.failed`   | `Counter` | Total number of put operations that threw an exception               | —                       |
+| `blocking.queue.put.duration`  | `Timer`   | Latency of put operations (including wait time when queue is full)   | Percentile histogram    |
+| `blocking.queue.takes.total`   | `Counter` | Total number of successful take operations                           | —                       |
+| `blocking.queue.takes.failed`  | `Counter` | Total number of take operations that threw an exception              | —                       |
+| `blocking.queue.take.duration` | `Timer`   | Latency of take operations (including wait time when queue is empty) | Percentile histogram    |
+| `blocking.queue.size`          | `Gauge`   | Current number of elements in the queue                              | Calls `delegate.size()` |
 
 ### Executor Metrics
 
 Tags: `name` = `<executorName>`
 
-| Metric Name | Type | Description | Config |
-|---|---|---|---|
-| `executor.active` | `Gauge` | Number of tasks currently being executed by pool threads | Backed by `AtomicInteger` |
-| `executor.tasks.succeeded` | `Counter` | Total number of tasks that completed without throwing an exception | — |
-| `executor.tasks.failed` | `Counter` | Total number of tasks that completed by throwing an exception | — |
-| `executor.task.duration` | `Timer` | Wall-clock duration of each task execution | — |
+| Metric Name                | Type      | Description                                                        | Config                    |
+|----------------------------|-----------|--------------------------------------------------------------------|---------------------------|
+| `executor.active`          | `Gauge`   | Number of tasks currently being executed by pool threads           | Backed by `AtomicInteger` |
+| `executor.tasks.succeeded` | `Counter` | Total number of tasks that completed without throwing an exception | —                         |
+| `executor.tasks.failed`    | `Counter` | Total number of tasks that completed by throwing an exception      | —                         |
+| `executor.task.duration`   | `Timer`   | Wall-clock duration of each task execution                         | —                         |
 
 ---
 
@@ -258,13 +258,14 @@ Tags: `name` = `<executorName>`
 
 ## Exception Handling
 
-| Exception | Condition |
-|---|---|
-| `MaximumAllowedMessageException` | A single message exceeds the 256KB SNS payload limit |
-| SDK exceptions (`AmazonServiceException` / `AwsServiceException`) | Service-side errors during `publishBatch` |
-| SDK exceptions (`AmazonClientException` / `AwsClientException`) | Client-side errors (network, serialization) |
+| Exception                                                         | Condition                                            |
+|-------------------------------------------------------------------|------------------------------------------------------|
+| `MaximumAllowedMessageException`                                  | A single message exceeds the 256KB SNS payload limit |
+| SDK exceptions (`AmazonServiceException` / `AwsServiceException`) | Service-side errors during `publishBatch`            |
+| SDK exceptions (`AmazonClientException` / `AwsClientException`)   | Client-side errors (network, serialization)          |
 
 Failed messages are delivered to the failure callback with:
+
 - `messageId` — the original request ID
 - `code` — the error code
 - `message` — error description
