@@ -28,7 +28,8 @@ import lombok.ToString;
 
 /**
  * Represents a single message request to be published to an Amazon SNS topic.
- * Contains the message payload, metadata, and optional FIFO-related identifiers.
+ * Contains the message payload, metadata, and optional FIFO-related
+ * identifiers.
  *
  * @param <T> the type of the message payload
  */

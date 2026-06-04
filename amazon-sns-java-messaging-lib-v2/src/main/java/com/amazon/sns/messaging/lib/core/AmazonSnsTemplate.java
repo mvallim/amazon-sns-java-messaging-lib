@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.function.UnaryOperator;
 
 import com.amazon.sns.messaging.lib.concurrent.RingBufferBlockingQueue;
+import com.amazon.sns.messaging.lib.metrics.AmazonSnsConsumerMetricsDecorator;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.TopicProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,22 +36,26 @@ import software.amazon.awssdk.services.sns.model.PublishBatchResponse;
  *
  * @param <E> the request entry payload type
  */
-public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<SnsClient, PublishBatchRequest, PublishBatchResponse, E> {
+public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<PublishBatchRequest, PublishBatchResponse, E> {
 
   private AmazonSnsTemplate(final Builder<SnsClient, PublishBatchRequest, PublishBatchResponse, E, AmazonSnsTemplate<E>> builder) {
     super(
-      new AmazonSnsProducer<>(
+      new AmazonSnsProducerImpl<>(
         builder.getPendingRequests(),
         builder.getTopicRequests()
       ),
-      new AmazonSnsConsumer<>(
-        builder.getAmazonSnsClient(),
+      new AmazonSnsConsumerMetricsDecorator(
+        new AmazonSnsConsumerImpl<>(
+          builder.getAmazonSnsClient(),
+          builder.getTopicProperty(),
+          builder.getObjectMapper(),
+          builder.getPendingRequests(),
+          builder.getTopicRequests(),
+          getExecutorService(builder.getTopicProperty(), builder.getMeterRegistry()),
+          builder.getPublishDecorator()
+        ),
         builder.getTopicProperty(),
-        builder.getObjectMapper(),
-        builder.getPendingRequests(),
-        builder.getTopicRequests(),
-        getExecutorService(builder.getTopicProperty(), builder.getMeterRegistry()),
-        builder.getPublishDecorator()
+        builder.getMeterRegistry()
       )
     );
   }

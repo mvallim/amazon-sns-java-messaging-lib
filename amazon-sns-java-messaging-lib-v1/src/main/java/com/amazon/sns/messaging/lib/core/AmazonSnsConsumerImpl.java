@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,9 +50,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * @param <E> the request entry payload type
  */
 @SuppressWarnings("java:S6204")
-class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishBatchRequest, PublishBatchResult, E> {
+class AmazonSnsConsumerImpl<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishBatchRequest, PublishBatchResult, E> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(AmazonSnsConsumer.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(AmazonSnsConsumerImpl.class);
 
   private static final MessageAttributes messageAttributes = new MessageAttributes();
 
@@ -67,7 +67,7 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishB
    * @param executorService  the executor service for async publishing
    * @param publishDecorator an optional decorator for the publish request
    */
-  public AmazonSnsConsumer(
+  public AmazonSnsConsumerImpl(
     final AmazonSNS amazonSnsClient,
     final TopicProperty topicProperty,
     final ObjectMapper objectMapper,
@@ -82,7 +82,7 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishB
    * {@inheritDoc}
    */
   @Override
-  protected PublishBatchResult publish(final PublishBatchRequest publishBatchRequest) {
+  public PublishBatchResult publish(final PublishBatchRequest publishBatchRequest) {
     return amazonSnsClient.publishBatch(publishBatchRequest);
   }
 
@@ -98,7 +98,7 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishB
           .withSubject(StringUtils.isNotBlank(entry.getSubject()) ? entry.getSubject() : null)
           .withMessageGroupId(StringUtils.isNotBlank(entry.getGroupId()) ? entry.getGroupId() : null)
           .withMessageDeduplicationId(StringUtils.isNotBlank(entry.getDeduplicationId()) ? entry.getDeduplicationId() : null)
-          .withMessageAttributes(AmazonSnsConsumer.messageAttributes.messageAttributes(entry.getMessageHeaders()))
+          .withMessageAttributes(AmazonSnsConsumerImpl.messageAttributes.messageAttributes(entry.getMessageHeaders()))
           .withMessage(entry.getMessage()))
         .collect(Collectors.toList());
       return new PublishBatchRequest().withPublishBatchRequestEntries(entries).withTopicArn(topicArn);
@@ -109,11 +109,11 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishB
    * {@inheritDoc}
    */
   @Override
-  protected void handleError(final PublishBatchRequest publishBatchRequest, final Throwable throwable) {
+  public void handleError(final PublishBatchRequest publishBatchRequest, final Throwable throwable) {
     final String code = throwable instanceof AmazonServiceException ? AmazonServiceException.class.cast(throwable).getErrorCode() : "000";
     final String message = throwable instanceof AmazonServiceException ? AmazonServiceException.class.cast(throwable).getErrorMessage() : throwable.getMessage();
 
-    AmazonSnsConsumer.LOGGER.error(throwable.getMessage(), throwable);
+    AmazonSnsConsumerImpl.LOGGER.error(throwable.getMessage(), throwable);
 
     publishBatchRequest.getPublishBatchRequestEntries().forEach(entry ->
       Optional.ofNullable(pendingRequests.remove(entry.getId())).ifPresent(listenableFuture ->
@@ -131,7 +131,7 @@ class AmazonSnsConsumer<E> extends AbstractAmazonSnsConsumer<AmazonSNS, PublishB
    * {@inheritDoc}
    */
   @Override
-  protected void handleResponse(final PublishBatchResult publishBatchResult) {
+  public void handleResponse(final PublishBatchResult publishBatchResult) {
     publishBatchResult.getSuccessful().forEach(entry ->
       Optional.ofNullable(pendingRequests.remove(entry.getId())).ifPresent(listenableFuture ->
         listenableFuture.success(ResponseSuccessEntry.builder()

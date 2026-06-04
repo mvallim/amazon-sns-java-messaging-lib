@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,17 +47,16 @@ import lombok.RequiredArgsConstructor;
  * sending messages, shutting down, and awaiting completion. Delegates to a producer
  * and consumer for actual processing.
  *
- * @param <C> the Amazon SNS client type
  * @param <R> the publish batch request type
  * @param <O> the publish batch result type
  * @param <E> the request entry payload type
  */
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
-abstract class AbstractAmazonSnsTemplate<C, R, O, E> {
+abstract class AbstractAmazonSnsTemplate<R, O, E> {
 
-  private final AbstractAmazonSnsProducer<E> amazonSnsProducer;
+  private final AmazonSnsProducer<E> amazonSnsProducer;
 
-  private final AbstractAmazonSnsConsumer<C, R, O, E> amazonSnsConsumer;
+  private final AmazonSnsConsumer<R, O> amazonSnsConsumer;
 
   /**
    * Sends a request entry to the SNS topic asynchronously.
@@ -108,7 +107,7 @@ abstract class AbstractAmazonSnsTemplate<C, R, O, E> {
   }
 
   @Getter
-  public static final class Builder<C, R, O, E, T extends AbstractAmazonSnsTemplate<C, R, O, E>> {
+  public static final class Builder<C, R, O, E, T extends AbstractAmazonSnsTemplate<R, O, E>> {
 
     /**
      * The Amazon SNS client used for publishing.

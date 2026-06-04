@@ -10,6 +10,6 @@
         <appender-ref ref="STDOUT" />
     </root>
 
-	<logger name="com.amazon.sns.messaging.lib.core.AmazonSnsConsumer" level="OFF" />
+	<logger name="com.amazon.sns.messaging.lib.core.AmazonSnsConsumerImpl" level="OFF" />
 
 </configuration>
