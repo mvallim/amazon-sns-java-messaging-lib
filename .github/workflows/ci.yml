@@ -5,6 +5,7 @@ on:
     branches:
       - feature/**
       - fix/**
+      - dependabot/maven/**
 
 env:
   TYPE: ${{ startsWith(github.ref_name, 'feature') && 'Feature' || 'Fix'}}
