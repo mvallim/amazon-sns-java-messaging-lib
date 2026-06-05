@@ -20,12 +20,12 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-// @formatter:off
 /**
  * A {@link ThreadPoolExecutor} configured for Amazon SNS publishing. Uses a
- * {@link SynchronousQueue} with zero core threads, allowing threads to be created
- * on demand up to the specified maximum pool size. Tasks that cannot be accepted
- * immediately by the queue will block up to 30 seconds via {@link BlockingSubmissionPolicy}.
+ * {@link SynchronousQueue} with zero core threads, allowing threads to be
+ * created on demand up to the specified maximum pool size. Tasks that cannot be
+ * accepted immediately by the queue will block up to 30 seconds via
+ * {@link BlockingSubmissionPolicy}.
  */
 public class AmazonSnsThreadPoolExecutor extends ThreadPoolExecutor {
 
