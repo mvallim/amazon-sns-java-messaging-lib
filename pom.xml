@@ -489,6 +489,10 @@
 				<sonar.tests>src/test/java</sonar.tests>
 				<sonar.scm.exclusions.disabled>false</sonar.scm.exclusions.disabled>
 
+				<sonar.test.exclusions>
+					**/test/**
+				</sonar.test.exclusions>
+
 				<sonar.exclusions>
 					**/ExecutorsProvider.java,
 					**/ThreadFactoryProvider.java,
