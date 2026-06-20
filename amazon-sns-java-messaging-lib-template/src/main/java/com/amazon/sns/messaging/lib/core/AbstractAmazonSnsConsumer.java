@@ -301,6 +301,11 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, Amazon
         final String message = String.format("The maximum allowed message size exceeding 256KB (262,144 bytes). Payload: %s, Headers: %s", stringPayload, request.getMessageHeaders());
 
         handleError(publishBatchRequest, new MaximumAllowedMessageException(message, requests.take()));
+
+        // This entry was rejected and already removed from the queue above; its size
+        // must NOT be folded into batchSizeBytes, or it would wrongly cut the batch
+        // short even when smaller, valid entries are still waiting right behind it.
+        continue;
       }
 
       if (canAddPayload(batchSizeBytes.addAndGet(messageSize))) {
