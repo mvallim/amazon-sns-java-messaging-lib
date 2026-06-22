@@ -34,7 +34,7 @@
 		<commons-collections4.version>4.5.0</commons-collections4.version>
 		<slf4j-api.version>2.0.6</slf4j-api.version>
 		<hamcrest.version>3.0</hamcrest.version>
-		<micrometer.version>1.16.3</micrometer.version>
+		<micrometer.version>1.17.0</micrometer.version>
 		<testcontainers.version>1.20.4</testcontainers.version>
 
 		<!-- Plugins -->
