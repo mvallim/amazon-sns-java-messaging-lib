@@ -26,7 +26,7 @@
 		<lombok.version>1.18.42</lombok.version>
 		<logback.version>1.3.14</logback.version>
 		<mockito.version>4.11.0</mockito.version>
-		<junit.jupiter.version>5.10.2</junit.jupiter.version>
+		<junit.jupiter.version>6.1.0</junit.jupiter.version>
 		<jackson-databind.version>2.16.1</jackson-databind.version>
 		<awaitility.version>4.3.0</awaitility.version>
 		<assertj-core.version>3.24.2</assertj-core.version>
