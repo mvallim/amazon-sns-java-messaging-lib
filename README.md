@@ -24,7 +24,7 @@ _**Compatible AWS JDK v1 >= 1.12**_
 
 _**Compatible AWS JDK v2 >= 2.18**_
 
-This library supports **`Kotlin`** aswell
+This library supports **`Kotlin`** as well
 
 # 1. Quick Start
 
