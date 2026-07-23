@@ -28,7 +28,7 @@ com.amazon.sns.messaging.lib
 ## Dependencies
 
 ```text
-com.github.mvallim:amazon-sns-java-messaging-lib-template:1.3.0
+com.github.mvallim:amazon-sns-java-messaging-lib-template:1.3.2
 com.amazonaws:aws-java-sdk-sns:1.12.661
 ```
 
