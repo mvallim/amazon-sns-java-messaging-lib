@@ -39,8 +39,8 @@ import lombok.SneakyThrows;
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 abstract class AbstractAmazonSnsProducer<E> implements AmazonSnsProducer<E> {
 
-  /** The producer lifecycle state, initially {@link State#RUNNIG}. */
-  private final AtomicReference<State> state = new AtomicReference<>(State.RUNNIG);
+  /** The producer lifecycle state, initially {@link State#RUNNING}. */
+  private final AtomicReference<State> state = new AtomicReference<>(State.RUNNING);
 
   /** Map of pending requests keyed by request ID for asynchronous completion. */
   private final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests;
@@ -57,7 +57,7 @@ abstract class AbstractAmazonSnsProducer<E> implements AmazonSnsProducer<E> {
   @Override
   @SneakyThrows
   public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry) {
-    if (State.RUNNIG.equals(state.get())) {
+    if (State.RUNNING.equals(state.get())) {
       return enqueueRequest(requestEntry);
     } else {
       final ListenableFutureImpl listenableFutureImpl = new ListenableFutureImpl();
@@ -80,7 +80,7 @@ abstract class AbstractAmazonSnsProducer<E> implements AmazonSnsProducer<E> {
    */
   @Override
   public void shutdown() {
-    state.compareAndSet(State.RUNNIG, State.SHUTDOWN);
+    state.compareAndSet(State.RUNNING, State.SHUTDOWN);
   }
 
   /**
@@ -102,7 +102,7 @@ abstract class AbstractAmazonSnsProducer<E> implements AmazonSnsProducer<E> {
    * Lifecycle states of the producer.
    */
   enum State {
-    RUNNIG, SHUTDOWN
+    RUNNING, SHUTDOWN
   }
 
 }

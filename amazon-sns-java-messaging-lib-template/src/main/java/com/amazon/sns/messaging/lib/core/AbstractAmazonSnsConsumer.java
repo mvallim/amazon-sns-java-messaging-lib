@@ -18,8 +18,8 @@ package com.amazon.sns.messaging.lib.core;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -31,7 +31,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.LockSupport;
 import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 
@@ -63,6 +62,7 @@ import lombok.SneakyThrows;
  * @param <O> the publish batch result type
  * @param <E> the request entry payload type
  */
+@SuppressWarnings("java:S135")
 abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, AmazonSnsConsumer<R, O> {
 
   /**
@@ -122,13 +122,13 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, Amazon
       final ExecutorService executorService,
       final UnaryOperator<R> publishDecorator) {
 
-    this.amazonSnsClient = amazonSnsClient;
-    this.topicProperty = topicProperty;
-    requestEntryInternalFactory = new RequestEntryInternalFactory(objectMapper);
+    this.topicProperty = Objects.requireNonNull(topicProperty, "topicProperty cannot be null");
+    this.amazonSnsClient = Objects.requireNonNull(amazonSnsClient, "amazonSnsClient cannot be null");
+    requestEntryInternalFactory = new RequestEntryInternalFactory(Objects.requireNonNull(objectMapper, "objectMapper cannot be null"));
     this.pendingRequests = pendingRequests;
     this.topicRequests = topicRequests;
     this.publishDecorator = publishDecorator;
-    this.executorService = executorService;
+    this.executorService = Objects.requireNonNull(executorService, "executorService cannot be null");
 
     scheduledExecutorService.scheduleAtFixedRate(this, 0, topicProperty.getLinger(), TimeUnit.MILLISECONDS);
   }
@@ -277,7 +277,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, Amazon
   @SneakyThrows
   private Optional<R> createBatch(final BlockingQueue<RequestEntry<E>> requests) {
     final AtomicInteger batchSizeBytes = new AtomicInteger(0);
-    final List<RequestEntryInternal> requestEntries = new LinkedList<>();
+    final List<RequestEntryInternal> requestEntries = new ArrayList<>(topicProperty.getMaxBatchSize());
 
     while (canAddToBatch(batchSizeBytes.get(), requestEntries.size(), requests.peek())) {
       final RequestEntry<E> request = requests.peek();
@@ -298,7 +298,8 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, Amazon
 
         final String stringPayload = new String(payload, StandardCharsets.UTF_8);
 
-        final String message = String.format("The maximum allowed message size exceeding 256KB (262,144 bytes). Payload: %s, Headers: %s", stringPayload, request.getMessageHeaders());
+        final String message = String.format("The maximum allowed message size exceeding 256KB (262,144 bytes). Payload: %s, Headers: %s",
+          stringPayload, request.getMessageHeaders());
 
         handleError(publishBatchRequest, new MaximumAllowedMessageException(message, requests.take()));
 
@@ -308,8 +309,11 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, Amazon
         continue;
       }
 
-      if (canAddPayload(batchSizeBytes.addAndGet(messageSize))) {
+      if (canAddPayload(batchSizeBytes.get() + messageSize)) {
         requestEntries.add(requestEntryInternalFactory.create(requests.take(), payload));
+        batchSizeBytes.addAndGet(messageSize);
+      } else {
+        break;
       }
     }
 
@@ -317,7 +321,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, Amazon
       return Optional.empty();
     }
 
-    LOGGER.debug("{}", requestEntries);
+    LOGGER.debug("Created batch with {} entries totaling {} bytes", requestEntries.size(), batchSizeBytes.get());
 
     return Optional.of(PublishRequestBuilder.<R, RequestEntryInternal>builder()
       .supplier(supplierPublishRequest())
@@ -333,11 +337,15 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, Amazon
    * @return a future that completes when all requests are drained
    */
   @Override
-  @SneakyThrows
   public CompletableFuture<Void> await() {
     return CompletableFuture.runAsync(() -> {
-      while (MapUtils.isNotEmpty(this.pendingRequests) || CollectionUtils.isNotEmpty(this.topicRequests)) {
-        LockSupport.parkNanos(Duration.ofMillis(topicProperty.getLinger()).toNanos());
+      while (MapUtils.isNotEmpty(pendingRequests) || CollectionUtils.isNotEmpty(topicRequests)) {
+        try {
+          TimeUnit.NANOSECONDS.sleep(Duration.ofMillis(topicProperty.getLinger()).toNanos());
+        } catch (final InterruptedException e) {
+          Thread.currentThread().interrupt();
+          LOGGER.warn("await() interrupted");
+        }
       }
     });
   }
