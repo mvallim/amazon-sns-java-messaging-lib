@@ -153,7 +153,7 @@ final class RequestEntryInternalFactory {
      * @return the decoded message
      */
     public String getMessage() {
-      return StandardCharsets.UTF_8.decode(value).toString();
+      return StandardCharsets.UTF_8.decode(value.duplicate()).toString();
     }
 
   }

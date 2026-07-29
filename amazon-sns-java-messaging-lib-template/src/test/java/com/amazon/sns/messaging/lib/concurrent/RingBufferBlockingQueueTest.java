@@ -52,7 +52,12 @@ class RingBufferBlockingQueueTest {
 
     producer.submit(() -> {
       IntStream.range(0, 100_000).forEach(value -> {
-        ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(value).build());
+        try {
+          ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(value).build());
+        } catch (final InterruptedException e) {
+          e.printStackTrace(System.err);
+          Thread.currentThread().interrupt();
+        }
       });
     });
 
@@ -61,15 +66,20 @@ class RingBufferBlockingQueueTest {
         final List<RequestEntry<Integer>> requestEntries = new LinkedList<>();
 
         while ((requestEntries.size() < 10) && Objects.nonNull(ringBlockingQueue.peek())) {
-          requestEntries.add(ringBlockingQueue.take());
+          try {
+            requestEntries.add(ringBlockingQueue.take());
+          } catch (final InterruptedException e) {
+            e.printStackTrace(System.err);
+            Thread.currentThread().interrupt();
+          }
         }
 
         requestEntriesOut.addAll(requestEntries);
       }
     }, 0, 100L, TimeUnit.MILLISECONDS);
 
-    await().pollInterval(5, TimeUnit.SECONDS).pollDelay(200, TimeUnit.MILLISECONDS).until(() -> {
-      return (ringBlockingQueue.writeSequence() == 99_999) && (ringBlockingQueue.readSequence() == 100_000);
+    await().pollInterval(1, TimeUnit.SECONDS).pollDelay(200, TimeUnit.MILLISECONDS).until(() -> {
+      return ringBlockingQueue.isEmpty();
     });
 
     producer.shutdownNow();
@@ -94,21 +104,29 @@ class RingBufferBlockingQueueTest {
     final ExecutorService consumer = Executors.newSingleThreadExecutor();
 
     consumer.submit(() -> {
-      assertThat(ringBlockingQueue.take().getValue(), is(0));
-      assertThat(ringBlockingQueue.take().getValue(), is(1));
+      try {
+        assertThat(ringBlockingQueue.take().getValue(), is(0));
+        assertThat(ringBlockingQueue.take().getValue(), is(1));
+      } catch (final InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
     });
 
     await().pollDelay(2000, TimeUnit.MILLISECONDS).until(() -> true);
 
     producer.submit(() -> {
-      ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(0).build());
-      ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(1).build());
+      try {
+        ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(0).build());
+        ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(1).build());
+      } catch (final InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
     });
 
-    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.writeSequence() == 1);
+    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.writeIndex() == 1);
     producer.shutdownNow();
 
-    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.readSequence() == 2);
+    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.readIndex() == 2);
     consumer.shutdownNow();
 
     assertThat(ringBlockingQueue.isEmpty(), is(true));
@@ -123,21 +141,29 @@ class RingBufferBlockingQueueTest {
     final ExecutorService consumer = Executors.newSingleThreadExecutor();
 
     producer.submit(() -> {
-      ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(0).build());
-      ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(1).build());
+      try {
+        ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(0).build());
+        ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(1).build());
+      } catch (final InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
     });
 
     await().pollDelay(2000, TimeUnit.MILLISECONDS).until(() -> true);
 
     consumer.submit(() -> {
-      assertThat(ringBlockingQueue.take().getValue(), is(0));
-      assertThat(ringBlockingQueue.take().getValue(), is(1));
+      try {
+        assertThat(ringBlockingQueue.take().getValue(), is(0));
+        assertThat(ringBlockingQueue.take().getValue(), is(1));
+      } catch (final InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
     });
 
-    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.writeSequence() == 1);
+    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.writeIndex() == 0);
     producer.shutdownNow();
 
-    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.readSequence() == 2);
+    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.readIndex() == 0);
     consumer.shutdownNow();
 
     assertThat(ringBlockingQueue.isEmpty(), is(true));

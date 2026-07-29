@@ -155,6 +155,24 @@ class RequestEntryInternalFactoryTest {
     }
 
     @Test
+    void testCreateWithBytesPayloadDecodedCorrectlyCalledMultipleTimes() {
+      final String message = "hello world";
+      final byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
+
+      final RequestEntryInternal internal = RequestEntryInternal.builder()
+        .withId("id-1")
+        .withValue(ByteBuffer.wrap(bytes))
+        .withCreateTime(System.nanoTime())
+        .build();
+
+      final String firstCall = internal.getMessage();
+      final String secondCall = internal.getMessage();
+
+      assertThat(firstCall, equalTo(message));
+      assertThat(secondCall, equalTo(message));
+    }
+
+    @Test
     void testCreateWithBytesCreateTimeIsSet() {
       final RequestEntry<Object> entry = buildMinimalRequestEntry("hello");
       final byte[] bytes = "hello".getBytes(StandardCharsets.UTF_8);
