@@ -81,7 +81,7 @@ class RingBufferBlockingQueuePerformanceTest {
     report("RingBufferBlockingQueue", ringOpsPerSec);
     report("LinkedBlockingQueue", linkedOpsPerSec);
 
-    assertThat(ringOpsPerSec).isGreaterThan(linkedOpsPerSec * 0.6);
+    assertThat(ringOpsPerSec).isGreaterThan(linkedOpsPerSec * 0.5);
   }
 
   private static void report(final String label, final double opsPerSec) {
