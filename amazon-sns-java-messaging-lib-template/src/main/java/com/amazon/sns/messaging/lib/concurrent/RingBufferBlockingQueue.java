@@ -44,7 +44,6 @@ import lombok.Setter;
 @SuppressWarnings({ "java:S3078", "java:S1948" })
 public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements BlockingQueue<E>, Serializable {
 
-  @Serial
   private static final long serialVersionUID = 5440626969571896605L;
 
   /** Default capacity when no explicit capacity is provided. */
