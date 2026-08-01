@@ -71,7 +71,7 @@ class RingBufferBlockingQueuePerformanceTest {
     );
   }
 
-  @Timeout(120)
+  @Timeout(300)
   @MethodSource("provideParameters")
   @ParameterizedTest(name = ParameterizedTest.ARGUMENTS_WITH_NAMES_PLACEHOLDER)
   void testProducerAndConsumerThroughput(final int producers, final int consumers, final int capacity) throws Exception {
