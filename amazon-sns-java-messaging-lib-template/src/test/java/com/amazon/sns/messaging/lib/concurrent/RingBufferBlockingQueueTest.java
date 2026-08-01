@@ -20,10 +20,13 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.spy;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -37,11 +40,35 @@ import org.junit.jupiter.api.Test;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 
-@SuppressWarnings({ "java:S2925", "java:S5778" })
+/**
+ * Unit tests for {@link RingBufferBlockingQueue}.
+ *
+ * This class verifies: - constructor validation (rejecting non-positive
+ * capacity and rounding capacity up to the next power of two); - basic FIFO
+ * put/take behavior, including index wrap-around and peek semantics without
+ * removal; - isEmpty()/isFull()/remainingCapacity() state transitions as
+ * elements are added and removed; - end-to-end producer/consumer scenarios,
+ * including behavior when the queue starts empty, when it starts full, and
+ * under sustained high-volume producer/consumer traffic; - that unsupported
+ * Queue/BlockingQueue operations correctly throw UnsupportedOperationException;
+ * - rejection of null elements passed to put().
+ */
 class RingBufferBlockingQueueTest {
 
   @Test
-  void testSuccess() {
+  void testConstructorRejectsNonPositiveCapacity() {
+    assertThrows(IllegalArgumentException.class, () -> new RingBufferBlockingQueue<>(0));
+    assertThrows(IllegalArgumentException.class, () -> new RingBufferBlockingQueue<>(-5));
+  }
+
+  @Test
+  void testPutRejectsNullElement() {
+    final RingBufferBlockingQueue<String> queue = new RingBufferBlockingQueue<>(4);
+    assertThrows(NullPointerException.class, () -> queue.put(null));
+  }
+
+  @Test
+  void testProducerAndConsumerDeliverAllElementsInOrder() {
     final ExecutorService producer = Executors.newSingleThreadExecutor();
 
     final ScheduledExecutorService consumer = Executors.newSingleThreadScheduledExecutor(ThreadFactoryProvider.getThreadFactory());
@@ -96,8 +123,8 @@ class RingBufferBlockingQueueTest {
   }
 
   @Test
-  void testSuccessWhenIsEmpty() {
-    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = spy(new RingBufferBlockingQueue<>());
+  void testConsumerReceivesElementsWhenQueueStartsEmpty() {
+    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
 
     final ExecutorService producer = Executors.newSingleThreadExecutor();
 
@@ -123,7 +150,7 @@ class RingBufferBlockingQueueTest {
       }
     });
 
-    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.writeIndex() == 1);
+    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.writeIndex() == 2);
     producer.shutdownNow();
 
     await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.readIndex() == 2);
@@ -133,8 +160,8 @@ class RingBufferBlockingQueueTest {
   }
 
   @Test
-  void testSuccessWhenIsFull() {
-    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = spy(new RingBufferBlockingQueue<>(1));
+  void testProducerResumesWhenQueueStartsFull() {
+    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>(1);
 
     final ExecutorService producer = Executors.newSingleThreadExecutor();
 
@@ -170,57 +197,78 @@ class RingBufferBlockingQueueTest {
   }
 
   @Test
-  void testFailOffer() {
-    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
-    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.offer(RequestEntry.<Integer>builder().withValue(0).build()));
+  void testCapacityIsRoundedUpToNextPowerOfTwo() {
+    assertEquals(16, new RingBufferBlockingQueue<>(10).capacity());
+    assertEquals(16, new RingBufferBlockingQueue<>(16).capacity());
+    assertEquals(1, new RingBufferBlockingQueue<>(1).capacity());
+    assertEquals(2048, new RingBufferBlockingQueue<>().capacity());
   }
 
   @Test
-  void testFailOfferWithParams() {
-    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
-    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.offer(RequestEntry.<Integer>builder().withValue(0).build(), 1, TimeUnit.MILLISECONDS));
+  void testUnsupportedOperationsThrow() {
+    final RingBufferBlockingQueue<Integer> queue = new RingBufferBlockingQueue<>(4);
+    assertThrows(UnsupportedOperationException.class, () -> queue.offer(1));
+    assertThrows(UnsupportedOperationException.class, () -> queue.offer(1, 1, TimeUnit.SECONDS));
+    assertThrows(UnsupportedOperationException.class, queue::poll);
+    assertThrows(UnsupportedOperationException.class, () -> queue.poll(1, TimeUnit.SECONDS));
+    assertThrows(UnsupportedOperationException.class, queue::iterator);
+    assertThrows(UnsupportedOperationException.class, () -> queue.drainTo(new ArrayList<>()));
+    assertThrows(UnsupportedOperationException.class, () -> queue.drainTo(new ArrayList<>(), 1));
   }
 
   @Test
-  void testFailPoll() {
-    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
-    assertThrows(UnsupportedOperationException.class, ringBlockingQueue::poll);
+  void testSingleThreadFifoOrder() throws InterruptedException {
+    final RingBufferBlockingQueue<Integer> queue = new RingBufferBlockingQueue<>(16);
+    for (int i = 0; i < 10; i++) {
+      queue.put(i);
+    }
+    for (int i = 0; i < 10; i++) {
+      assertEquals(Integer.valueOf(i), queue.take());
+    }
+    assertTrue(queue.isEmpty());
   }
 
   @Test
-  void testFailPollWithParams() {
-    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
-    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.poll(1, TimeUnit.MILLISECONDS));
+  void testIsFullIsEmptyAndRemainingCapacityTransitions() throws InterruptedException {
+    final RingBufferBlockingQueue<Integer> queue = new RingBufferBlockingQueue<>(4);
+    assertTrue(queue.isEmpty());
+    assertEquals(4, queue.remainingCapacity());
+
+    for (int i = 0; i < 4; i++) {
+      queue.put(i);
+    }
+    assertTrue(queue.isFull());
+    assertEquals(0, queue.remainingCapacity());
+
+    assertEquals(Integer.valueOf(0), queue.take());
+    assertFalse(queue.isFull());
+    assertEquals(1, queue.remainingCapacity());
   }
 
   @Test
-  void testFailIterator() {
-    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
-    assertThrows(UnsupportedOperationException.class, ringBlockingQueue::iterator);
+  void testIndicesWrapAroundCorrectly() throws InterruptedException {
+    final RingBufferBlockingQueue<Integer> queue = new RingBufferBlockingQueue<>(4);
+    for (int cycle = 0; cycle < 100; cycle++) {
+      queue.put(cycle);
+      assertEquals(Integer.valueOf(cycle), queue.take());
+    }
+    assertTrue(queue.isEmpty());
+    assertEquals(0, queue.size());
   }
 
   @Test
-  void testFailAdd() {
-    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
-    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.add(RequestEntry.<Integer>builder().withValue(0).build()));
-  }
+  void testPeekReturnsHeadWithoutRemoving() throws InterruptedException {
+    final RingBufferBlockingQueue<String> queue = new RingBufferBlockingQueue<>(4);
+    assertNull(queue.peek());
 
-  @Test
-  void testFailRemainingCapacity() {
-    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
-    assertThrows(UnsupportedOperationException.class, ringBlockingQueue::remainingCapacity);
-  }
+    queue.put("a");
+    queue.put("b");
 
-  @Test
-  void testFailDrainTo() {
-    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
-    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.drainTo(Collections.emptyList()));
-  }
-
-  @Test
-  void testFailDrainToWithParams() {
-    final RingBufferBlockingQueue<RequestEntry<Integer>> ringBlockingQueue = new RingBufferBlockingQueue<>();
-    assertThrows(UnsupportedOperationException.class, () -> ringBlockingQueue.drainTo(Collections.emptyList(), 1));
+    assertEquals("a", queue.peek());
+    assertEquals("a", queue.peek());
+    assertEquals(2, queue.size());
+    assertEquals("a", queue.take());
+    assertEquals("b", queue.peek());
   }
 
 }
