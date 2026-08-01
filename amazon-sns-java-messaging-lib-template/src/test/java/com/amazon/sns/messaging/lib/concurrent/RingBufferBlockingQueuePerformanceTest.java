@@ -73,7 +73,7 @@ class RingBufferBlockingQueuePerformanceTest {
   @MethodSource("provideParameters")
   @ParameterizedTest(name = ParameterizedTest.ARGUMENTS_WITH_NAMES_PLACEHOLDER)
   void testProducerAndConsumerThroughput(final int producers, final int consumers, final int capacity) throws Exception {
-    System.out.println("\n=== %d producer / %d consumer / %d capacity ===".formatted(producers, consumers, capacity));
+    System.out.println(String.format("\n=== %d producer / %d consumer / %d capacity ===", producers, consumers, capacity));
     final double ringOpsPerSec = benchmark(new RingBufferBlockingQueue<>(capacity), producers, consumers);
     final double arrayOpsPerSec = benchmark(new ArrayBlockingQueue<>(capacity, true), producers, consumers);
     final double linkedOpsPerSec = benchmark(new LinkedBlockingQueue<>(capacity), producers, consumers);
@@ -86,7 +86,7 @@ class RingBufferBlockingQueuePerformanceTest {
   }
 
   private static void report(final String label, final double opsPerSec) {
-    System.out.printf("%-30s %,15.0f ops/sec%n", label, opsPerSec);
+    System.out.printf(String.format("%-30s %,15.0f ops/sec%n", label, opsPerSec));
   }
 
   private double benchmark(final BlockingQueue<Long> queue, final int producerCount, final int consumerCount) throws Exception {
