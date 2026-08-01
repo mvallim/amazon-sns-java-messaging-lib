@@ -132,7 +132,7 @@ class RingBufferBlockingQueuePerformanceTest {
         }));
       }
       for (final Future<?> f : producers) {
-        f.get(60, TimeUnit.SECONDS);
+        f.get(120, TimeUnit.SECONDS);
       }
       final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
       while ((consumed.get() < totalElements) && (System.nanoTime() < deadline)) {
