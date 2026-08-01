@@ -16,7 +16,6 @@
 
 package com.amazon.sns.messaging.lib.concurrent;
 
-import java.io.Serial;
 import java.io.Serializable;
 import java.util.AbstractQueue;
 import java.util.Collection;
