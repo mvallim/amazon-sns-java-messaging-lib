@@ -18,12 +18,14 @@ package com.amazon.sns.messaging.lib.concurrent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -119,7 +121,7 @@ class RingBufferBlockingQueuePerformanceTest {
           return null;
         });
       }
-      final List<java.util.concurrent.Future<?>> producers = new java.util.ArrayList<>();
+      final List<Future<?>> producers = new ArrayList<>();
       for (int p = 0; p < producerCount; p++) {
         producers.add(executor.submit(() -> {
           for (int i = 0; i < perProducer; i++) {
@@ -129,7 +131,7 @@ class RingBufferBlockingQueuePerformanceTest {
           return null;
         }));
       }
-      for (final var f : producers) {
+      for (final Future<?> f : producers) {
         f.get(60, TimeUnit.SECONDS);
       }
       final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
