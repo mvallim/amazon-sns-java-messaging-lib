@@ -24,14 +24,10 @@ import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.IntStream;
 
-import lombok.Getter;
 import lombok.Locked;
-import lombok.Setter;
 
 /**
  * A bounded blocking queue backed by a ring buffer (circular array). Supports
@@ -40,7 +36,7 @@ import lombok.Setter;
  *
  * @param <E> the type of elements held in this queue
  */
-@SuppressWarnings({ "java:S3078", "java:S1948" })
+@SuppressWarnings({ "unchecked", "java:S3078", "java:S1948" })
 public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements BlockingQueue<E>, Serializable {
 
   private static final long serialVersionUID = 5440626969571896605L;
@@ -49,7 +45,7 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   private static final int DEFAULT_CAPACITY = 2048;
 
   /** The ring buffer array holding queue entries. */
-  private final AtomicReferenceArray<Entry<E>> buffer;
+  private final E[] buffer;
 
   /** The fixed maximum number of elements the queue can hold. */
   private final int capacity;
@@ -98,8 +94,7 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
 
     this.capacity = nextPowerOfTwo(capacity);
     indexMask = this.capacity - 1;
-    buffer = new AtomicReferenceArray<>(this.capacity);
-    IntStream.range(0, this.capacity).forEach(idx -> buffer.set(idx, new Entry<>()));
+    buffer = (E[]) new Object[this.capacity];
   }
 
   /**
@@ -232,7 +227,7 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   @Override
   @Locked("consumerReentrantLock")
   public E peek() {
-    return isEmpty() ? null : buffer.get(readIndex).getValue();
+    return isEmpty() ? null : buffer[readIndex];
   }
 
   /**
@@ -266,7 +261,7 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
       }
 
       // Publish the element into the current write slot.
-      buffer.get(writeIndex).setValue(element);
+      buffer[writeIndex] = element;
 
       // Advance to the next write position.
       writeIndex = index(writeIndex + 1);
@@ -318,10 +313,10 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
       }
 
       // Read the current head element.
-      element = buffer.get(readIndex).getValue();
+      element = buffer[readIndex];
 
       // Clear the slot to allow the element to be garbage collected.
-      buffer.get(readIndex).setValue(null);
+      buffer[readIndex] = null;
 
       // Advance to the next read position.
       readIndex = index(readIndex + 1);
@@ -407,19 +402,6 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   @Override
   public int drainTo(final Collection<? super E> collection, final int maxElements) {
     throw new UnsupportedOperationException();
-  }
-
-  /**
-   * Internal entry wrapper that holds a value within the ring buffer.
-   *
-   * @param <E> the type of the value
-   */
-  @Getter
-  @Setter
-  static class Entry<E> {
-
-    private E value;
-
   }
 
 }

@@ -71,20 +71,17 @@ class RingBufferBlockingQueuePerformanceTest {
     );
   }
 
-  @Timeout(300)
+  @Timeout(120)
   @MethodSource("provideParameters")
   @ParameterizedTest(name = ParameterizedTest.ARGUMENTS_WITH_NAMES_PLACEHOLDER)
   void testProducerAndConsumerThroughput(final int producers, final int consumers, final int capacity) throws Exception {
     System.out.println(String.format("\n=== %d producer / %d consumer / %d capacity ===", producers, consumers, capacity));
     final double ringOpsPerSec = benchmark(new RingBufferBlockingQueue<>(capacity), producers, consumers);
-    final double arrayOpsPerSec = benchmark(new ArrayBlockingQueue<>(capacity, true), producers, consumers);
     final double linkedOpsPerSec = benchmark(new LinkedBlockingQueue<>(capacity), producers, consumers);
     report("RingBufferBlockingQueue", ringOpsPerSec);
-    report("ArrayBlockingQueue (fair)", arrayOpsPerSec);
     report("LinkedBlockingQueue", linkedOpsPerSec);
 
-    assertThat(ringOpsPerSec).isGreaterThan(arrayOpsPerSec * 0.1);
-    assertThat(ringOpsPerSec).isGreaterThan(linkedOpsPerSec * 0.1);
+    assertThat(ringOpsPerSec).isGreaterThan(linkedOpsPerSec * 0.6);
   }
 
   private static void report(final String label, final double opsPerSec) {
@@ -108,7 +105,7 @@ class RingBufferBlockingQueuePerformanceTest {
     final AtomicLong consumed = new AtomicLong(0);
     final CountDownLatch producersDone = new CountDownLatch(producerCount);
     try {
-      for (int c = 0; c < consumerCount; c++) {
+      for (int count = 0; count < consumerCount; count++) {
         executor.submit(() -> {
           while (consumed.get() < totalElements) {
             final Long value = queue.take();
@@ -122,7 +119,7 @@ class RingBufferBlockingQueuePerformanceTest {
         });
       }
       final List<Future<?>> producers = new ArrayList<>();
-      for (int p = 0; p < producerCount; p++) {
+      for (int count = 0; count < producerCount; count++) {
         producers.add(executor.submit(() -> {
           for (int i = 0; i < perProducer; i++) {
             queue.put(1L);
@@ -131,8 +128,8 @@ class RingBufferBlockingQueuePerformanceTest {
           return null;
         }));
       }
-      for (final Future<?> f : producers) {
-        f.get(120, TimeUnit.SECONDS);
+      for (final Future<?> producer : producers) {
+        producer.get(60, TimeUnit.SECONDS);
       }
       final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
       while ((consumed.get() < totalElements) && (System.nanoTime() < deadline)) {

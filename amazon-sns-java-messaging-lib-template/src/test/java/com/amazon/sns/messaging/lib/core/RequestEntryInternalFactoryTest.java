@@ -39,6 +39,7 @@ import org.junit.jupiter.api.Test;
 import com.amazon.sns.messaging.lib.core.RequestEntryInternalFactory.MessageAttributesInternal;
 import com.amazon.sns.messaging.lib.core.RequestEntryInternalFactory.RequestEntryInternal;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 // @formatter:off
@@ -207,7 +208,7 @@ class RequestEntryInternalFactoryTest {
   class CreateAutoSerialize {
 
     @Test
-    void testCreateWithStringPayloadReturnsNotNull() {
+    void testCreateWithStringPayloadReturnsNotNull() throws JsonProcessingException {
       final RequestEntry<Object> entry = buildMinimalRequestEntry("hello");
 
       final RequestEntryInternal result = factory.create(entry);
@@ -216,7 +217,7 @@ class RequestEntryInternalFactoryTest {
     }
 
     @Test
-    void testCreateWithStringPayloadDecodesCorrectly() {
+    void testCreateWithStringPayloadDecodesCorrectly() throws JsonProcessingException {
       final RequestEntry<Object> entry = buildMinimalRequestEntry("hello");
 
       final RequestEntryInternal result = factory.create(entry);
@@ -225,7 +226,7 @@ class RequestEntryInternalFactoryTest {
     }
 
     @Test
-    void testCreateWithStringPayloadSizeMatchesUtf8Length() {
+    void testCreateWithStringPayloadSizeMatchesUtf8Length() throws JsonProcessingException {
       final String message = "hello";
       final RequestEntry<Object> entry = buildMinimalRequestEntry(message);
 
@@ -235,7 +236,7 @@ class RequestEntryInternalFactoryTest {
     }
 
     @Test
-    void testCreateWithMultibyteStringPayloadEncodedInUtf8() {
+    void testCreateWithMultibyteStringPayloadEncodedInUtf8() throws JsonProcessingException {
       final String message = "こんにちは";
       final RequestEntry<Object> entry = buildMinimalRequestEntry(message);
 
@@ -267,7 +268,7 @@ class RequestEntryInternalFactoryTest {
     }
 
     @Test
-    void testCreateWithEmptyStringPayloadSizeIsZero() {
+    void testCreateWithEmptyStringPayloadSizeIsZero() throws JsonProcessingException {
       final RequestEntry<Object> entry = buildMinimalRequestEntry("");
 
       final RequestEntryInternal result = factory.create(entry);
@@ -276,7 +277,7 @@ class RequestEntryInternalFactoryTest {
     }
 
     @Test
-    void testCreateWithStringPayloadMapsId() {
+    void testCreateWithStringPayloadMapsId() throws JsonProcessingException {
       final RequestEntry<Object> entry = buildMinimalRequestEntry("payload");
 
       final RequestEntryInternal result = factory.create(entry);
@@ -289,7 +290,7 @@ class RequestEntryInternalFactoryTest {
   class ConvertPayload {
 
     @Test
-    void testConvertPayloadStringReturnsUtf8Bytes() {
+    void testConvertPayloadStringReturnsUtf8Bytes() throws JsonProcessingException {
       final String value = "hello";
       final RequestEntry<Object> entry = buildMinimalRequestEntry(value);
 
@@ -299,7 +300,7 @@ class RequestEntryInternalFactoryTest {
     }
 
     @Test
-    void testConvertPayloadStringIsNotSerializedWithJacksonQuotes() {
+    void testConvertPayloadStringIsNotSerializedWithJacksonQuotes() throws JsonProcessingException {
       final String value = "hello";
       final RequestEntry<Object> entry = buildMinimalRequestEntry(value);
 
@@ -331,7 +332,7 @@ class RequestEntryInternalFactoryTest {
     }
 
     @Test
-    void testConvertPayloadMultibyteStringEncodedCorrectly() {
+    void testConvertPayloadMultibyteStringEncodedCorrectly() throws JsonProcessingException {
       final String value = "日本語";
       final RequestEntry<Object> entry = buildMinimalRequestEntry(value);
 
@@ -341,7 +342,7 @@ class RequestEntryInternalFactoryTest {
     }
 
     @Test
-    void testConvertPayloadEmptyStringReturnsEmptyArray() {
+    void testConvertPayloadEmptyStringReturnsEmptyArray() throws JsonProcessingException {
       final RequestEntry<Object> entry = buildMinimalRequestEntry("");
 
       final byte[] result = factory.convertPayload(entry);
