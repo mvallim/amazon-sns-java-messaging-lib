@@ -173,7 +173,7 @@ final class RequestEntryInternalFactory {
      */
     @Override
     public Integer getEnumMessageAttribute(final Enum<?> value) {
-      return value.name().length();
+      return value.name().getBytes(StandardCharsets.UTF_8).length;
     }
 
     /**
@@ -181,7 +181,7 @@ final class RequestEntryInternalFactory {
      */
     @Override
     public Integer getStringMessageAttribute(final String value) {
-      return value.length();
+      return value.getBytes(StandardCharsets.UTF_8).length;
     }
 
     /**
@@ -189,7 +189,7 @@ final class RequestEntryInternalFactory {
      */
     @Override
     public Integer getNumberMessageAttribute(final Number value) {
-      return value.toString().length();
+      return value.toString().getBytes(StandardCharsets.UTF_8).length;
     }
 
     /**
@@ -205,7 +205,7 @@ final class RequestEntryInternalFactory {
      */
     @Override
     public Integer getStringArrayMessageAttribute(final List<?> values) {
-      return stringArray(values).length();
+      return stringArray(values).getBytes(StandardCharsets.UTF_8).length;
     }
 
   }
