@@ -16,22 +16,18 @@
 
 package com.amazon.sns.messaging.lib.concurrent;
 
+import java.io.Serializable;
 import java.util.AbstractQueue;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.IntStream;
 
-import lombok.Getter;
 import lombok.Locked;
-import lombok.Setter;
-import lombok.SneakyThrows;
 
 /**
  * A bounded blocking queue backed by a ring buffer (circular array). Supports
@@ -40,50 +36,65 @@ import lombok.SneakyThrows;
  *
  * @param <E> the type of elements held in this queue
  */
-public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements BlockingQueue<E> {
+@SuppressWarnings({ "unchecked", "java:S3078", "java:S1948" })
+public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements BlockingQueue<E>, Serializable {
+
+  private static final long serialVersionUID = 5440626969571896605L;
 
   /** Default capacity when no explicit capacity is provided. */
   private static final int DEFAULT_CAPACITY = 2048;
 
   /** The ring buffer array holding queue entries. */
-  private final AtomicReferenceArray<Entry<E>> buffer;
+  private final E[] buffer;
 
   /** The fixed maximum number of elements the queue can hold. */
   private final int capacity;
 
-  /**
-   * Sequence number tracking the next write position (starts at -1 indicating no
-   * writes).
-   */
-  private final AtomicLong writeSequence = new AtomicLong(-1);
+  /** Bitmask used to map a monotonically increasing cursor to a slot index. */
+  private final int indexMask;
 
-  /** Sequence number tracking the next read position. */
-  private final AtomicLong readSequence = new AtomicLong(0);
+  /** Index of the next buffer slot to be written. */
+  private volatile int writeIndex;
+
+  /** Index of the next buffer slot to be read. */
+  private volatile int readIndex;
 
   /** Current number of elements in the queue. */
   private final AtomicInteger size = new AtomicInteger(0);
 
-  /** Fair reentrant lock for coordinating producer/consumer access. */
-  private final ReentrantLock reentrantLock;
-
-  /** Condition for consumers waiting when the queue is empty. */
-  private final Condition waitingConsumer;
+  /**
+   * Lock serializing producer operations, including writes to the ring buffer,
+   * updates to the write index, and coordination with waiting producers.
+   */
+  private final ReentrantLock producerReentrantLock = new ReentrantLock();
 
   /** Condition for producers waiting when the queue is full. */
-  private final Condition waitingProducer;
+  private final Condition waitingProducer = producerReentrantLock.newCondition();
+
+  /**
+   * Lock serializing consumer operations, including reads from the ring buffer,
+   * updates to the read index, and coordination with waiting consumers.
+   */
+  private final ReentrantLock consumerReentrantLock = new ReentrantLock();
+
+  /** Condition for consumers waiting when the queue is empty. */
+  private final Condition waitingConsumer = consumerReentrantLock.newCondition();
 
   /**
    * Creates a ring buffer with the specified capacity.
    *
-   * @param capacity the maximum number of elements the queue can hold
+   * @param capacity the maximum number of elements the queue can hold; must be
+   *                 positive
+   * @throws IllegalArgumentException if {@code capacity <= 0}
    */
   public RingBufferBlockingQueue(final int capacity) {
-    this.capacity = capacity;
-    buffer = new AtomicReferenceArray<>(capacity);
-    reentrantLock = new ReentrantLock(true);
-    waitingConsumer = reentrantLock.newCondition();
-    waitingProducer = reentrantLock.newCondition();
-    IntStream.range(0, capacity).forEach(idx -> buffer.set(idx, new Entry<>()));
+    if (capacity <= 0) {
+      throw new IllegalArgumentException("capacity must be positive, got: " + capacity);
+    }
+
+    this.capacity = nextPowerOfTwo(capacity);
+    indexMask = this.capacity - 1;
+    buffer = (E[]) new Object[this.capacity];
   }
 
   /**
@@ -94,24 +105,53 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   }
 
   /**
-   * Prevents sequence overflow by wrapping around when the maximum long value is
-   * reached.
+   * Rounds the given value up to the next power of two. If the value is already a
+   * power of two, it is returned unchanged.
    *
-   * @param sequence the current sequence value
-   * @return the sequence value, wrapped if necessary
+   * @param value the value to round up; must be positive
+   * @return the smallest power of two greater than or equal to {@code value}
    */
-  private long avoidSequenceOverflow(final long sequence) {
-    return (sequence < Long.MAX_VALUE ? sequence : wrap(sequence));
+  private static int nextPowerOfTwo(final int value) {
+    final int highestOneBit = Integer.highestOneBit(value);
+    return highestOneBit == value ? value : (highestOneBit << 1);
   }
 
   /**
-   * Wraps a sequence number to a valid buffer index.
-   *
-   * @param sequence the sequence number to wrap
-   * @return the buffer index
+   * Wakes a single consumer waiting for an element to become available.
+   * <p>
+   * This method is invoked after a successful insertion when the queue
+   * transitions from empty to non-empty. The {@link Locked} annotation ensures
+   * that the associated consumer lock is held before signaling the waiting
+   * condition.
    */
-  private int wrap(final long sequence) {
-    return Math.toIntExact(sequence % capacity);
+  @Locked("consumerReentrantLock")
+  private void signalConsumer() {
+    waitingConsumer.signal();
+  }
+
+  /**
+   * Wakes a single producer waiting for space to become available.
+   * <p>
+   * This method is invoked after a successful removal when the queue transitions
+   * from full to not-full. The {@link Locked} annotation ensures that the
+   * associated producer lock is held before signaling the waiting condition.
+   */
+  @Locked("producerReentrantLock")
+  private void signalProducer() {
+    waitingProducer.signal();
+  }
+
+  /**
+   * Maps the given index to a valid position in the underlying ring buffer.
+   * <p>
+   * Since the buffer capacity is always a power of two, wrapping is performed
+   * efficiently using a bit mask instead of the modulo operator.
+   *
+   * @param index the logical index to map
+   * @return the corresponding slot index in the backing array
+   */
+  private int index(final int sequence) {
+    return sequence & indexMask;
   }
 
   /**
@@ -145,87 +185,163 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
    * @return true if the queue size equals its capacity
    */
   public boolean isFull() {
-    return size.get() >= capacity;
+    return size.get() == capacity;
   }
 
   /**
-   * Returns the current write sequence number.
+   * Returns the current write index.
+   * <p>
+   * The returned value identifies the next buffer slot where a producer will
+   * insert an element. The value is always in the range {@code [0, capacity())}.
    *
-   * @return the write sequence
+   * @return the current write index
    */
-  public long writeSequence() {
-    return writeSequence.get();
+  public long writeIndex() {
+    return writeIndex;
   }
 
   /**
-   * Returns the current read sequence number.
+   * Returns the current read index.
+   * <p>
+   * The returned value identifies the next buffer slot from which a consumer will
+   * remove an element. The value is always in the range {@code [0, capacity())}.
    *
-   * @return the read sequence
+   * @return the current read index
    */
-  public long readSequence() {
-    return readSequence.get();
+  public long readIndex() {
+    return readIndex;
   }
 
   /**
    * {@inheritDoc}
+   *
+   * <p>
+   * Returns, without removing it, the element at the head of this queue, or
+   * {@code null} if the queue is empty.
+   *
+   * <p>
+   * The operation is synchronized with consumer operations to provide a
+   * consistent view of the current head element while allowing producers to
+   * continue inserting concurrently.
    */
   @Override
+  @Locked("consumerReentrantLock")
   public E peek() {
-    return isEmpty() ? null : buffer.get(wrap(readSequence.get())).getValue();
+    return isEmpty() ? null : buffer[readIndex];
   }
 
   /**
    * {@inheritDoc}
+   *
+   * <p>
+   * If the queue is full, the calling thread blocks until space becomes available
+   * or the thread is interrupted.
+   *
+   * <p>
+   * This operation is serialized with other producers while remaining concurrent
+   * with consumers whenever possible.
+   *
+   * @throws InterruptedException if interrupted while waiting
    */
   @Override
-  @SneakyThrows
-  @Locked("reentrantLock")
-  public void put(final E element) {
-    while (isFull()) {
-      waitingProducer.await();
+  public void put(final E element) throws InterruptedException {
+    Objects.requireNonNull(element, "element");
+
+    int prevSize;
+
+    // Serialize producer operations while allowing consumers to proceed
+    // concurrently.
+    producerReentrantLock.lockInterruptibly();
+
+    try {
+
+      // Wait until space becomes available.
+      while (isFull()) {
+        waitingProducer.await();
+      }
+
+      // Publish the element into the current write slot.
+      buffer[writeIndex] = element;
+
+      // Advance to the next write position.
+      writeIndex = index(writeIndex + 1);
+
+      // Atomically publish the insertion by incrementing the element count.
+      prevSize = size.getAndIncrement();
+
+      // If additional capacity remains, wake another waiting producer.
+      if ((prevSize + 1) < capacity) {
+        waitingProducer.signal();
+      }
+    } finally {
+      producerReentrantLock.unlock();
     }
 
-    final long prevWriteSeq = writeSequence.get();
-    final long nextWriteSeq = avoidSequenceOverflow(prevWriteSeq) + 1;
-
-    buffer.get(wrap(nextWriteSeq)).setValue(element);
-
-    writeSequence.compareAndSet(prevWriteSeq, nextWriteSeq);
-
-    size.incrementAndGet();
-
-    waitingConsumer.signal();
+    // If the queue was previously empty, wake one waiting consumer.
+    if (prevSize == 0) {
+      signalConsumer();
+    }
   }
 
   /**
    * {@inheritDoc}
+   *
+   * <p>
+   * If the queue is empty, the calling thread blocks until an element becomes
+   * available or the thread is interrupted.
+   *
+   * <p>
+   * This operation is serialized with other consumers while remaining concurrent
+   * with producers whenever possible.
+   *
+   * @throws InterruptedException if interrupted while waiting
    */
   @Override
-  @SneakyThrows
-  @Locked("reentrantLock")
-  public E take() {
-    while (isEmpty()) {
-      waitingConsumer.await();
+  public E take() throws InterruptedException {
+    int prevSize;
+
+    E element;
+
+    // Serialize consumer operations while allowing producers to proceed
+    // concurrently.
+    consumerReentrantLock.lockInterruptibly();
+
+    try {
+      // Wait until an element becomes available.
+      while (isEmpty()) {
+        waitingConsumer.await();
+      }
+
+      // Read the current head element.
+      element = buffer[readIndex];
+
+      // Clear the slot to allow the element to be garbage collected.
+      buffer[readIndex] = null;
+
+      // Advance to the next read position.
+      readIndex = index(readIndex + 1);
+
+      // Atomically publish the removal by decrementing the element count.
+      prevSize = size.getAndDecrement();
+
+      // If additional elements remain, wake another waiting consumer.
+      if (prevSize > 1) {
+        waitingConsumer.signal();
+      }
+    } finally {
+      consumerReentrantLock.unlock();
     }
 
-    final long prevReadSeq = readSequence.get();
-    final long nextReadSeq = avoidSequenceOverflow(prevReadSeq) + 1;
+    // If the queue was previously full, wake one waiting producer.
+    if (prevSize == capacity) {
+      signalProducer();
+    }
 
-    final E nextValue = buffer.get(wrap(prevReadSeq)).getValue();
-
-    buffer.get(wrap(prevReadSeq)).setValue(null);
-
-    readSequence.compareAndSet(prevReadSeq, nextReadSeq);
-
-    size.decrementAndGet();
-
-    waitingProducer.signal();
-
-    return nextValue;
+    return element;
   }
 
   /**
-   * @throws UnsupportedOperationException always
+   * {@inheritDoc}
    */
   @Override
   public boolean offer(final E element) {
@@ -233,7 +349,7 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   }
 
   /**
-   * @throws UnsupportedOperationException always
+   * {@inheritDoc}
    */
   @Override
   public boolean offer(final E element, final long timeout, final TimeUnit unit) throws InterruptedException {
@@ -241,7 +357,7 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   }
 
   /**
-   * @throws UnsupportedOperationException always
+   * {@inheritDoc}
    */
   @Override
   public E poll() {
@@ -249,7 +365,7 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   }
 
   /**
-   * @throws UnsupportedOperationException always
+   * {@inheritDoc}
    */
   @Override
   public E poll(final long timeout, final TimeUnit unit) throws InterruptedException {
@@ -257,7 +373,7 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   }
 
   /**
-   * @throws UnsupportedOperationException always
+   * {@inheritDoc}
    */
   @Override
   public Iterator<E> iterator() {
@@ -265,23 +381,15 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   }
 
   /**
-   * @throws UnsupportedOperationException always
-   */
-  @Override
-  public boolean add(final E element) {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * @throws UnsupportedOperationException always
+   * {@inheritDoc}
    */
   @Override
   public int remainingCapacity() {
-    throw new UnsupportedOperationException();
+    return capacity - size.get();
   }
 
   /**
-   * @throws UnsupportedOperationException always
+   * {@inheritDoc}
    */
   @Override
   public int drainTo(final Collection<? super E> collection) {
@@ -289,24 +397,11 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   }
 
   /**
-   * @throws UnsupportedOperationException always
+   * {@inheritDoc}
    */
   @Override
   public int drainTo(final Collection<? super E> collection, final int maxElements) {
     throw new UnsupportedOperationException();
-  }
-
-  /**
-   * Internal entry wrapper that holds a value within the ring buffer.
-   *
-   * @param <E> the type of the value
-   */
-  @Getter
-  @Setter
-  static class Entry<E> {
-
-    private E value;
-
   }
 
 }

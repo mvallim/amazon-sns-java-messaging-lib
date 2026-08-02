@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.AccessLevel;
@@ -30,7 +31,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.ToString;
 
 // @formatter:off
@@ -66,8 +66,9 @@ final class RequestEntryInternalFactory {
    *
    * @param requestEntry the source request entry
    * @return a new internal request entry with serialized payload
+   * @throws JsonProcessingException
    */
-  public RequestEntryInternal create(final RequestEntry<?> requestEntry) {
+  public RequestEntryInternal create(final RequestEntry<?> requestEntry) throws JsonProcessingException {
     return create(requestEntry, convertPayload(requestEntry));
   }
 
@@ -77,9 +78,9 @@ final class RequestEntryInternalFactory {
    *
    * @param requestEntry the request entry whose payload to convert
    * @return the serialized payload bytes
+   * @throws JsonProcessingException
    */
-  @SneakyThrows
-  public byte[] convertPayload(final RequestEntry<?> requestEntry) {
+  public byte[] convertPayload(final RequestEntry<?> requestEntry) throws JsonProcessingException {
     return requestEntry.getValue() instanceof String
       ? String.class.cast(requestEntry.getValue()).getBytes(StandardCharsets.UTF_8)
       : objectMapper.writeValueAsBytes(requestEntry.getValue());
@@ -91,7 +92,6 @@ final class RequestEntryInternalFactory {
    * @param requestEntry the request entry
    * @return the combined size (in bytes) of all attribute keys and values
    */
-  @SneakyThrows
   public Integer messageAttributesSize(final RequestEntry<?> requestEntry) {
     final Map<String, Integer> messageAttributes = MessageAttributesInternal.INSTANCE.messageAttributes(requestEntry.getMessageHeaders());
 
@@ -153,7 +153,7 @@ final class RequestEntryInternalFactory {
      * @return the decoded message
      */
     public String getMessage() {
-      return StandardCharsets.UTF_8.decode(value).toString();
+      return StandardCharsets.UTF_8.decode(value.duplicate()).toString();
     }
 
   }
