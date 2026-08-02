@@ -25,15 +25,15 @@ import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 
 /**
- * A {@link RejectedExecutionHandler} that blocks the caller thread until the task can be
- * enqueued, up to the specified timeout. If the timeout elapses, a {@link RejectedExecutionException}
- * is thrown.
+ * A {@link RejectedExecutionHandler} that blocks the caller thread until the
+ * task can be enqueued, up to the specified timeout. If the timeout elapses, a
+ * {@link RejectedExecutionException} is thrown.
  */
 public class BlockingSubmissionPolicy implements RejectedExecutionHandler {
 
   /** The maximum time to wait for queue insertion, in milliseconds. */
   private final long timeout;
-  
+
   /**
    * Creates a new policy with the given blocking timeout.
    *
@@ -42,17 +42,22 @@ public class BlockingSubmissionPolicy implements RejectedExecutionHandler {
   public BlockingSubmissionPolicy(final long timeout) {
     this.timeout = timeout;
   }
-  
+
   /**
    * {@inheritDoc}
    */
   @Override
   @SneakyThrows
   public void rejectedExecution(final Runnable runnable, final ThreadPoolExecutor executor) {
-    final BlockingQueue<Runnable> queue = executor.getQueue();
-    if (!queue.offer(runnable, timeout, TimeUnit.MILLISECONDS)) {
-      throw new RejectedExecutionException("Timeout");
+    try {
+      final BlockingQueue<Runnable> queue = executor.getQueue();
+      if (!queue.offer(runnable, timeout, TimeUnit.MILLISECONDS)) {
+        throw new RejectedExecutionException("Timeout");
+      }
+    } catch (final InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw ex;
     }
   }
-  
+
 }
