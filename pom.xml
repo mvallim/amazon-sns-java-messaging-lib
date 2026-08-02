@@ -36,7 +36,7 @@
 		<hamcrest.version>3.0</hamcrest.version>
 		<micrometer.version>1.16.3</micrometer.version>
 		<testcontainers.version>1.20.4</testcontainers.version>
-		<java-fluent-validator>1.10.0</java-fluent-validator>
+		<java-fluent-validator>1.10.1</java-fluent-validator>
 
 		<!-- Plugins -->
 		<maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
