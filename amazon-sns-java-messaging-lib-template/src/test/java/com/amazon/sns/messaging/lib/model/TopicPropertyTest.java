@@ -25,16 +25,36 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
 
-import com.amazon.sns.messaging.lib.model.TopicProperty.TopicPropertyBuilder;
-
 // @formatter:off
 class TopicPropertyTest {
 
   private static final String VALID_TOPIC_ARN = "arn:aws:sns:us-east-1:123456789012:my-topic";
   private static final String VALID_FIFO_TOPIC_ARN = "arn:aws:sns:us-east-1:123456789012:my-topic.fifo";
 
-  private TopicPropertyBuilder validBuilder() {
-    return TopicProperty.builder().fifo(false).maximumPoolSize(5).topicArn(VALID_TOPIC_ARN).linger(10L).maxBatchSize(10);
+  private TopicProperty.TopicPropertyBuilder validBuilder() {
+    return TopicProperty.builder()
+      .fifo(false)
+      .maximumPoolSize(5)
+      .topicArn(VALID_TOPIC_ARN)
+      .linger(10L)
+      .maxBatchSize(10);
+  }
+
+  private TopicProperty.TopicPropertyBuilder validFifoBuilder() {
+    return TopicProperty.builder()
+      .fifo(true)
+      .maximumPoolSize(1)
+      .topicArn(VALID_FIFO_TOPIC_ARN)
+      .linger(10L)
+      .maxBatchSize(10);
+  }
+
+  private TopicProperty.TopicPropertyBuilder validBuilderWithoutLinger() {
+    return TopicProperty.builder()
+      .fifo(false)
+      .maximumPoolSize(5)
+      .topicArn(VALID_TOPIC_ARN)
+      .maxBatchSize(10);
   }
 
   @Test
@@ -89,24 +109,6 @@ class TopicPropertyTest {
   }
 
   @Test
-  void testThrowsWhenFifoTrueAndMaximumPoolSizeIsNotOne() {
-    final TopicProperty.TopicPropertyBuilder builder = validBuilder().fifo(true).maximumPoolSize(2).topicArn(VALID_FIFO_TOPIC_ARN);
-
-    final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, builder::build);
-
-    assertThat(exception.getMessage(), containsString("'maximumPoolSize' must be equal to 1 (one) when 'fifo' is true"));
-  }
-
-  @Test
-  void testBuildsSuccessfullyWhenFifoTrueAndMaximumPoolSizeIsOne() {
-    final TopicProperty topicProperty = validBuilder().fifo(true).maximumPoolSize(1).topicArn(VALID_FIFO_TOPIC_ARN).build();
-
-    assertThat(topicProperty.isFifo(), is(true));
-    assertThat(topicProperty.getMaximumPoolSize(), is(equalTo(1)));
-    assertThat(topicProperty.getTopicArn(), is(equalTo(VALID_FIFO_TOPIC_ARN)));
-  }
-
-  @Test
   void testThrowsWhenTopicArnIsNull() {
     final TopicProperty.TopicPropertyBuilder builder = validBuilder().topicArn(null);
 
@@ -139,7 +141,8 @@ class TopicPropertyTest {
 
     final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, builder::build);
 
-    assertThat(exception.getMessage(), containsString("'topicArn' must have the correct arn format 'arn:aws:sns:<region>:<account-id>:<topic-name>'"));
+    assertThat(exception.getMessage(),
+        containsString("'topicArn' must have the correct arn format 'arn:aws:sns:<region>:<account-id>:<topic-name>'"));
   }
 
   @Test
@@ -148,14 +151,8 @@ class TopicPropertyTest {
 
     final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, builder::build);
 
-    assertThat(exception.getMessage(), containsString("'topicArn' must have the correct arn format 'arn:aws:sns:<region>:<account-id>:<topic-name>'"));
-  }
-
-  @Test
-  void testBuildsSuccessfullyWithFifoTopicArnSuffix() {
-    final TopicProperty topicProperty = validBuilder().fifo(true).maximumPoolSize(1).topicArn(VALID_FIFO_TOPIC_ARN).build();
-
-    assertThat(topicProperty.getTopicArn(), is(equalTo(VALID_FIFO_TOPIC_ARN)));
+    assertThat(exception.getMessage(),
+        containsString("'topicArn' must have the correct arn format 'arn:aws:sns:<region>:<account-id>:<topic-name>'"));
   }
 
   @Test
@@ -181,6 +178,38 @@ class TopicPropertyTest {
     final TopicProperty topicProperty = validBuilder().linger(10L).build();
 
     assertThat(topicProperty.getLinger(), is(equalTo(10L)));
+  }
+
+  @Test
+  void testDefaultsLingerToTenWhenNotExplicitlySet() {
+    final TopicProperty topicProperty = validBuilderWithoutLinger().build();
+
+    assertThat(topicProperty.getLinger(), is(equalTo(10L)));
+  }
+
+  @Test
+  void testExplicitLingerOverridesDefaultValue() {
+    final TopicProperty topicProperty = validBuilderWithoutLinger().linger(42L).build();
+
+    assertThat(topicProperty.getLinger(), is(equalTo(42L)));
+  }
+
+  @Test
+  void testThrowsWhenLingerIsExplicitlySetBelowDefaultAndNotDefaulted() {
+    final TopicProperty.TopicPropertyBuilder builder = validBuilderWithoutLinger().linger(5L);
+
+    final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, builder::build);
+
+    assertThat(exception.getMessage(), containsString("'linger' must be greater than or equal to 10 (ten)"));
+  }
+
+  @Test
+  void testToBuilderPreservesDefaultedLingerValue() {
+    final TopicProperty original = validBuilderWithoutLinger().build();
+
+    final TopicProperty copy = original.toBuilder().build();
+
+    assertThat(copy.getLinger(), is(equalTo(10L)));
   }
 
   @Test
@@ -216,8 +245,42 @@ class TopicPropertyTest {
   }
 
   @Test
+  void testBuildsSuccessfullyWhenFifoTrueWithMaximumPoolSizeOneAndFifoSuffixedArn() {
+    final TopicProperty topicProperty = validFifoBuilder().build();
+
+    assertThat(topicProperty.isFifo(), is(true));
+    assertThat(topicProperty.getMaximumPoolSize(), is(equalTo(1)));
+    assertThat(topicProperty.getTopicArn(), is(equalTo(VALID_FIFO_TOPIC_ARN)));
+  }
+
+  @Test
+  void testThrowsWhenFifoTrueAndMaximumPoolSizeIsNotOne() {
+    final TopicProperty.TopicPropertyBuilder builder = validFifoBuilder().maximumPoolSize(2);
+
+    final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, builder::build);
+
+    assertThat(exception.getMessage(),
+        containsString("'maximumPoolSize' must be equal to 1 (one) when 'fifo' is true"));
+  }
+
+  @Test
+  void testThrowsWhenFifoTrueAndTopicArnDoesNotEndWithFifoSuffix() {
+    final TopicProperty.TopicPropertyBuilder builder = validFifoBuilder().topicArn(VALID_TOPIC_ARN);
+
+    final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, builder::build);
+
+    assertThat(exception.getMessage(),
+        containsString("'topicArn' must be ends with in '.fifo' when 'fifo' is true"));
+  }
+
+  @Test
   void testExceptionIsThrownWithNonEmptyValidationMessageWhenMultipleFieldsAreInvalid() {
-    final TopicProperty.TopicPropertyBuilder builder = TopicProperty.builder().fifo(false).maximumPoolSize(null).topicArn(null).linger(0L).maxBatchSize(0);
+    final TopicProperty.TopicPropertyBuilder builder = TopicProperty.builder()
+        .fifo(false)
+        .maximumPoolSize(null)
+        .topicArn(null)
+        .linger(0L)
+        .maxBatchSize(0);
 
     final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, builder::build);
 
@@ -230,6 +293,6 @@ class TopicPropertyTest {
 
     assertThat(topicProperty.toString(), is(notNullValue()));
   }
-
 }
-// @formatter:on
+
+//@formatter:on

@@ -135,7 +135,7 @@ public class TopicProperty {
     /**
      * Tracks whether {@code linger(long)} was explicitly invoked.
      *
-     * <p>This flag allows applying {@link QueueProperty#DEFAULT_LINGER} only when
+     * <p>This flag allows applying {@link TopicProperty#DEFAULT_LINGER} only when
      * no explicit value was provided through the builder.
      */
     private boolean linger$set;
