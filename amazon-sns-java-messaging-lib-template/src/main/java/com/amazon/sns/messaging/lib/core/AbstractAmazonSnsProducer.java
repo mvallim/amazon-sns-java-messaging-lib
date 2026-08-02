@@ -55,7 +55,6 @@ abstract class AbstractAmazonSnsProducer<E> implements AmazonSnsProducer<E> {
    * @return a {@link ListenableFuture} that tracks the completion of this request
    */
   @Override
-  @SneakyThrows
   public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry) {
     if (State.RUNNING.equals(state.get())) {
       return enqueueRequest(requestEntry);
@@ -92,10 +91,15 @@ abstract class AbstractAmazonSnsProducer<E> implements AmazonSnsProducer<E> {
    */
   @SneakyThrows
   private ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> enqueueRequest(final RequestEntry<E> requestEntry) {
-    final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> trackPendingRequest = new ListenableFutureImpl();
-    pendingRequests.put(requestEntry.getId(), trackPendingRequest);
-    topicRequests.put(requestEntry);
-    return trackPendingRequest;
+    try {
+      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> trackPendingRequest = new ListenableFutureImpl();
+      pendingRequests.put(requestEntry.getId(), trackPendingRequest);
+      topicRequests.put(requestEntry);
+      return trackPendingRequest;
+    } catch (final InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw ex;
+    }
   }
 
   /**

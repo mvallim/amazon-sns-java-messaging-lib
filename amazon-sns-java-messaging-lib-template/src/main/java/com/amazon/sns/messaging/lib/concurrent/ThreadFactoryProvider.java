@@ -69,7 +69,6 @@ public final class ThreadFactoryProvider {
    *
    * @return the default thread factory
    */
-  @SneakyThrows
   private static ThreadFactory getDefaultThreadFactory() {
     return Executors.defaultThreadFactory();
   }

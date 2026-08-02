@@ -47,9 +47,8 @@ import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
 import com.amazon.sns.messaging.lib.model.TopicProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import lombok.SneakyThrows;
 
 // @formatter:off
 /**
@@ -177,12 +176,14 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, Amazon
    * Periodically drains the request queue and publishes batches.
    */
   @Override
-  @SneakyThrows
   public void run() {
     try {
       while (requestsWaitedFor(topicRequests, topicProperty.getLinger()) || maxBatchSizeReached(topicRequests)) {
         createBatch(topicRequests).ifPresent(this::publishBatch);
       }
+    } catch (final InterruptedException ex) {
+      LOGGER.error(ex.getMessage(), ex);
+      Thread.currentThread().interrupt();
     } catch (final Exception ex) {
       LOGGER.error(ex.getMessage(), ex);
     }
@@ -193,7 +194,6 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, Amazon
    * worker executor services to terminate.
    */
   @Override
-  @SneakyThrows
   public void shutdown() {
     await().thenRun(() -> {
       try {
@@ -273,9 +273,10 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, Amazon
    *
    * @param requests the request queue
    * @return an optional containing the assembled batch request, or empty
+   * @throws InterruptedException
+   * @throws JsonProcessingException
    */
-  @SneakyThrows
-  private Optional<R> createBatch(final BlockingQueue<RequestEntry<E>> requests) {
+  private Optional<R> createBatch(final BlockingQueue<RequestEntry<E>> requests) throws InterruptedException, JsonProcessingException {
     final AtomicInteger batchSizeBytes = new AtomicInteger(0);
     final List<RequestEntryInternal> requestEntries = new ArrayList<>(topicProperty.getMaxBatchSize());
 
