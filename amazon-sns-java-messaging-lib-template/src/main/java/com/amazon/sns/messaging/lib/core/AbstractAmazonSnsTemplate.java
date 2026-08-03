@@ -93,17 +93,11 @@ abstract class AbstractAmazonSnsTemplate<R, O, E> {
    * @return a configured thread pool executor
    */
   protected static ExecutorService getExecutorService(final TopicProperty topicProperty, final MeterRegistry meterRegistry) {
-    return topicProperty.isFifo()
-      ? new ExecutorServiceMetricsDecorator(
-          new AmazonSnsThreadPoolExecutor(1),
-          meterRegistry,
-          topicProperty.getTopicArn()
-        )
-      : new ExecutorServiceMetricsDecorator(
-          new AmazonSnsThreadPoolExecutor(topicProperty.getMaximumPoolSize()),
-          meterRegistry,
-          topicProperty.getTopicArn()
-        );
+    return new ExecutorServiceMetricsDecorator(
+      new AmazonSnsThreadPoolExecutor(topicProperty.getMaximumPoolSize()),
+      meterRegistry,
+      topicProperty.getTopicArn()
+    );
   }
 
   @Getter

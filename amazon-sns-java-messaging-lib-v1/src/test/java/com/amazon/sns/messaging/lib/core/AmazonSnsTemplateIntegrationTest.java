@@ -68,6 +68,7 @@ import com.amazonaws.services.sqs.model.PurgeQueueRequest;
 import com.amazonaws.services.sqs.model.QueueAttributeName;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
+import com.github.dockerjava.api.model.PortBinding;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.SneakyThrows;
@@ -79,10 +80,14 @@ class AmazonSnsTemplateIntegrationTest {
 
   @Container
   static LocalStackContainer localstack = new LocalStackContainer(DockerImageName.parse("localstack/localstack:3.4.0"))
-    .withEnv("LOCALSTACK_HOST", "localhost:4566")
-    .withEnv("SQS_ENDPOINT_STRATEGY", "dynamic")
+    .withEnv("LOCALSTACK_HOST", "localhost")
+    .withEnv("SQS_ENDPOINT_STRATEGY", "off")
     .withReuse(true)
-    .withServices(Service.SNS, Service.SQS);
+    .withExposedPorts(4566)
+    .withServices(Service.SNS, Service.SQS)
+    .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig()
+      .withPortBindings(PortBinding.parse("4566:4566"))
+    );
 
   private static AmazonSNS snsClient;
 
