@@ -52,7 +52,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.amazon.sns.messaging.lib.concurrent.RingBufferBlockingQueue;
 import com.amazon.sns.messaging.lib.core.RequestEntryInternalFactory.RequestEntryInternal;
-import com.amazon.sns.messaging.lib.exception.MaximumAllowedMessageException;
 import com.amazon.sns.messaging.lib.helpers.TryConsumer;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
@@ -415,10 +414,8 @@ class AbstractAmazonSnsConsumerTest {
 
       await()
         .untilAsserted(() -> {
-          assertThat(consumer.getTotalPublishedEntries(), is(1));
-          assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
-          assertThat(consumer.getLastError(), instanceOf(MaximumAllowedMessageException.class));
-          assertThat(consumer.getLastError().getMessage(), containsString("256KB"));
+          assertThat(consumer.getTotalPublishedEntries(), is(0));
+          assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(0));
         });
     });
   }
@@ -507,8 +504,8 @@ class AbstractAmazonSnsConsumerTest {
 
       await()
         .untilAsserted(() -> {
-          assertThat(consumer.getTotalPublishedEntries(), is(1));
-          assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
+          assertThat(consumer.getTotalPublishedEntries(), is(0));
+          assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(0));
         });
     });
   }

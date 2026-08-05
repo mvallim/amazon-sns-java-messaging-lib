@@ -16,12 +16,12 @@
 
 package com.amazon.sns.messaging.lib.exception;
 
-public class MaximumAllowedMessageException extends PoisonRequestEntryException {
+public class JsonProcessingException extends PoisonRequestEntryException {
 
-  private static final long serialVersionUID = -529663449633021689L;
+  private static final long serialVersionUID = 6321611271238725106L;
 
-  MaximumAllowedMessageException(final String string) {
-    super(string);
+  JsonProcessingException(final String string, final Throwable throwable) {
+    super(string, throwable);
   }
 
 }

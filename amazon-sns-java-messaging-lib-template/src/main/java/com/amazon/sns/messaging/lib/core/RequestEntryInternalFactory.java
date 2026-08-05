@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.amazon.sns.messaging.lib.exception.PoisonRequestEntryException;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -66,9 +67,9 @@ final class RequestEntryInternalFactory {
    *
    * @param requestEntry the source request entry
    * @return a new internal request entry with serialized payload
-   * @throws JsonProcessingException
+   * @throws PoisonRequestEntryException
    */
-  public RequestEntryInternal create(final RequestEntry<?> requestEntry) throws JsonProcessingException {
+  public RequestEntryInternal create(final RequestEntry<?> requestEntry) throws PoisonRequestEntryException {
     return create(requestEntry, convertPayload(requestEntry));
   }
 
@@ -78,12 +79,16 @@ final class RequestEntryInternalFactory {
    *
    * @param requestEntry the request entry whose payload to convert
    * @return the serialized payload bytes
-   * @throws JsonProcessingException
+   * @throws PoisonRequestEntryException
    */
-  public byte[] convertPayload(final RequestEntry<?> requestEntry) throws JsonProcessingException {
-    return requestEntry.getValue() instanceof String
-      ? String.class.cast(requestEntry.getValue()).getBytes(StandardCharsets.UTF_8)
-      : objectMapper.writeValueAsBytes(requestEntry.getValue());
+  public byte[] convertPayload(final RequestEntry<?> requestEntry) throws PoisonRequestEntryException {
+    try {
+      return requestEntry.getValue() instanceof String
+        ? String.class.cast(requestEntry.getValue()).getBytes(StandardCharsets.UTF_8)
+        : objectMapper.writeValueAsBytes(requestEntry.getValue());
+    } catch (final JsonProcessingException ex) {
+      throw PoisonRequestEntryException.fromJsonProcessing(ex.getMessage(), ex);
+    }
   }
 
   /**
@@ -165,7 +170,6 @@ final class RequestEntryInternalFactory {
     /**
      * Singleton instance of the internal message attributes calculator.
      */
-
     public static final MessageAttributesInternal INSTANCE = new MessageAttributesInternal();
 
     /**
