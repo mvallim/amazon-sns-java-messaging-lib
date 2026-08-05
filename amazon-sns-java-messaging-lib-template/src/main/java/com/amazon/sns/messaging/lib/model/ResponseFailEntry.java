@@ -53,4 +53,9 @@ public class ResponseFailEntry implements Serializable {
    */
   private final Boolean senderFault;
 
+  /**
+   * The underlying exception that caused the publish failure, if available.
+   */
+  private final Throwable throwable;
+
 }

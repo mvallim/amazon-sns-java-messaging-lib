@@ -379,8 +379,8 @@
 						<format>XML</format>
 					</formats>
 					<excludes>
-						<exclude>**/ExecutorsProvider.java</exclude>
 						<exclude>**/ThreadFactoryProvider.java</exclude>
+						<exclude>**/exception/**</exclude>
 						<exclude>**/package-info.**</exclude>
 						<exclude>**/generated-sources/**</exclude>
 						<exclude>**/generated-test-sources/**</exclude>
@@ -508,8 +508,8 @@
 				</sonar.test.exclusions>
 
 				<sonar.exclusions>
-					**/ExecutorsProvider.java,
 					**/ThreadFactoryProvider.java,
+					**/exception/**,
 					**/package-info.**,
 					**/generated-sources/**,
 					**/generated-test-sources/**,
@@ -517,8 +517,8 @@
 				</sonar.exclusions>
 
 				<sonar.coverage.exclusions>
-					**/ExecutorsProvider.java,
 					**/ThreadFactoryProvider.java,
+					**/exception/**,
 					**/package-info.**,
 					**/generated-sources/**,
 					**/generated-test-sources/**,

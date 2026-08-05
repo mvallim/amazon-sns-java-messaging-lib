@@ -100,7 +100,7 @@ abstract class AbstractAmazonSnsTemplate<R, O, E> {
     );
   }
 
-  @Getter
+  @Getter(value = AccessLevel.PACKAGE)
   public static final class Builder<C, R, O, E, T extends AbstractAmazonSnsTemplate<R, O, E>> {
 
     /**
