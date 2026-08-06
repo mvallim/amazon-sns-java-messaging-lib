@@ -97,6 +97,7 @@ abstract class AbstractAmazonSnsProducer<E> implements AmazonSnsProducer<E> {
       topicRequests.put(requestEntry);
       return trackPendingRequest;
     } catch (final InterruptedException ex) {
+      pendingRequests.remove(requestEntry.getId());
       Thread.currentThread().interrupt();
       throw ex;
     }

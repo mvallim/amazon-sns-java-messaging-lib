@@ -67,8 +67,8 @@ class AmazonSnsProducerSyncTest {
       .fifo(true)
       .linger(50L)
       .maxBatchSize(10)
-      .maximumPoolSize(10)
-      .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
+      .maximumPoolSize(1)
+      .topicArn("arn:aws:sns:us-east-2:000000000000:topic.fifo")
       .build();
 
     snsTemplate = AmazonSnsTemplate.builder(amazonSNS, topicProperty).build();
