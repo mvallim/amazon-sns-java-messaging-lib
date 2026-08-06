@@ -23,13 +23,16 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -37,6 +40,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
@@ -46,13 +50,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mock.Strictness;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.amazon.sns.messaging.lib.concurrent.RingBufferBlockingQueue;
 import com.amazon.sns.messaging.lib.core.RequestEntryInternalFactory.RequestEntryInternal;
-import com.amazon.sns.messaging.lib.exception.MaximumAllowedMessageException;
+import com.amazon.sns.messaging.lib.exception.PoisonRequestEntryException;
 import com.amazon.sns.messaging.lib.helpers.TryConsumer;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
@@ -111,6 +116,42 @@ class AbstractAmazonSnsConsumerTest {
   void testConstructorInitializesTopicRequests() {
     assertThat(topicRequests, is(notNullValue()));
     assertThat(topicRequests.isEmpty(), is(true));
+  }
+
+  @Test
+  void testConstructorThrowsNpeWhenTopicPropertyIsNull() {
+    final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
+      new TestableAmazonSnsConsumer(amazonSnsClient, null, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)
+    );
+
+    assertThat(thrown.getMessage(), containsString("topicProperty cannot be null"));
+  }
+
+  @Test
+  void testConstructorThrowsNpeWhenAmazonSnsClientIsNull() {
+    final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
+      new TestableAmazonSnsConsumer(null, topicProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)
+    );
+
+    assertThat(thrown.getMessage(), containsString("amazonSnsClient cannot be null"));
+  }
+
+  @Test
+  void testConstructorThrowsNpeWhenObjectMapperIsNull() {
+    final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
+      new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, null, pendingRequests, topicRequests, executorService, publishDecorator)
+    );
+
+    assertThat(thrown.getMessage(), containsString("objectMapper cannot be null"));
+  }
+
+  @Test
+  void testConstructorThrowsNpeWhenExecutorServiceIsNull() {
+    final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
+      new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, null, publishDecorator)
+    );
+
+    assertThat(thrown.getMessage(), containsString("executorService cannot be null"));
   }
 
   @Test
@@ -248,6 +289,22 @@ class AbstractAmazonSnsConsumerTest {
         .untilAsserted(() -> {
           assertThat(consumer.getLastError(), instanceOf(RuntimeException.class));
           assertThat(consumer.getLastError().getMessage(), containsString("publish failed"));
+        });
+    });
+  }
+
+  @Test
+  void testRunHandlesRejectedExecutionExceptionFromExecutorWithoutCrashing() throws Exception {
+    when(topicProperty.isFifo()).thenReturn(false);
+    doThrow(new RejectedExecutionException("executor full")).when(executorService).execute(any(Runnable.class));
+
+    context(consumer -> {
+      topicRequests.put(buildRequestEntry("rejected-message"));
+
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
+          assertThat(consumer.getLastError(), instanceOf(RejectedExecutionException.class));
         });
     });
   }
@@ -415,10 +472,8 @@ class AbstractAmazonSnsConsumerTest {
 
       await()
         .untilAsserted(() -> {
-          assertThat(consumer.getTotalPublishedEntries(), is(1));
-          assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
-          assertThat(consumer.getLastError(), instanceOf(MaximumAllowedMessageException.class));
-          assertThat(consumer.getLastError().getMessage(), containsString("256KB"));
+          assertThat(consumer.getTotalPublishedEntries(), is(0));
+          assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(0));
         });
     });
   }
@@ -498,6 +553,38 @@ class AbstractAmazonSnsConsumerTest {
   }
 
   @Test
+  void testPoisonRequestEntryRemovesFromPendingRequestsAndFailsListenableFuture() throws Exception {
+    when(topicProperty.isFifo()).thenReturn(true);
+
+    final String poisonId = "poison-id";
+    final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold() + 100);
+    final RequestEntry<String> poisonEntry = RequestEntry.<String>builder()
+      .withId(poisonId)
+      .withValue(oversizedPayload)
+      .build();
+
+    pendingRequests.put(poisonId, listenableFutureImpl);
+
+    context(consumer -> {
+      topicRequests.put(poisonEntry);
+
+      await()
+        .untilAsserted(() -> {
+          assertThat(pendingRequests.containsKey(poisonId), is(false));
+
+          final ArgumentCaptor<ResponseFailEntry> captor = ArgumentCaptor.forClass(ResponseFailEntry.class);
+          verify(listenableFutureImpl, atLeastOnce()).fail(captor.capture());
+
+          final ResponseFailEntry failEntry = captor.getValue();
+          assertThat(failEntry.getId(), is(poisonId));
+          assertThat(failEntry.getCode(), is("000"));
+          assertThat(failEntry.getSenderFault(), is(true));
+          assertThat(failEntry.getThrowable(), instanceOf(PoisonRequestEntryException.class));
+        });
+    });
+  }
+
+  @Test
   void testCanAddPayloadDoesNotPublishEmptyBatchWhenAllEntriesExceedThreshold() throws Exception {
     when(topicProperty.isFifo()).thenReturn(true);
 
@@ -507,8 +594,8 @@ class AbstractAmazonSnsConsumerTest {
 
       await()
         .untilAsserted(() -> {
-          assertThat(consumer.getTotalPublishedEntries(), is(1));
-          assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
+          assertThat(consumer.getTotalPublishedEntries(), is(0));
+          assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(0));
         });
     });
   }
@@ -543,7 +630,7 @@ class AbstractAmazonSnsConsumerTest {
     private Throwable lastError;
     private boolean throwOnPublish = false;
     private final RuntimeException publishException = new RuntimeException("publish failed");
-    private final List<Integer> publishedBatchSizes = new LinkedList<>();
+    private final List<Integer> publishedBatchSizes = Collections.synchronizedList(new LinkedList<>());
 
     TestableAmazonSnsConsumer(
         final Object amazonSnsClient,

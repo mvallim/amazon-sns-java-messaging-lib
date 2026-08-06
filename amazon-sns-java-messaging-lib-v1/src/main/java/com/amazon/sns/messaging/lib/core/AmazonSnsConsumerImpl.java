@@ -113,7 +113,7 @@ class AmazonSnsConsumerImpl<E> extends AbstractAmazonSnsConsumer<AmazonSNS, Publ
     final String code = throwable instanceof AmazonServiceException ? AmazonServiceException.class.cast(throwable).getErrorCode() : "000";
     final String message = throwable instanceof AmazonServiceException ? AmazonServiceException.class.cast(throwable).getErrorMessage() : throwable.getMessage();
 
-    AmazonSnsConsumerImpl.LOGGER.error(throwable.getMessage(), throwable);
+    LOGGER.error("Error processing batch request: {}", message, throwable);
 
     publishBatchRequest.getPublishBatchRequestEntries().forEach(entry ->
       Optional.ofNullable(pendingRequests.remove(entry.getId())).ifPresent(listenableFuture ->
@@ -122,6 +122,7 @@ class AmazonSnsConsumerImpl<E> extends AbstractAmazonSnsConsumer<AmazonSNS, Publ
           .withCode(code)
           .withMessage(message)
           .withSenderFault(true)
+          .withThrowable(throwable)
           .build())
       )
     );

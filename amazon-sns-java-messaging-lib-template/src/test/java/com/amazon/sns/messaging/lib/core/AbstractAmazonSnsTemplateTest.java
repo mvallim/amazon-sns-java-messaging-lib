@@ -109,7 +109,7 @@ class AbstractAmazonSnsTemplateTest {
     final TopicProperty topicProperty = TopicProperty.builder()
       .fifo(true)
       .topicArn("arn:aws:sns:us-east-2:000000000000:topic.fifo")
-      .maximumPoolSize(10)
+      .maximumPoolSize(1)
       .maxBatchSize(10)
       .build();
 
@@ -127,6 +127,7 @@ class AbstractAmazonSnsTemplateTest {
       .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
       .maximumPoolSize(5)
       .maxBatchSize(10)
+      .linger(10)
       .build();
 
     final ExecutorService executorService = AbstractAmazonSnsTemplate.getExecutorService(topicProperty, new SimpleMeterRegistry());
@@ -309,6 +310,7 @@ class AbstractAmazonSnsTemplateTest {
       .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
       .maximumPoolSize(4)
       .maxBatchSize(10)
+      .linger(10)
       .build();
 
     final AbstractAmazonSnsTemplate.Builder<Object, Object, Object, String, ?> builder = new AbstractAmazonSnsTemplate.Builder<>(b -> {
@@ -326,6 +328,7 @@ class AbstractAmazonSnsTemplateTest {
       .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
       .maximumPoolSize(4)
       .maxBatchSize(10)
+      .linger(10)
       .build();
 
     final AbstractAmazonSnsTemplate.Builder<Object, Object, Object, String, ?> builder = new AbstractAmazonSnsTemplate.Builder<>(b -> {
@@ -343,6 +346,7 @@ class AbstractAmazonSnsTemplateTest {
       .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
       .maximumPoolSize(4)
       .maxBatchSize(10)
+      .linger(10)
       .build();
 
     final BlockingQueue<RequestEntry<String>> customQueue = new LinkedBlockingDeque<>();
@@ -362,6 +366,7 @@ class AbstractAmazonSnsTemplateTest {
       .topicArn("arn:aws:sns:us-east-2:000000000000:topic")
       .maximumPoolSize(4)
       .maxBatchSize(10)
+      .linger(10)
       .build();
 
     final AbstractAmazonSnsTemplate sentinel = new AbstractAmazonSnsTemplate(producerMock, consumerMock) { };

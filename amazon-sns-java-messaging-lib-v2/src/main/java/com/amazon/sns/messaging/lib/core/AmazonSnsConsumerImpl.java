@@ -124,6 +124,7 @@ class AmazonSnsConsumerImpl<E> extends AbstractAmazonSnsConsumer<SnsClient, Publ
           .withCode(code)
           .withMessage(message)
           .withSenderFault(true)
+          .withThrowable(throwable)
           .build())
       )
     );
