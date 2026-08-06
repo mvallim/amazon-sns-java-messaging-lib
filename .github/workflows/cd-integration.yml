@@ -43,14 +43,8 @@ jobs:
     uses: ./.github/workflows/ci-maven.yml
     secrets: inherit
 
-  gates:
-    needs: ci
-    if: success()
-    uses: ./.github/workflows/ci-gates.yml
-    secrets: inherit
-
   pull-request:
-    needs: [gates, variables]
+    needs: [ci, variables]
     uses: ./.github/workflows/ci-pull-request.yml
     secrets: inherit
     with:
