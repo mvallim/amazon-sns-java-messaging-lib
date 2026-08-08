@@ -16,10 +16,18 @@
 
 package com.amazon.sns.messaging.lib.core;
 
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.amazon.sns.messaging.lib.concurrent.ThreadFactoryProvider;
 import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
@@ -39,6 +47,9 @@ import lombok.SneakyThrows;
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 abstract class AbstractAmazonSnsProducer<E> implements AmazonSnsProducer<E> {
 
+  /** Class logger. */
+  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAmazonSnsProducer.class);
+
   /** The producer lifecycle state, initially {@link State#RUNNING}. */
   private final AtomicReference<State> state = new AtomicReference<>(State.RUNNING);
 
@@ -47,6 +58,8 @@ abstract class AbstractAmazonSnsProducer<E> implements AmazonSnsProducer<E> {
 
   /** The blocking queue for buffering requests before batch processing. */
   private final BlockingQueue<RequestEntry<E>> topicRequests;
+
+  private final ExecutorService callbackExecutor = Executors.newCachedThreadPool(ThreadFactoryProvider.getThreadFactory());
 
   /**
    * Sends a request entry by enqueuing it for batch processing.
@@ -59,7 +72,7 @@ abstract class AbstractAmazonSnsProducer<E> implements AmazonSnsProducer<E> {
     if (State.RUNNING.equals(state.get())) {
       return enqueueRequest(requestEntry);
     } else {
-      final ListenableFutureImpl listenableFutureImpl = new ListenableFutureImpl();
+      final ListenableFutureImpl listenableFutureImpl = new ListenableFutureImpl(Runnable::run);
 
       listenableFutureImpl.fail(ResponseFailEntry.builder()
         .withCode("000")
@@ -78,8 +91,24 @@ abstract class AbstractAmazonSnsProducer<E> implements AmazonSnsProducer<E> {
    * accepted once shutdown.
    */
   @Override
-  public void shutdown() {
+  public void shutdown(final Runnable runnable) {
     state.compareAndSet(State.RUNNING, State.SHUTDOWN);
+
+    runnable.run();
+
+    try {
+      LOGGER.warn("Shutdown producer {}", getClass().getSimpleName());
+
+      callbackExecutor.shutdown();
+      if (!callbackExecutor.awaitTermination(60, TimeUnit.SECONDS)) {
+        LOGGER.warn("Producer executor service did not terminate in the specified time.");
+        final List<Runnable> droppedTasks = callbackExecutor.shutdownNow();
+        LOGGER.warn("Producer executor service was abruptly shut down. {} tasks will not be executed.", droppedTasks.size());
+      }
+    } catch (final InterruptedException ex) {
+      LOGGER.error(ex.getMessage(), ex);
+      Thread.currentThread().interrupt();
+    }
   }
 
   /**
@@ -92,7 +121,7 @@ abstract class AbstractAmazonSnsProducer<E> implements AmazonSnsProducer<E> {
   @SneakyThrows
   private ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> enqueueRequest(final RequestEntry<E> requestEntry) {
     try {
-      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> trackPendingRequest = new ListenableFutureImpl();
+      final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> trackPendingRequest = new ListenableFutureImpl(callbackExecutor);
       pendingRequests.put(requestEntry.getId(), trackPendingRequest);
       topicRequests.put(requestEntry);
       return trackPendingRequest;

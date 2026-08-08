@@ -34,6 +34,13 @@ import lombok.Locked;
  * blocking {@link #put(Object)} and {@link #take()} operations. Other
  * {@link BlockingQueue} methods throw {@link UnsupportedOperationException}.
  *
+ * <p><b>Capacity rounding:</b> the requested capacity is rounded up to the next
+ * power of two (see {@link #RingBufferBlockingQueue(int)}), so that slot indices
+ * can be computed with a bitwise AND ({@code sequence & indexMask}) instead of a
+ * modulo operation. As a result, the <i>effective</i> capacity — reported by
+ * {@link #remainingCapacity()} plus {@link #size()} — may be up to twice the
+ * value that was requested.
+ *
  * @param <E> the type of elements held in this queue
  */
 @SuppressWarnings({ "unchecked", "java:S3078", "java:S1948" })
@@ -83,8 +90,12 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   /**
    * Creates a ring buffer with the specified capacity.
    *
-   * @param capacity the maximum number of elements the queue can hold; must be
-   *                 positive
+   * @param capacity the requested capacity; must be positive. This value is
+   *                 rounded up to the next power of two internally — the queue's
+   *                 actual capacity (see {@link #remainingCapacity()}) may end up
+   *                 up to 2x larger than the value passed here. This trade-off
+   *                 enables the ring buffer to use a bitwise mask for index
+   *                 calculation instead of a modulo operation on every put/take.
    * @throws IllegalArgumentException if {@code capacity <= 0}
    */
   public RingBufferBlockingQueue(final int capacity) {
