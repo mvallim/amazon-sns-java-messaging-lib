@@ -104,6 +104,7 @@ abstract class AbstractAmazonSnsTemplate<R, O, E> {
    * For FIFO topics, a single-threaded pool is used to guarantee order.
    *
    * @param topicProperty the topic configuration
+   * @param meterRegistry the Micrometer meter registry for executor metrics
    * @return a configured thread pool executor
    */
   protected static ExecutorService getExecutorService(final TopicProperty topicProperty, final MeterRegistry meterRegistry) {
@@ -114,6 +115,19 @@ abstract class AbstractAmazonSnsTemplate<R, O, E> {
     );
   }
 
+  /**
+   * Fluent builder for constructing SDK-specific {@link AbstractAmazonSnsTemplate}
+   * implementations. Provides defaults for pending requests
+   * ({@link ConcurrentHashMap}), topic requests ({@link RingBufferBlockingQueue}),
+   * ObjectMapper, publish decorator (identity), and meter registry
+   * ({@link SimpleMeterRegistry}).
+   *
+   * @param <C> the Amazon SNS client type
+   * @param <R> the publish batch request type
+   * @param <O> the publish batch result type
+   * @param <E> the request entry payload type
+   * @param <T> the concrete template type
+   */
   @Getter(value = AccessLevel.PACKAGE)
   public static final class Builder<C, R, O, E, T extends AbstractAmazonSnsTemplate<R, O, E>> {
 

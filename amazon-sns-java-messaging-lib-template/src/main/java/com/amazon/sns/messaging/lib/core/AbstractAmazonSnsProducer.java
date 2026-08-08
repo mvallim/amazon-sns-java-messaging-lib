@@ -89,6 +89,8 @@ abstract class AbstractAmazonSnsProducer<E> implements AmazonSnsProducer<E> {
   /**
    * Transitions the producer to the shutdown state. No further messages will be
    * accepted once shutdown.
+   *
+   * @param runnable the action to run after the producer enters the shutdown state
    */
   @Override
   public void shutdown(final Runnable runnable) {

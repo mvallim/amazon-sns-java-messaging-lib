@@ -172,6 +172,12 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, Amazon
     }
   }
 
+  /**
+   * Fails the pending future of a poison request entry and removes it from the pending map.
+   *
+   * @param failRequestEntryException the exception describing why the entry is poison
+   * @param requestEntry              the request entry being dropped
+   */
   private void failPoisonRequestEntry(final PoisonRequestEntryException failRequestEntryException, final RequestEntry<E> requestEntry) {
     LOGGER.error("Failed to process request {}: {}", requestEntry.getId(), failRequestEntryException.getMessage(), failRequestEntryException);
 
@@ -287,7 +293,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, Amazon
    *
    * @param requests the request queue
    * @return an optional containing the assembled batch request, or empty
-   * @throws InterruptedException
+   * @throws InterruptedException if interrupted while waiting for queue elements
    */
   private Optional<R> createBatch(final BlockingQueue<RequestEntry<E>> requests) throws InterruptedException {
     final AtomicInteger batchSizeBytes = new AtomicInteger(0);

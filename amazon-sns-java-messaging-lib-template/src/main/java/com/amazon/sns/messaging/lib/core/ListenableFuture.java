@@ -73,7 +73,7 @@ public interface ListenableFuture<S, F> {
    * Mirrors the contract of {@link java.util.concurrent.Future#get()}: if the future
    * completed with a failure, this throws {@link ExecutionException} instead of returning.
    * The exception's cause is the {@link Throwable} carried by the failure result, if any
-   * (see {@link ResponseFailEntry#getThrowable()}), or a new exception built from the
+   * (see {@code ResponseFailEntry#getThrowable()}), or a new exception built from the
    * failure result's message otherwise.
    *
    * @return the success result

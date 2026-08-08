@@ -158,7 +158,7 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
    * Since the buffer capacity is always a power of two, wrapping is performed
    * efficiently using a bit mask instead of the modulo operator.
    *
-   * @param index the logical index to map
+   * @param sequence the logical index to map
    * @return the corresponding slot index in the backing array
    */
   private int index(final int sequence) {
