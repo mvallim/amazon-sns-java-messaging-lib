@@ -83,6 +83,12 @@ public class TopicProperty {
 
     public static final TopicPropertyValidator INSTANCE = new TopicPropertyValidator();
 
+    /**
+     * Defines the validation rules applied to a {@link TopicProperty}: required
+     * {@code maximumPoolSize} greater than zero, a valid ARN, a {@code linger} of at
+     * least 10 ms, a {@code maxBatchSize} between 1 and 10, and, for FIFO topics, a
+     * single-threaded pool and a {@code .fifo}-suffixed ARN.
+     */
     @Override
     public void rules() {
 
@@ -129,6 +135,11 @@ public class TopicProperty {
 
   }
 
+  /**
+   * Fluent builder for {@link TopicProperty}. Applies {@link TopicProperty#DEFAULT_LINGER}
+   * when no linger value is set explicitly and validates the assembled property on
+   * {@link #build()}.
+   */
   @SuppressWarnings("java:S116")
   public static class TopicPropertyBuilder {
 
@@ -140,12 +151,26 @@ public class TopicProperty {
      */
     private boolean linger$set;
 
+    /**
+     * Sets the batching linger time in milliseconds.
+     *
+     * @param linger the linger time in milliseconds
+     * @return this builder
+     */
     public TopicPropertyBuilder linger(final long linger) {
       this.linger = linger;
       linger$set = true;
       return this;
     }
 
+    /**
+     * Validates and builds the {@link TopicProperty}. If no linger value was set
+     * explicitly, the default of 10 ms is applied. Throws
+     * {@link IllegalArgumentException} when validation fails.
+     *
+     * @return the validated topic property
+     * @throws IllegalArgumentException if the property fails validation
+     */
     public TopicProperty build() {
       final long linger = linger$set ? this.linger : DEFAULT_LINGER;
 

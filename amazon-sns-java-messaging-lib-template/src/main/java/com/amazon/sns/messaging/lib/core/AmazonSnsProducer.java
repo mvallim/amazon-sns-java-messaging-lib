@@ -41,6 +41,8 @@ public interface AmazonSnsProducer<E> {
 
   /**
    * Shuts down the producer, preventing any further messages from being accepted.
+   *
+   * @param runnable the action to run after the producer enters the shutdown state
    */
   public void shutdown(final Runnable runnable);
 
