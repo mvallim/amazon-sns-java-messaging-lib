@@ -67,7 +67,7 @@ final class RequestEntryInternalFactory {
    *
    * @param requestEntry the source request entry
    * @return a new internal request entry with serialized payload
-   * @throws PoisonRequestEntryException
+   * @throws PoisonRequestEntryException if the payload cannot be serialized
    */
   public RequestEntryInternal create(final RequestEntry<?> requestEntry) throws PoisonRequestEntryException {
     return create(requestEntry, convertPayload(requestEntry));
@@ -79,7 +79,7 @@ final class RequestEntryInternalFactory {
    *
    * @param requestEntry the request entry whose payload to convert
    * @return the serialized payload bytes
-   * @throws PoisonRequestEntryException
+   * @throws PoisonRequestEntryException if the payload fails JSON serialization
    */
   public byte[] convertPayload(final RequestEntry<?> requestEntry) throws PoisonRequestEntryException {
     try {
@@ -144,9 +144,9 @@ final class RequestEntryInternalFactory {
     private final String deduplicationId;
 
     /**
-     * Returns the size of the serialized payload in bytes.
+     * Returns the size of the binary payload in bytes.
      *
-     * @return the payload size
+     * @return the payload size in bytes
      */
     public int size() {
       return value.capacity();
@@ -163,6 +163,10 @@ final class RequestEntryInternalFactory {
 
   }
 
+  /**
+   * Internal implementation of {@link AbstractMessageAttributes} that calculates
+   * attribute size values for batching decisions.
+   */
   @SuppressWarnings("java:S6548")
   @NoArgsConstructor(access = AccessLevel.PRIVATE)
   static class MessageAttributesInternal extends AbstractMessageAttributes<Integer> {

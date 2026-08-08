@@ -16,10 +16,22 @@
 
 package com.amazon.sns.messaging.lib.exception;
 
+/**
+ * Exception thrown when a request entry payload cannot be serialized to JSON.
+ * Indicates a "poison" request entry that must be dropped from the batch.
+ *
+ * @see PoisonRequestEntryException#fromJsonProcessing(String, Throwable)
+ */
 public class JsonProcessingException extends PoisonRequestEntryException {
 
   private static final long serialVersionUID = 6321611271238725106L;
 
+  /**
+   * Creates a new JSON processing exception.
+   *
+   * @param string    the detail message
+   * @param throwable the underlying serialization exception
+   */
   JsonProcessingException(final String string, final Throwable throwable) {
     super(string, throwable);
   }

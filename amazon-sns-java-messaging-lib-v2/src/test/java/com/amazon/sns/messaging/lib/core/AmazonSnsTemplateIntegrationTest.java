@@ -42,8 +42,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.localstack.LocalStackContainer;
-import org.testcontainers.containers.localstack.LocalStackContainer.Service;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
@@ -73,12 +73,10 @@ import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 class AmazonSnsTemplateIntegrationTest {
 
   @Container
-  static LocalStackContainer localstack = new LocalStackContainer(DockerImageName.parse("localstack/localstack:3.4.0"))
-    .withEnv("LOCALSTACK_HOST", "localhost")
-    .withEnv("SQS_ENDPOINT_STRATEGY", "off")
+  static GenericContainer<?> ministack = new GenericContainer<>(DockerImageName.parse("ministackorg/ministack:1.4.0"))
     .withReuse(true)
     .withExposedPorts(4566)
-    .withServices(Service.SNS, Service.SQS)
+    .waitingFor(Wait.forLogMessage(".*Running on.*", 1))
     .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig()
       .withPortBindings(PortBinding.parse("4566:4566"))
     );
@@ -98,15 +96,15 @@ class AmazonSnsTemplateIntegrationTest {
   @BeforeAll
   static void setupClient() {
     snsClient = SnsClient.builder()
-      .endpointOverride(URI.create(localstack.getEndpoint().toString()))
-      .region(Region.of(localstack.getRegion()))
-      .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())))
+      .endpointOverride(URI.create("http://localhost:4566"))
+      .region(Region.of("sa-east"))
+      .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create("fakeAccessKey", "fakeSecretKey")))
       .build();
 
     sqsClient = SqsClient.builder()
-      .endpointOverride(localstack.getEndpoint())
-      .region(Region.of(localstack.getRegion()))
-      .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())))
+      .endpointOverride(URI.create("http://localhost:4566"))
+      .region(Region.of("sa-east"))
+      .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create("fakeAccessKey", "fakeSecretKey")))
       .build();
 
     standardTopicArn = snsClient.createTopic(request -> request.name("it-standard-topic")).topicArn();
@@ -158,8 +156,8 @@ class AmazonSnsTemplateIntegrationTest {
       sqsClient.close();
     }
 
-    if (Objects.nonNull(localstack)) {
-      localstack.close();
+    if (Objects.nonNull(ministack)) {
+      ministack.close();
     }
   }
 
@@ -220,9 +218,9 @@ class AmazonSnsTemplateIntegrationTest {
   void testSendSingleMessage() {
     final String messageBody = "hello-sqs-" + UUID.randomUUID();
 
-    countDownLatch(1, countDownLatch -> {
+    final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 100L, 10, 5);
 
-      final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 100L, 10, 5);
+    countDownLatch(1, countDownLatch -> {
 
       final String id = UUID.randomUUID().toString();
 
@@ -231,7 +229,6 @@ class AmazonSnsTemplateIntegrationTest {
         .withValue(messageBody)
         .build());
 
-      template.await().thenRun(template::shutdown).join();
 
       future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -248,16 +245,18 @@ class AmazonSnsTemplateIntegrationTest {
     final Message message = result.messages().get(0);
     assertThat(message.body(), is(messageBody));
     assertThat(message.messageAttributes().keySet(), hasSize(0));
+
+    template.await().thenRun(template::shutdown).join();
   }
 
   @Test
   void testSendMultipleMessages() {
     final int messageCount = 500;
 
+    final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 50L, 10, 10);
+
     countDownLatch(messageCount, countDownLatch -> {
       final List<ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> futures = new ArrayList<>();
-
-      final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 50L, 10, 10);
 
       IntStream.range(0, messageCount).forEach(i -> {
         futures.add(
@@ -267,8 +266,6 @@ class AmazonSnsTemplateIntegrationTest {
             .build())
           );
       });
-
-      template.await().thenRun(template::shutdown).join();
 
       futures.forEach(future -> future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -290,16 +287,18 @@ class AmazonSnsTemplateIntegrationTest {
       assertThat(message.body(), containsString("msg-"));
       assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
+
+    template.await().thenRun(template::shutdown).join();
   }
 
   @Test
   void testSendMessagesExceedingBatchSize() {
     final int messageCount = 25;
 
+    final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 50L, 10, 10);
+
     countDownLatch(messageCount, countDownLatch -> {
       final List<ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> futures = new ArrayList<>();
-
-      final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 50L, 10, 10);
 
       IntStream.range(0, messageCount).forEach(i -> {
         futures.add(template.send(RequestEntry.builder()
@@ -307,8 +306,6 @@ class AmazonSnsTemplateIntegrationTest {
           .withValue("batch-test-" + i)
           .build()));
       });
-
-      template.await().thenRun(template::shutdown).join();
 
       futures.forEach(future -> future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -330,17 +327,18 @@ class AmazonSnsTemplateIntegrationTest {
       assertThat(message.body(), containsString("batch-test-"));
       assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
-  }
 
+    template.await().thenRun(template::shutdown).join();
+  }
 
   @Test
   void testSendMessagesWithLinger() {
     final int messageCount = 20;
 
+    final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 200L, 10, 5);
+
     countDownLatch(messageCount, countDownLatch -> {
       final List<ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> futures = new ArrayList<>();
-
-      final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 200L, 10, 5);
 
       IntStream.range(0, messageCount).forEach(i -> {
         futures.add(template.send(RequestEntry.builder()
@@ -348,8 +346,6 @@ class AmazonSnsTemplateIntegrationTest {
           .withValue("linger-test-" + i)
           .build()));
       });
-
-      template.await().thenRun(template::shutdown).join();
 
       futures.forEach(future -> future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -371,26 +367,26 @@ class AmazonSnsTemplateIntegrationTest {
       assertThat(message.body(), containsString("linger-test-"));
       assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
+
+    template.await().thenRun(template::shutdown).join();
   }
 
   @Test
   void testSendMessageWithgetMessageAttributes() {
     final String messageBody = "attr-test-" + UUID.randomUUID();
 
+    final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 100L, 10, 5);
+
     countDownLatch(1, countDownLatch -> {
       final Map<String, Object> messageHeaders = new HashMap<>();
       messageHeaders.put("string-attr", "hello");
       messageHeaders.put("number-attr", 42);
-
-      final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 100L, 10, 5);
 
       final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = template.send(RequestEntry.builder()
         .withId(UUID.randomUUID().toString())
         .withValue(messageBody)
         .withMessageHeaders(messageHeaders)
         .build());
-
-      template.await().thenRun(template::shutdown).join();
 
       future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -413,21 +409,22 @@ class AmazonSnsTemplateIntegrationTest {
       assertThat(message.messageAttributes().get("string-attr").stringValue(), is("hello"));
       assertThat(message.messageAttributes().get("number-attr").stringValue(), is("42"));
     });
+
+    template.await().thenRun(template::shutdown).join();
   }
 
   @Test
   void testSendLargeMessage() {
     final String largeBody = RandomStringUtils.secure().nextAlphabetic(262_144);
 
+    final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 200L, 5, 5);
+
     countDownLatch(1, countDownLatch -> {
-      final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 200L, 5, 5);
 
       final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = template.send(RequestEntry.builder()
         .withId(UUID.randomUUID().toString())
         .withValue(largeBody)
         .build());
-
-      template.await().thenRun(template::shutdown).join();
 
       future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -449,10 +446,15 @@ class AmazonSnsTemplateIntegrationTest {
       assertThat(message.body(), is(largeBody));
       assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
+
+    template.await().thenRun(template::shutdown).join();
   }
 
   @Test
   void testSendMessageExceedingMaxSize() {
+
+    final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 100L, 10, 5);
+
     countDownLatch(1, countDownLatch -> {
       final String oversizedBody = RandomStringUtils.secure().nextAlphabetic((1024 * 256) + 1);
 
@@ -461,11 +463,7 @@ class AmazonSnsTemplateIntegrationTest {
         .withValue(oversizedBody)
         .build();
 
-      final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 100L, 10, 5);
-
       final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = template.send(entry);
-
-      template.await().thenRun(template::shutdown).join();
 
       future.addCallback(null, failureResult -> {
         assertThat(failureResult.getCode(), is("000"));
@@ -479,14 +477,17 @@ class AmazonSnsTemplateIntegrationTest {
     final List<Message> messages = receiveMessage(standardQueueUrl, 10, 5).messages();
 
     assertThat(messages, hasSize(0));
+
+    template.await().thenRun(template::shutdown).join();
   }
 
   @Test
   void testShutdownDrainsPendingMessages() {
     final int messageCount = 5;
 
+    final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 10_000L, 10, 5);
+
     countDownLatch(messageCount, countDownLatch -> {
-      final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 10_000L, 10, 5);
 
       final List<ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> futures = new ArrayList<>();
 
@@ -496,8 +497,6 @@ class AmazonSnsTemplateIntegrationTest {
           .withValue("drain-test-" + i)
           .build()));
       });
-
-      template.await().thenRun(template::shutdown).join();
 
       futures.forEach(future -> future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -519,19 +518,20 @@ class AmazonSnsTemplateIntegrationTest {
       assertThat(message.body(), containsString("drain-test-"));
       assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
+
+    template.await().thenRun(template::shutdown).join();
   }
 
   @Test
   void testTemplateLifecycle() {
+    final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 100L, 10, 5);
+
     countDownLatch(1, countDownLatch -> {
-      final AmazonSnsTemplate<Object> template = createTemplate(standardTopicArn, false, 100L, 10, 5);
 
       final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = template.send(RequestEntry.builder()
         .withId(UUID.randomUUID().toString())
         .withValue("lifecycle-" + UUID.randomUUID())
         .build());
-
-      template.await().thenRun(template::shutdown).join();
 
       future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -553,6 +553,8 @@ class AmazonSnsTemplateIntegrationTest {
       assertThat(message.body(), containsString("lifecycle-"));
       assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
+
+    template.await().thenRun(template::shutdown).join();
   }
 
   @Test
@@ -561,16 +563,14 @@ class AmazonSnsTemplateIntegrationTest {
     final String id = UUID.randomUUID().toString();
     final String groupId = id;
 
-    countDownLatch(1, countDownLatch -> {
-      final AmazonSnsTemplate<Object> template = createTemplate(fifoTopicArn, true, 100L, 10, 1);
+    final AmazonSnsTemplate<Object> template = createTemplate(fifoTopicArn, true, 100L, 10, 1);
 
+    countDownLatch(1, countDownLatch -> {
       final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = template.send(RequestEntry.builder()
         .withId(id)
         .withValue(messageBody)
         .withGroupId(groupId)
         .build());
-
-      template.await().thenRun(template::shutdown).join();
 
       future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -594,6 +594,8 @@ class AmazonSnsTemplateIntegrationTest {
       assertThat(message.attributes().get(MessageSystemAttributeName.MESSAGE_GROUP_ID), is(groupId));
       assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
+
+    template.await().thenRun(template::shutdown).join();
   }
 
   @Test
@@ -601,10 +603,10 @@ class AmazonSnsTemplateIntegrationTest {
     final int messageCount = 100;
     final String groupId = UUID.randomUUID().toString();
 
+    final AmazonSnsTemplate<Object> template = createTemplate(fifoTopicArn, true, 50L, 10, 1);
+
     countDownLatch(1, countDownLatch -> {
       final List<ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> futures = new ArrayList<>();
-
-      final AmazonSnsTemplate<Object> template = createTemplate(fifoTopicArn, true, 50L, 10, 1);
 
       IntStream.range(0, messageCount).forEach(i -> {
         futures.add(template.send(RequestEntry.builder()
@@ -613,8 +615,6 @@ class AmazonSnsTemplateIntegrationTest {
           .withGroupId(groupId)
           .build()));
       });
-
-      template.await().thenRun(template::shutdown).join();
 
       futures.forEach(future -> future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -638,6 +638,8 @@ class AmazonSnsTemplateIntegrationTest {
       assertThat(message.attributes().get(MessageSystemAttributeName.MESSAGE_GROUP_ID), is(groupId));
       assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
+
+    template.await().thenRun(template::shutdown).join();
   }
 
   @Test
@@ -646,10 +648,10 @@ class AmazonSnsTemplateIntegrationTest {
     final String groupId = UUID.randomUUID().toString();
     final String messageBody = "dedup-test-" + UUID.randomUUID();
 
+    final AmazonSnsTemplate<Object> template = createTemplate(fifoTopicArn, true, 100L, 10, 1);
+
     countDownLatch(1, countDownLatch -> {
       final List<ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> futures = new ArrayList<>();
-
-      final AmazonSnsTemplate<Object> template = createTemplate(fifoTopicArn, true, 100L, 10, 1);
 
       futures.add(template.send(RequestEntry.builder()
         .withId(UUID.randomUUID().toString())
@@ -664,8 +666,6 @@ class AmazonSnsTemplateIntegrationTest {
         .withGroupId(groupId)
         .withDeduplicationId(deduplicationId)
         .build()));
-
-      template.await().thenRun(template::shutdown).join();
 
       futures.forEach(future -> future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -690,6 +690,8 @@ class AmazonSnsTemplateIntegrationTest {
       assertThat(message.attributes().get(MessageSystemAttributeName.MESSAGE_DEDUPLICATION_ID), is(deduplicationId));
       assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
+
+    template.await().thenRun(template::shutdown).join();
   }
 
 }

@@ -20,10 +20,15 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +42,8 @@ import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
 @ExtendWith(MockitoExtension.class)
 class ListenableFutureTest {
 
+  private static final int CALLBACK_TIMEOUT = 3000;
+
   private ListenableFutureImpl listenableFuture;
 
   @Mock(strictness = Strictness.LENIENT)
@@ -45,9 +52,17 @@ class ListenableFutureTest {
   @Mock(strictness = Strictness.LENIENT)
   private Consumer<ResponseFailEntry> failureCallback;
 
+  private ExecutorService callbackExecutor;
+
   @BeforeEach
   void setUp() {
-    listenableFuture = new ListenableFutureImpl();
+    callbackExecutor = Executors.newSingleThreadExecutor();
+    listenableFuture = new ListenableFutureImpl(callbackExecutor);
+  }
+
+  @AfterEach
+  void tearDown() {
+    callbackExecutor.shutdownNow();
   }
 
   @Test
@@ -57,7 +72,7 @@ class ListenableFutureTest {
     listenableFuture.addCallback(successCallback, failureCallback);
     listenableFuture.success(entry);
 
-    verify(successCallback).accept(entry);
+    verify(successCallback, timeout(CALLBACK_TIMEOUT)).accept(entry);
   }
 
   @Test
@@ -67,7 +82,7 @@ class ListenableFutureTest {
     listenableFuture.addCallback(successCallback, failureCallback);
     listenableFuture.fail(entry);
 
-    verify(failureCallback).accept(entry);
+    verify(failureCallback, timeout(CALLBACK_TIMEOUT)).accept(entry);
   }
 
   @Test
@@ -77,7 +92,7 @@ class ListenableFutureTest {
     listenableFuture.addCallback(successCallback);
     listenableFuture.success(entry);
 
-    verify(successCallback).accept(entry);
+    verify(successCallback, timeout(CALLBACK_TIMEOUT)).accept(entry);
   }
 
   @Test
@@ -96,7 +111,7 @@ class ListenableFutureTest {
     listenableFuture.addCallback(successCallback, failureCallback);
     listenableFuture.success(entry);
 
-    org.mockito.Mockito.verifyNoInteractions(failureCallback);
+    verifyNoInteractions(failureCallback);
   }
 
   @Test
@@ -106,7 +121,7 @@ class ListenableFutureTest {
     listenableFuture.addCallback(successCallback, failureCallback);
     listenableFuture.fail(entry);
 
-    org.mockito.Mockito.verifyNoInteractions(successCallback);
+    verifyNoInteractions(successCallback);
   }
 
   @Test

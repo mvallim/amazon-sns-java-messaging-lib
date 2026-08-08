@@ -22,6 +22,8 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,9 +33,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.function.UnaryOperator;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -64,15 +68,23 @@ class AbstractAmazonSnsTemplateTest {
 
   private AbstractAmazonSnsTemplate<Object, Object, String> template;
 
+  private ExecutorService callbackExecutor;
+
   @BeforeEach
   void setUp() {
+    callbackExecutor = Executors.newSingleThreadExecutor();
     template = new AbstractAmazonSnsTemplate<Object, Object, String>(producerMock, consumerMock) { };
+  }
+
+  @AfterEach
+  void tearDown() {
+    callbackExecutor.shutdownNow();
   }
 
   @Test
   void testSendDelegatesToProducer() {
     final RequestEntry<String> requestEntry = RequestEntry.<String>builder().build();
-    final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> expectedFuture = new ListenableFutureImpl();
+    final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> expectedFuture = new ListenableFutureImpl(callbackExecutor);
     when(producerMock.send(requestEntry)).thenReturn(expectedFuture);
 
     final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> result = template.send(requestEntry);
@@ -84,12 +96,19 @@ class AbstractAmazonSnsTemplateTest {
   @Test
   void testShutdownDelegatesToProducer() {
     template.shutdown();
-    verify(producerMock).shutdown();
+    verify(producerMock).shutdown(any());
   }
 
   @Test
   void testShutdownDelegatesToConsumer() {
+    doAnswer(invocation -> {
+      final Runnable argument = invocation.getArgument(0, Runnable.class);
+      argument.run();
+      return null;
+    }).when(producerMock).shutdown(any());
+
     template.shutdown();
+
     verify(consumerMock).shutdown();
   }
 
