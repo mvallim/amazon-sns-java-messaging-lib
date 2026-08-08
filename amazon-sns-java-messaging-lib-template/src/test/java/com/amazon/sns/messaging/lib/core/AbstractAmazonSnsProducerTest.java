@@ -64,7 +64,7 @@ class AbstractAmazonSnsProducerTest {
   @AfterEach
   void tearDown() {
     if (Objects.nonNull(producer)) {
-      producer.shutdown();
+      producer.shutdown(() -> {});
     }
   }
 
@@ -74,7 +74,7 @@ class AbstractAmazonSnsProducerTest {
 
     final RequestEntry<String> entry = requestEntry();
 
-    producer.shutdown();
+    producer.shutdown(() -> {});
 
     final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = producer.send(entry);
 

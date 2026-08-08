@@ -42,7 +42,7 @@ You can pull it from the central Maven repositories:
 <dependency>
     <groupId>com.github.mvallim</groupId>
     <artifactId>amazon-sns-java-messaging-lib-v1</artifactId>
-    <version>1.3.2</version>
+    <version>1.4.0</version>
 </dependency>
 ```
 
@@ -52,7 +52,7 @@ You can pull it from the central Maven repositories:
 <dependency>
     <groupId>com.github.mvallim</groupId>
     <artifactId>amazon-sns-java-messaging-lib-v2</artifactId>
-    <version>1.3.2</version>
+    <version>1.4.0</version>
 </dependency>
 ```
 
@@ -74,13 +74,13 @@ If you want to try a snapshot version, add the following repository:
 ### For AWS SDK v1
 
 ```groovy
-implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v1:1.3.2'
+implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v1:1.4.0'
 ```
 
 ### For AWS SDK v2
 
 ```groovy
-implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v2:1.3.2'
+implementation 'com.github.mvallim:amazon-sns-java-messaging-lib-v2:1.4.0'
 ```
 
 If you want to try a snapshot version, add the following repository:
@@ -105,7 +105,16 @@ repositories {
 | **`linger`**          | **int**     | refers to the time to wait before sending messages out to SNS.                 |
 | **`maxBatchSize`**    | **int**     | refers to the maximum amount of data to be collected before sending the batch. |
 
-**NOTICE**: the buffer of message store in memory is calculate using **`maximumPoolSize`** * **`maxBatchSize`** huge values demand huge memory.
+> [!NOTE]
+> The buffer of message store in memory is calculated using **`maximumPoolSize`** * **`maxBatchSize`**; huge values demand huge memory.
+>
+> **Note on effective capacity:** the default queue implementation (`RingBufferBlockingQueue`) internally
+> rounds its capacity up to the next power of two, to allow fast bitwise index calculation. This means the
+> *actual* allocated capacity may be up to ~2x the value computed above — e.g. `maximumPoolSize=10` and
+> `maxBatchSize=10` yields a requested capacity of 100, but the queue actually allocates 128 slots. If you
+> need to budget memory precisely, use `RingBufferBlockingQueue#remainingCapacity()` (or a `LinkedBlockingQueue`
+> via the [Custom `BlockingQueue`](#custom-blockingqueue) option below, which does not round up) rather than
+> relying on the `maximumPoolSize * maxBatchSize` formula as an exact figure.
 
 #### Custom `BlockingQueue`
 

@@ -16,6 +16,7 @@
 
 package com.amazon.sns.messaging.lib.core;
 
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -65,5 +66,19 @@ public interface AmazonSnsConsumer<R, O> {
    * @return a future that completes when all requests are drained
    */
   public CompletableFuture<Void> await();
+
+  /**
+   * Returns a {@link CompletableFuture} that completes once all pending requests
+   * have been processed, bounded by the given timeout. If the timeout elapses
+   * before all pending requests are drained, the returned future completes
+   * exceptionally with a {@link java.util.concurrent.TimeoutException}.
+   *
+   * @param timeout the maximum time to wait for all pending requests to be
+   *                processed
+   * @return a future that completes when all requests are drained, or completes
+   *         exceptionally if {@code timeout} elapses first
+   * @throws NullPointerException if {@code timeout} is {@code null}
+   */
+  public CompletableFuture<Void> await(final Duration timeout);
 
 }
