@@ -16,111 +16,157 @@
 
 package com.amazon.sns.messaging.lib.core;
 
+import static br.com.fluentvalidator.predicate.LogicalPredicate.not;
 import static java.util.function.Function.identity;
 
-import java.util.LinkedList;
+import java.time.Duration;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.Queue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
-
-import org.apache.commons.collections4.CollectionUtils;
 
 import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
 
-import lombok.AccessLevel;
 import lombok.Getter;
 
 // @formatter:off
 /**
- * Default implementation of {@link ListenableFuture}. Supports state tracking (NEW, SUCCESS, FAILURE)
- * and thread-safe callback registration and notification.
+ * Default implementation of {@link ListenableFuture}. Supports state tracking
+ * (NEW, SUCCESS, FAILURE), thread-safe callback registration and notification,
+ * and blocking retrieval of the result via {@link #get()} /
+ * {@link #get(Duration)}.
+ * <p>
+ * All state transitions and reads are guarded by {@link #mutex}. Completion
+ * ({@link #success(ResponseSuccessEntry)} or {@link #fail(ResponseFailEntry)})
+ * both notifies any registered callbacks synchronously and wakes up any thread
+ * blocked in {@link #get()} / {@link #get(Duration)} via
+ * {@link Object#notifyAll()}.
  */
 class ListenableFutureImpl implements ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> {
 
-  private final Object mutex = new Object();
+  /**
+   * Runs registered callbacks off of the calling (consumer) thread; see class
+   * Javadoc.
+   */
+  private final Executor callbackExecutor;
 
-  @Getter(value = AccessLevel.PACKAGE)
-  private State state = State.NEW;
+  /**
+   * Backing future. Completed with a success result, or exceptionally with a
+   * {@link FailureSignal}.
+   */
+  private final CompletableFuture<ResponseSuccessEntry> delegate = new CompletableFuture<>();
 
-  @Getter(value = AccessLevel.PACKAGE)
-  private ResponseSuccessEntry successResult;
-
-  @Getter(value = AccessLevel.PACKAGE)
-  private ResponseFailEntry failureResult;
-
-  private final Queue<Consumer<? super ResponseSuccessEntry>> successCallback = new LinkedList<>();
-
-  private final Queue<Consumer<? super ResponseFailEntry>> failureCallback = new LinkedList<>();
+  /**
+   * Creates a new future whose callbacks are dispatched on the given executor.
+   *
+   * @param callbackExecutor the executor used to run success/failure callbacks;
+   *                         must not be one of the library's own publish/consumer
+   *                         executors, to avoid starving them (see class Javadoc)
+   */
+  ListenableFutureImpl(final Executor callbackExecutor) {
+    this.callbackExecutor = Objects.requireNonNull(callbackExecutor, "callbackExecutor cannot be null");
+  }
 
   @Override
   public void addCallback(final Consumer<? super ResponseSuccessEntry> successCallback, final Consumer<? super ResponseFailEntry> failureCallback) {
-    synchronized (mutex) {
-      final Consumer<? super ResponseSuccessEntry> success = Optional.ofNullable(successCallback).orElse(identity()::apply);
-      final Consumer<? super ResponseFailEntry> failure = Optional.ofNullable(failureCallback).orElse(identity()::apply);
+    final Consumer<? super ResponseSuccessEntry> success = Optional.ofNullable(successCallback).orElse(identity()::apply);
+    final Consumer<? super ResponseFailEntry> failure = Optional.ofNullable(failureCallback).orElse(identity()::apply);
 
-      switch (state) {
-        case NEW:
-          this.successCallback.add(success);
-          this.failureCallback.add(failure);
-          break;
-        case SUCCESS:
-          notifySuccess(success);
-          break;
-        case FAILURE:
-          notifyFailure(failure);
-          break;
+    delegate.whenCompleteAsync((result, throwable) -> {
+      if (Objects.isNull(throwable)) {
+        success.accept(result);
+      } else {
+        failure.accept(unwrap(throwable));
       }
-    }
+    }, callbackExecutor);
   }
 
   @Override
   public void success(final ResponseSuccessEntry entry) {
-    synchronized (mutex) {
-      state = State.SUCCESS;
-      successResult = entry;
-
-      while (CollectionUtils.isNotEmpty(successCallback)) {
-        notifySuccess(successCallback.poll());
-      }
+    if (not(delegate::complete).test(entry)) {
+      throw new IllegalStateException("ListenableFuture already completed.");
     }
   }
 
   @Override
   public void fail(final ResponseFailEntry entry) {
-    synchronized (mutex) {
-      state = State.FAILURE;
-      failureResult = entry;
+    if (not(delegate::completeExceptionally).test(new FailureSignal(entry))) {
+      throw new IllegalStateException("ListenableFuture already completed.");
+    }
+  }
 
-      while (CollectionUtils.isNotEmpty(failureCallback)) {
-        notifyFailure(failureCallback.poll());
-      }
+  @Override
+  public ResponseSuccessEntry get() throws InterruptedException, ExecutionException {
+    try {
+      return delegate.get();
+    } catch (final ExecutionException ex) {
+      throw new ExecutionException(unwrapCause(ex.getCause()));
+    }
+  }
+
+  @Override
+  public ResponseSuccessEntry get(final Duration timeout) throws InterruptedException, ExecutionException, TimeoutException {
+    Objects.requireNonNull(timeout, "timeout cannot be null");
+
+    try {
+      return delegate.get(timeout.toNanos(), TimeUnit.NANOSECONDS);
+    } catch (final ExecutionException ex) {
+      throw new ExecutionException(unwrapCause(ex.getCause()));
     }
   }
 
   /**
-   * Notifies a single success callback with the stored result.
+   * Unwraps a {@link FailureSignal} into the {@link ResponseFailEntry} it
+   * carries.
    *
-   * @param callback the callback to invoke
+   * @param throwable the throwable passed to
+   *                  {@link CompletableFuture#whenCompleteAsync}; either a
+   *                  {@link FailureSignal} directly, or (in composed/chained
+   *                  usages) a {@link CompletionException} wrapping one
+   * @return the original failure result
    */
-  private void notifySuccess(final Consumer<? super ResponseSuccessEntry> callback) {
-    callback.accept(successResult);
+  private static ResponseFailEntry unwrap(final Throwable throwable) {
+    final Throwable cause = throwable instanceof CompletionException ? throwable.getCause() : throwable;
+    return FailureSignal.class.cast(cause).getEntry();
   }
 
   /**
-   * Notifies a single failure callback with the stored result.
+   * Returns the cause that {@link #get()} / {@link #get(Duration)} should report:
+   * the original {@link Throwable} carried by the {@link ResponseFailEntry} if
+   * present, or the entry itself (via {@link FailureSignal}) as a fallback.
    *
-   * @param callback the callback to invoke
+   * @param cause the cause of the {@link ExecutionException} thrown by the
+   *              backing future, expected to be a {@link FailureSignal}
+   * @return the throwable to expose as the {@link ExecutionException}'s cause
    */
-  private void notifyFailure(final Consumer<? super ResponseFailEntry> callback) {
-    callback.accept(failureResult);
+  private static Throwable unwrapCause(final Throwable cause) {
+    final ResponseFailEntry entry = FailureSignal.class.cast(cause).getEntry();
+    return Optional.ofNullable(entry.getThrowable()).orElseGet(() -> new IllegalStateException(entry.getMessage()));
   }
 
   /**
-   * The lifecycle states of a {@link ListenableFuture}.
+   * Wraps a {@link ResponseFailEntry} so it can be used to complete the backing
+   * {@link CompletableFuture} exceptionally via
+   * {@link CompletableFuture#completeExceptionally(Throwable)}.
    */
-  enum State {
-    NEW, SUCCESS, FAILURE
+  private static final class FailureSignal extends RuntimeException {
+
+    private static final long serialVersionUID = -1790175325395257266L;
+
+    @Getter
+    private final transient ResponseFailEntry entry;
+
+    FailureSignal(final ResponseFailEntry entry) {
+      super(entry.getMessage());
+      this.entry = entry;
+    }
+
   }
 
 }

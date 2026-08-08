@@ -16,6 +16,7 @@
 
 package com.amazon.sns.messaging.lib.metrics;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -178,4 +179,11 @@ abstract class AbstractAmazonSnsConsumerMetricsDecorator<I, O> implements Amazon
     return delegate.await();
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public CompletableFuture<Void> await(final Duration timeout) {
+    return delegate.await(timeout);
+  }
 }

@@ -23,11 +23,14 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
@@ -263,7 +266,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, Amazon
    * @return true if the request can be added
    */
   private boolean canAddToBatch(final int batchSizeBytes, final int requestEntriesSize, final RequestEntry<E> request) {
-    return (batchSizeBytes < AbstractAmazonSnsConsumer.BATCH_SIZE_BYTES_THRESHOLD)
+    return (batchSizeBytes < BATCH_SIZE_BYTES_THRESHOLD)
       && (requestEntriesSize < topicProperty.getMaxBatchSize())
       && Objects.nonNull(request);
   }
@@ -275,7 +278,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, Amazon
    * @return true if the batch is still within the size limit
    */
   private boolean canAddPayload(final int batchSizeBytes) {
-    return batchSizeBytes <= AbstractAmazonSnsConsumer.BATCH_SIZE_BYTES_THRESHOLD;
+    return batchSizeBytes <= BATCH_SIZE_BYTES_THRESHOLD;
   }
 
   /**
@@ -345,6 +348,45 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, Amazon
           LOGGER.warn("await() interrupted");
           Thread.currentThread().interrupt();
         }
+      }
+    });
+  }
+
+  /**
+   * Returns a {@link CompletableFuture} that completes once all pending requests have
+   * been processed (i.e., both the pending requests map and the topic requests queue are empty),
+   * bounded by the given timeout.
+   * <p>
+   * Internally reuses {@link #await()} and waits on it via {@link CompletableFuture#get(long, TimeUnit)}
+   * on a separate thread, so the calling thread is never blocked directly. If the timeout elapses
+   * before all pending requests are drained, the returned future completes exceptionally with a
+   * {@link CompletionException} wrapping a {@link java.util.concurrent.TimeoutException}.
+   * <p>
+   * Note that the underlying drain triggered by {@link #await()} is not cancelled when the timeout
+   * elapses; it keeps running in the background until the pending requests and topic requests queue
+   * are actually empty.
+   *
+   * @param timeout the maximum time to wait for all pending requests to be processed
+   * @return a future that completes when all requests are drained, or completes exceptionally
+   *         if {@code timeout} elapses first
+   * @throws NullPointerException if {@code timeout} is {@code null}
+   */
+  @Override
+  public CompletableFuture<Void> await(final Duration timeout) {
+    Objects.requireNonNull(timeout, "timeout cannot be null");
+
+    final CompletableFuture<Void> pending = await();
+
+    return CompletableFuture.runAsync(() -> {
+      try {
+        pending.get(timeout.toNanos(), TimeUnit.NANOSECONDS);
+      } catch (final InterruptedException ex) {
+        Thread.currentThread().interrupt();
+        throw new CompletionException(ex);
+      } catch (final ExecutionException ex) {
+        throw new CompletionException(ex.getCause());
+      } catch (final TimeoutException ex) {
+        throw new CompletionException(ex);
       }
     });
   }

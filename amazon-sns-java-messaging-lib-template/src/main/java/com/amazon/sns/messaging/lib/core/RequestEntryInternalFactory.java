@@ -144,9 +144,9 @@ final class RequestEntryInternalFactory {
     private final String deduplicationId;
 
     /**
-     * Returns the size of the serialized payload in bytes.
+     * Returns the size of the binary payload in bytes.
      *
-     * @return the payload size
+     * @return the payload size in bytes
      */
     public int size() {
       return value.capacity();
@@ -163,6 +163,10 @@ final class RequestEntryInternalFactory {
 
   }
 
+  /**
+   * Internal implementation of {@link AbstractMessageAttributes} that calculates
+   * attribute size values for batching decisions.
+   */
   @SuppressWarnings("java:S6548")
   @NoArgsConstructor(access = AccessLevel.PRIVATE)
   static class MessageAttributesInternal extends AbstractMessageAttributes<Integer> {
