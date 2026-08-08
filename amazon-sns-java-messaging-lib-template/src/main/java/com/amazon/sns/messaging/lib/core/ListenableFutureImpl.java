@@ -73,6 +73,9 @@ class ListenableFutureImpl implements ListenableFuture<ResponseSuccessEntry, Res
     this.callbackExecutor = Objects.requireNonNull(callbackExecutor, "callbackExecutor cannot be null");
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void addCallback(final Consumer<? super ResponseSuccessEntry> successCallback, final Consumer<? super ResponseFailEntry> failureCallback) {
     final Consumer<? super ResponseSuccessEntry> success = Optional.ofNullable(successCallback).orElse(identity()::apply);
@@ -87,6 +90,9 @@ class ListenableFutureImpl implements ListenableFuture<ResponseSuccessEntry, Res
     }, callbackExecutor);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void success(final ResponseSuccessEntry entry) {
     if (not(delegate::complete).test(entry)) {
@@ -94,6 +100,9 @@ class ListenableFutureImpl implements ListenableFuture<ResponseSuccessEntry, Res
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void fail(final ResponseFailEntry entry) {
     if (not(delegate::completeExceptionally).test(new FailureSignal(entry))) {
@@ -101,6 +110,9 @@ class ListenableFutureImpl implements ListenableFuture<ResponseSuccessEntry, Res
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public ResponseSuccessEntry get() throws InterruptedException, ExecutionException {
     try {
@@ -110,6 +122,9 @@ class ListenableFutureImpl implements ListenableFuture<ResponseSuccessEntry, Res
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public ResponseSuccessEntry get(final Duration timeout) throws InterruptedException, ExecutionException, TimeoutException {
     Objects.requireNonNull(timeout, "timeout cannot be null");

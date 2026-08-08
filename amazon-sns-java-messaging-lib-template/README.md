@@ -59,7 +59,9 @@ com.amazon.sns.messaging.lib
 
 | Class                            | Description                                             |
 |----------------------------------|---------------------------------------------------------|
+| `PoisonRequestEntryException`    | Base exception for request entries that must be dropped. |
 | `MaximumAllowedMessageException` | Thrown when a single serialized message exceeds 256 KB. |
+| `JsonProcessingException`        | Thrown when a request payload fails to serialize to JSON. |
 
 ## Dependencies
 
