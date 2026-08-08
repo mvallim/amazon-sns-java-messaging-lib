@@ -42,7 +42,7 @@ public interface AmazonSnsProducer<E> {
   /**
    * Shuts down the producer, preventing any further messages from being accepted.
    */
-  public void shutdown();
+  public void shutdown(final Runnable runnable);
 
 }
 // @formatter:on

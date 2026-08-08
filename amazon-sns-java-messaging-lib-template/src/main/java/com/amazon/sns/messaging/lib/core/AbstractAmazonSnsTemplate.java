@@ -16,6 +16,7 @@
 
 package com.amazon.sns.messaging.lib.core;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -72,8 +73,7 @@ abstract class AbstractAmazonSnsTemplate<R, O, E> {
    * Shuts down both the producer and consumer gracefully.
    */
   public void shutdown() {
-    amazonSnsProducer.shutdown();
-    amazonSnsConsumer.shutdown();
+    amazonSnsProducer.shutdown(amazonSnsConsumer::shutdown);
   }
 
   /**
@@ -83,6 +83,20 @@ abstract class AbstractAmazonSnsTemplate<R, O, E> {
    */
   public CompletableFuture<Void> await() {
     return amazonSnsConsumer.await();
+  }
+
+  /**
+   * Returns a future that completes once all pending requests are drained and processed,
+   * bounded by the given timeout.
+   *
+   * @param timeout the maximum time to wait for all pending requests to be processed
+   * @return a {@link CompletableFuture} that completes when the consumer has finished, or
+   *         completes exceptionally with a {@link java.util.concurrent.TimeoutException}
+   *         if {@code timeout} elapses first
+   * @throws NullPointerException if {@code timeout} is {@code null}
+   */
+  public CompletableFuture<Void> await(final Duration timeout) {
+    return amazonSnsConsumer.await(timeout);
   }
 
   /**
