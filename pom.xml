@@ -31,7 +31,7 @@
 		<awaitility.version>4.3.0</awaitility.version>
 		<assertj-core.version>3.24.2</assertj-core.version>
 		<commons-lang3.version>3.20.0</commons-lang3.version>
-		<commons-collections4.version>4.5.0</commons-collections4.version>
+		<commons-collections4.version>4.6.0</commons-collections4.version>
 		<slf4j-api.version>2.0.6</slf4j-api.version>
 		<hamcrest.version>3.0</hamcrest.version>
 		<micrometer.version>1.16.3</micrometer.version>
