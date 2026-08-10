@@ -74,7 +74,7 @@ class AbstractAmazonSnsTemplateTest {
   @BeforeEach
   void setUp() {
     callbackExecutor = Executors.newSingleThreadExecutor();
-    template = new AbstractAmazonSnsTemplate<>(producerMock, consumerMock) { };
+    template = new AbstractAmazonSnsTemplate<Object, Object, String>(producerMock, consumerMock) { };
   }
 
   @AfterEach
