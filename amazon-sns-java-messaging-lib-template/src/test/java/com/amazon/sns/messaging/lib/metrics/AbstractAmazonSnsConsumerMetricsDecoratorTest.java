@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -435,6 +436,51 @@ class AbstractAmazonSnsConsumerMetricsDecoratorTest {
       final CompletableFuture<Void> result = decorator.await();
 
       assertThat(result, is(sameInstance(expected)));
+    }
+  }
+
+  @Nested
+  class AwaitWithTimeout {
+
+    @Test
+    void testAwaitWithTimeoutDelegatesToDelegate() {
+      final Duration timeout = Duration.ofSeconds(5);
+      final CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
+      when(delegate.await(timeout)).thenReturn(future);
+
+      final CompletableFuture<Void> result = decorator.await(timeout);
+
+      assertThat(result, is(sameInstance(future)));
+      verify(delegate).await(timeout);
+    }
+
+    @Test
+    void testAwaitWithTimeoutReturnsNotNull() {
+      final Duration timeout = Duration.ofSeconds(1);
+      when(delegate.await(timeout)).thenReturn(CompletableFuture.completedFuture(null));
+
+      assertThat(decorator.await(timeout), is(notNullValue()));
+    }
+
+    @Test
+    void testAwaitWithTimeoutPropagatesDelegateResult() {
+      final Duration timeout = Duration.ofSeconds(30);
+      final CompletableFuture<Void> expected = new CompletableFuture<>();
+      when(delegate.await(timeout)).thenReturn(expected);
+
+      final CompletableFuture<Void> result = decorator.await(timeout);
+
+      assertThat(result, is(sameInstance(expected)));
+    }
+
+    @Test
+    void testAwaitWithDifferentTimeoutsPassesExactValueToDelegate() {
+      final Duration shortTimeout = Duration.ofMillis(500);
+      when(delegate.await(shortTimeout)).thenReturn(CompletableFuture.completedFuture(null));
+
+      decorator.await(shortTimeout);
+
+      verify(delegate).await(shortTimeout);
     }
   }
 
