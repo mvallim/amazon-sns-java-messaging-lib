@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
  *
  * @param <V> the message attribute value type (SDK-specific)
  */
-@SuppressWarnings("java:S6204")
+@SuppressWarnings({ "java:S6204", "java:S2629" })
 abstract class AbstractMessageAttributes<V> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMessageAttributes.class);
@@ -85,7 +85,7 @@ abstract class AbstractMessageAttributes<V> {
       } else {
         LOGGER.warn(
           "Message header '{}' has unsupported value type {} and will not be sent as a message attribute",
-          key, Objects.isNull(value) ? "null" : value.getClass().getName()
+          key, Optional.ofNullable(value).map(Object::getClass).map(Class::getName).orElse("null")
         );
       }
     }

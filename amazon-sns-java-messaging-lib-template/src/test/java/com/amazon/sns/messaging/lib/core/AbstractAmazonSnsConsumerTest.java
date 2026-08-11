@@ -25,9 +25,13 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
@@ -42,7 +46,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -57,6 +63,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mock.Strictness;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.amazon.sns.messaging.lib.concurrent.RingBufferBlockingQueue;
@@ -295,27 +302,83 @@ class AbstractAmazonSnsConsumerTest {
   class Shutdown {
 
     @Test
-    void testShutdownDoesNotThrowException() throws Exception {
-      context(consumer -> {
-        try {
-          consumer.shutdown();
-        } catch (final Exception ex) {
-          assertThat("shutdown should not throw an exception", false, is(true));
+    void testShutdownExecutorService() throws InterruptedException {
+      try (final MockedStatic<Executors> mockedStatic = mockStatic(Executors.class)) {
+
+        final ExecutorService executorService = mock();
+        final ScheduledExecutorService scheduledExecutorService = mock();
+
+        mockedStatic.when(() -> Executors.newSingleThreadScheduledExecutor(any())).thenReturn(scheduledExecutorService);
+
+        try (final TestableAmazonSnsConsumer snsConsumer = new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)) {
+          when(executorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(false);
+          when(executorService.shutdownNow()).thenReturn(Collections.singletonList(mock()));
+          when(scheduledExecutorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(true);
+
+          snsConsumer.shutdown();
+
+          verify(executorService).shutdown();
+          verify(executorService).awaitTermination(60, TimeUnit.SECONDS);
+          verify(executorService).shutdownNow();
+          verify(scheduledExecutorService).shutdown();
+          verify(scheduledExecutorService).awaitTermination(60, TimeUnit.SECONDS);
+          verify(scheduledExecutorService, never()).shutdownNow();
         }
-      });
+      }
     }
 
     @Test
-    void testShutdownCanBeCalledMultipleTimes() throws Exception {
-      context(consumer -> {
-        try {
-          consumer.shutdown();
-          consumer.shutdown();
-        } catch (final Exception ex) {
-          assertThat("multiple shutdown calls should not throw an exception", false, is(true));
+    void testShutdownScheduledExecutorService() throws InterruptedException {
+      try (final MockedStatic<Executors> mockedStatic = mockStatic(Executors.class)) {
+
+        final ExecutorService executorService = mock();
+        final ScheduledExecutorService scheduledExecutorService = mock();
+
+        mockedStatic.when(() -> Executors.newSingleThreadScheduledExecutor(any())).thenReturn(scheduledExecutorService);
+
+        try (final TestableAmazonSnsConsumer snsConsumer = new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)) {
+          when(scheduledExecutorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(false);
+          when(scheduledExecutorService.shutdownNow()).thenReturn(Collections.singletonList(mock()));
+          when(executorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(true);
+
+          snsConsumer.shutdown();
+
+          verify(executorService).shutdown();
+          verify(executorService).awaitTermination(60, TimeUnit.SECONDS);
+          verify(executorService, never()).shutdownNow();
+          verify(scheduledExecutorService).shutdown();
+          verify(scheduledExecutorService).awaitTermination(60, TimeUnit.SECONDS);
+          verify(scheduledExecutorService).shutdownNow();
         }
-      });
+      }
     }
+
+    @Test
+    void testShutdownRiseInterruptedException() throws InterruptedException {
+      try (final MockedStatic<Executors> mockedStatic = mockStatic(Executors.class)) {
+
+        final ExecutorService executorService = mock();
+        final ScheduledExecutorService scheduledExecutorService = mock();
+
+        mockedStatic.when(() -> Executors.newSingleThreadScheduledExecutor(any())).thenReturn(scheduledExecutorService);
+
+        try (final TestableAmazonSnsConsumer snsConsumer = new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)) {
+          doAnswer(invocation -> {
+            throw new InterruptedException("interrupt");
+          }).when(executorService).shutdown();
+
+          snsConsumer.shutdown();
+
+          verify(executorService).shutdown();
+          verify(executorService, never()).awaitTermination(60, TimeUnit.SECONDS);
+          verify(executorService, never()).shutdownNow();
+          verify(scheduledExecutorService).shutdown();
+          verify(scheduledExecutorService).awaitTermination(60, TimeUnit.SECONDS);
+          verify(scheduledExecutorService).shutdownNow();
+        }
+      }
+    }
+
   }
 
   @Nested
@@ -684,13 +747,6 @@ class AbstractAmazonSnsConsumerTest {
     }
   }
 
-  /**
-   * Covers {@code createBatch}'s handling of a "poison" request entry — one whose serialized
-   * payload exceeds the 256 KB SNS message size limit. Verifies the entry is dropped from
-   * {@link #pendingRequests}, its associated {@link ListenableFuture} is failed with a
-   * {@code "000"} sender-fault {@link ResponseFailEntry} wrapping a
-   * {@link PoisonRequestEntryException}, and the batch continues processing without crashing.
-   */
   @Nested
   class PoisonRequestEntry {
 

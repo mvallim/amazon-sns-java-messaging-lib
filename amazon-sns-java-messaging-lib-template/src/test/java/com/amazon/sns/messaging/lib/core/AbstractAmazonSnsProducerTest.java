@@ -22,15 +22,26 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterEach;
@@ -38,6 +49,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.amazon.sns.messaging.lib.model.RequestEntry;
@@ -170,6 +182,51 @@ class AbstractAmazonSnsProducerTest {
     doThrow(InterruptedException.class).when(topicRequests).put(any());
 
     assertThrows(InterruptedException.class, () -> producer.send(entry));
+  }
+
+  @Test
+  void testShutdownAwaitTermination() throws InterruptedException {
+    try (final MockedStatic<Executors> mockedStatic = mockStatic(Executors.class)) {
+
+      final ExecutorService callbackExecutor = mock();
+
+      mockedStatic.when(() -> Executors.newCachedThreadPool(any())).thenReturn(callbackExecutor);
+
+      final AbstractAmazonSnsProducer<String> abstractAmazonSnsProducer = new AbstractAmazonSnsProducer<String>(new ConcurrentHashMap<>(), new LinkedBlockingDeque<>()) { };
+
+      when(callbackExecutor.shutdownNow()).thenReturn(Collections.singletonList(mock()));
+      when(callbackExecutor.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(false);
+
+      abstractAmazonSnsProducer.shutdown(() -> {});
+
+      verify(callbackExecutor).shutdown();
+      verify(callbackExecutor).awaitTermination(60, TimeUnit.SECONDS);
+      verify(callbackExecutor).shutdownNow();
+    }
+
+  }
+
+  @Test
+  void testShutdownRiseInterruptedException() throws InterruptedException {
+    try (final MockedStatic<Executors> mockedStatic = mockStatic(Executors.class)) {
+
+      final ExecutorService callbackExecutor = mock();
+
+      mockedStatic.when(() -> Executors.newCachedThreadPool(any())).thenReturn(callbackExecutor);
+
+      final AbstractAmazonSnsProducer<String> abstractAmazonSnsProducer = new AbstractAmazonSnsProducer<String>(new ConcurrentHashMap<>(), new LinkedBlockingDeque<>()) { };
+
+      doAnswer(invocation -> {
+        throw new InterruptedException("interrupted");
+      }).when(callbackExecutor).shutdown();
+
+      abstractAmazonSnsProducer.shutdown(() -> {});
+
+      verify(callbackExecutor, times(1)).shutdown();
+      verify(callbackExecutor, never()).awaitTermination(60, TimeUnit.SECONDS);
+      verify(callbackExecutor, never()).shutdownNow();
+    }
+
   }
 
   private RequestEntry<String> requestEntry() {
