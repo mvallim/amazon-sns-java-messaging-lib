@@ -20,6 +20,8 @@ import java.lang.reflect.Method;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +30,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 
+// @formatter:off
 /**
  * Provides {@link ThreadFactory} instances, selecting between virtual thread
  * factories (Java 21+) and default thread factories based on the runtime Java
@@ -38,6 +41,21 @@ public final class ThreadFactoryProvider {
 
   /** Class logger. */
   private static final Logger LOGGER = LoggerFactory.getLogger(ThreadFactoryProvider.class);
+
+  /**
+   * Regex that extracts the major version number from a {@code java.version} string.
+   *
+   * <table border="1">
+   *   <tr><th>Input</th><th>Group 1</th></tr>
+   *   <tr><td>{@code "21"}</td><td>{@code "21"}</td></tr>
+   *   <tr><td>{@code "21.0.1"}</td><td>{@code "21"}</td></tr>
+   *   <tr><td>{@code "17.0.9+9"}</td><td>{@code "17"}</td></tr>
+   *   <tr><td>{@code "11-ea"}</td><td>{@code "11"}</td></tr>
+   *   <tr><td>{@code "1.8.0_302"}</td><td>{@code "8"}</td></tr>
+   * </table>
+   *
+   */
+  private static final Pattern JAVA_VERSION_PATTERN = Pattern.compile("^(?:1\\.)?(\\d+)");
 
   /**
    * Cached supplier of the appropriate thread factory for the runtime Java
@@ -94,17 +112,15 @@ public final class ThreadFactoryProvider {
    * @return the major Java version number
    */
   private static int getJavaVersion() {
-    String version = System.getProperty("java.version");
+    final String version = System.getProperty("java.version");
+    final Matcher matcher = JAVA_VERSION_PATTERN.matcher(version);
 
-    if (version.startsWith("1.")) {
-      version = version.substring(2);
+    if (!matcher.find()) {
+      throw new IllegalStateException("Unable to parse java.version: " + version);
     }
 
-    final int dotPos = version.indexOf('.');
-    final int dashPos = version.indexOf('-');
-    final int endIndex = dotPos > -1 ? dotPos : dashPos > -1 ? dashPos : 1;
-
-    return Integer.parseInt(version.substring(0, endIndex));
+    return Integer.parseInt(matcher.group(1));
   }
 
 }
+// @formatter:on
