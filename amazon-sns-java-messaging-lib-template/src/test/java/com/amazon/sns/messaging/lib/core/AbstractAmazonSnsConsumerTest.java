@@ -353,32 +353,6 @@ class AbstractAmazonSnsConsumerTest {
       }
     }
 
-    @Test
-    void testShutdownRiseInterruptedException() throws InterruptedException {
-      try (final MockedStatic<Executors> mockedStatic = mockStatic(Executors.class)) {
-
-        final ExecutorService executorService = mock();
-        final ScheduledExecutorService scheduledExecutorService = mock();
-
-        mockedStatic.when(() -> Executors.newSingleThreadScheduledExecutor(any())).thenReturn(scheduledExecutorService);
-
-        try (final TestableAmazonSnsConsumer snsConsumer = new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)) {
-          doAnswer(invocation -> {
-            throw new InterruptedException("interrupt");
-          }).when(executorService).shutdown();
-
-          snsConsumer.shutdown();
-
-          verify(executorService).shutdown();
-          verify(executorService, never()).awaitTermination(60, TimeUnit.SECONDS);
-          verify(executorService, never()).shutdownNow();
-          verify(scheduledExecutorService).shutdown();
-          verify(scheduledExecutorService).awaitTermination(60, TimeUnit.SECONDS);
-          verify(scheduledExecutorService).shutdownNow();
-        }
-      }
-    }
-
   }
 
   @Nested

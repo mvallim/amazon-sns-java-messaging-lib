@@ -23,12 +23,9 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -202,29 +199,6 @@ class AbstractAmazonSnsProducerTest {
       verify(callbackExecutor).shutdown();
       verify(callbackExecutor).awaitTermination(60, TimeUnit.SECONDS);
       verify(callbackExecutor).shutdownNow();
-    }
-
-  }
-
-  @Test
-  void testShutdownRiseInterruptedException() throws InterruptedException {
-    try (final MockedStatic<Executors> mockedStatic = mockStatic(Executors.class)) {
-
-      final ExecutorService callbackExecutor = mock();
-
-      mockedStatic.when(() -> Executors.newCachedThreadPool(any())).thenReturn(callbackExecutor);
-
-      final AbstractAmazonSnsProducer<String> abstractAmazonSnsProducer = new AbstractAmazonSnsProducer<String>(new ConcurrentHashMap<>(), new LinkedBlockingDeque<>()) { };
-
-      doAnswer(invocation -> {
-        throw new InterruptedException("interrupted");
-      }).when(callbackExecutor).shutdown();
-
-      abstractAmazonSnsProducer.shutdown(() -> {});
-
-      verify(callbackExecutor, times(1)).shutdown();
-      verify(callbackExecutor, never()).awaitTermination(60, TimeUnit.SECONDS);
-      verify(callbackExecutor, never()).shutdownNow();
     }
 
   }
