@@ -25,13 +25,18 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -39,20 +44,26 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mock.Strictness;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.amazon.sns.messaging.lib.concurrent.RingBufferBlockingQueue;
@@ -106,498 +117,644 @@ class AbstractAmazonSnsConsumerTest {
     when(topicProperty.isFifo()).thenReturn(false);
   }
 
-  @Test
-  void testConstructorInitializesPendingRequests() {
-    assertThat(pendingRequests, is(notNullValue()));
-    assertThat(pendingRequests.isEmpty(), is(true));
+  @Nested
+  class Constructor {
+
+    @Test
+    void testConstructorInitializesPendingRequests() {
+      assertThat(pendingRequests, is(notNullValue()));
+      assertThat(pendingRequests.isEmpty(), is(true));
+    }
+
+    @Test
+    void testConstructorInitializesTopicRequests() {
+      assertThat(topicRequests, is(notNullValue()));
+      assertThat(topicRequests.isEmpty(), is(true));
+    }
+
+    @Test
+    void testConstructorThrowsNpeWhenTopicPropertyIsNull() {
+      final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
+        new TestableAmazonSnsConsumer(amazonSnsClient, null, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)
+      );
+
+      assertThat(thrown.getMessage(), containsString("topicProperty cannot be null"));
+    }
+
+    @Test
+    void testConstructorThrowsNpeWhenAmazonSnsClientIsNull() {
+      final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
+        new TestableAmazonSnsConsumer(null, topicProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)
+      );
+
+      assertThat(thrown.getMessage(), containsString("amazonSnsClient cannot be null"));
+    }
+
+    @Test
+    void testConstructorThrowsNpeWhenObjectMapperIsNull() {
+      final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
+        new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, null, pendingRequests, topicRequests, executorService, publishDecorator)
+      );
+
+      assertThat(thrown.getMessage(), containsString("objectMapper cannot be null"));
+    }
+
+    @Test
+    void testConstructorThrowsNpeWhenExecutorServiceIsNull() {
+      final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
+        new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, null, publishDecorator)
+      );
+
+      assertThat(thrown.getMessage(), containsString("executorService cannot be null"));
+    }
   }
 
-  @Test
-  void testConstructorInitializesTopicRequests() {
-    assertThat(topicRequests, is(notNullValue()));
-    assertThat(topicRequests.isEmpty(), is(true));
+  @Nested
+  class Await {
+
+    @Test
+    void testAwaitReturnCompletableFutureWhenQueuesAreEmpty() throws Exception {
+      context(consumer -> {
+        final CompletableFuture<Void> future = consumer.await();
+        assertThat(future, is(notNullValue()));
+        future.get(2, TimeUnit.SECONDS);
+        assertThat(future.isDone(), is(true));
+      });
+    }
+
+    @Test
+    void testAwaitReturnNonNullFuture() throws Exception {
+      context(consumer -> {
+        final CompletableFuture<Void> future = consumer.await();
+        assertThat(future, is(notNullValue()));
+      });
+    }
+
+    @Test
+    void testAwaitCompletesWhenPendingRequestsAndTopicRequestsAreEmpty() throws Exception {
+      context(consumer -> {
+        final CompletableFuture<Void> future = consumer.await();
+        future.get(2, TimeUnit.SECONDS);
+
+        assertThat(future.isDone(), is(true));
+        assertThat(future.isCompletedExceptionally(), is(false));
+      });
+    }
+
+    @Test
+    void testAwaitEventuallyCompletesAfterPendingRequestsAreCleared() throws Exception {
+      pendingRequests.put("key-1", listenableFutureImpl);
+
+      context(consumer -> {
+        final CompletableFuture<Void> future = consumer.await();
+
+        assertThat(future.isDone(), is(false));
+
+        pendingRequests.clear();
+
+        future.get(3, TimeUnit.SECONDS);
+        assertThat(future.isDone(), is(true));
+      });
+    }
   }
 
-  @Test
-  void testConstructorThrowsNpeWhenTopicPropertyIsNull() {
-    final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
-      new TestableAmazonSnsConsumer(amazonSnsClient, null, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)
-    );
+  @Nested
+  class AwaitWithTimeout {
 
-    assertThat(thrown.getMessage(), containsString("topicProperty cannot be null"));
+    @Test
+    void testAwaitWithTimeoutThrowsNpeWhenTimeoutIsNull() throws Exception {
+      context(consumer ->
+        assertThrows(NullPointerException.class, () -> consumer.await(null))
+      );
+    }
+
+    @Test
+    void testAwaitWithTimeoutReturnsNonNullFuture() throws Exception {
+      context(consumer -> {
+        final CompletableFuture<Void> future = consumer.await(Duration.ofSeconds(2));
+        assertThat(future, is(notNullValue()));
+      });
+    }
+
+    @Test
+    void testAwaitWithTimeoutCompletesWhenQueuesAreEmpty() throws Exception {
+      context(consumer -> {
+        final CompletableFuture<Void> future = consumer.await(Duration.ofSeconds(2));
+        future.get(3, TimeUnit.SECONDS);
+
+        assertThat(future.isDone(), is(true));
+        assertThat(future.isCompletedExceptionally(), is(false));
+      });
+    }
+
+    @Test
+    void testAwaitWithTimeoutEventuallyCompletesAfterPendingRequestsAreCleared() throws Exception {
+      pendingRequests.put("key-1", listenableFutureImpl);
+
+      context(consumer -> {
+        final CompletableFuture<Void> future = consumer.await(Duration.ofSeconds(5));
+
+        assertThat(future.isDone(), is(false));
+
+        pendingRequests.clear();
+
+        future.get(6, TimeUnit.SECONDS);
+        assertThat(future.isDone(), is(true));
+        assertThat(future.isCompletedExceptionally(), is(false));
+      });
+    }
+
+    @Test
+    void testAwaitWithTimeoutCompletesExceptionallyWhenTimeoutElapses() throws Exception {
+      pendingRequests.put("key-1", listenableFutureImpl);
+
+      context(consumer -> {
+        final CompletableFuture<Void> future = consumer.await(Duration.ofMillis(100));
+
+        try {
+          final ExecutionException thrown = assertThrows(ExecutionException.class, () -> future.get(3, TimeUnit.SECONDS));
+
+          assertThat(thrown.getCause(), instanceOf(TimeoutException.class));
+        } finally {
+          pendingRequests.clear();
+        }
+      });
+    }
+
+    @Test
+    void testAwaitWithTimeoutStillCompletesEvenThoughUnderlyingDrainKeepsRunning() throws Exception {
+      pendingRequests.put("key-1", listenableFutureImpl);
+
+      context(consumer -> {
+        final CompletableFuture<Void> future = consumer.await(Duration.ofMillis(100));
+
+        try {
+          assertThrows(ExecutionException.class, () -> future.get(3, TimeUnit.SECONDS));
+          assertThat(future.isCompletedExceptionally(), is(true));
+        } finally {
+          pendingRequests.clear();
+        }
+      });
+    }
   }
 
-  @Test
-  void testConstructorThrowsNpeWhenAmazonSnsClientIsNull() {
-    final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
-      new TestableAmazonSnsConsumer(null, topicProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)
-    );
+  @Nested
+  class Shutdown {
 
-    assertThat(thrown.getMessage(), containsString("amazonSnsClient cannot be null"));
-  }
+    @Test
+    void testShutdownExecutorService() throws InterruptedException {
+      try (final MockedStatic<Executors> mockedStatic = mockStatic(Executors.class)) {
 
-  @Test
-  void testConstructorThrowsNpeWhenObjectMapperIsNull() {
-    final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
-      new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, null, pendingRequests, topicRequests, executorService, publishDecorator)
-    );
+        final ExecutorService executorService = mock();
+        final ScheduledExecutorService scheduledExecutorService = mock();
 
-    assertThat(thrown.getMessage(), containsString("objectMapper cannot be null"));
-  }
+        mockedStatic.when(() -> Executors.newSingleThreadScheduledExecutor(any())).thenReturn(scheduledExecutorService);
 
-  @Test
-  void testConstructorThrowsNpeWhenExecutorServiceIsNull() {
-    final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
-      new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, null, publishDecorator)
-    );
+        try (final TestableAmazonSnsConsumer snsConsumer = new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)) {
+          when(executorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(false);
+          when(executorService.shutdownNow()).thenReturn(Collections.singletonList(mock()));
+          when(scheduledExecutorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(true);
 
-    assertThat(thrown.getMessage(), containsString("executorService cannot be null"));
-  }
+          snsConsumer.shutdown();
 
-  @Test
-  void testAwaitReturnCompletableFutureWhenQueuesAreEmpty() throws Exception {
-    context(consumer -> {
-      final CompletableFuture<Void> future = consumer.await();
-      assertThat(future, is(notNullValue()));
-      future.get(2, TimeUnit.SECONDS);
-      assertThat(future.isDone(), is(true));
-    });
-  }
-
-  @Test
-  void testAwaitReturnNonNullFuture() throws Exception {
-    context(consumer -> {
-      final CompletableFuture<Void> future = consumer.await();
-      assertThat(future, is(notNullValue()));
-    });
-  }
-
-  @Test
-  void testAwaitCompletesWhenPendingRequestsAndTopicRequestsAreEmpty() throws Exception {
-    context(consumer -> {
-      final CompletableFuture<Void> future = consumer.await();
-      future.get(2, TimeUnit.SECONDS);
-
-      assertThat(future.isDone(), is(true));
-      assertThat(future.isCompletedExceptionally(), is(false));
-    });
-  }
-
-  @Test
-  void testAwaitEventuallyCompletesAfterPendingRequestsAreCleared() throws Exception {
-    pendingRequests.put("key-1", listenableFutureImpl);
-
-    context(consumer -> {
-      final CompletableFuture<Void> future = consumer.await();
-
-      assertThat(future.isDone(), is(false));
-
-      pendingRequests.clear();
-
-      future.get(3, TimeUnit.SECONDS);
-      assertThat(future.isDone(), is(true));
-    });
-  }
-
-  @Test
-  void testShutdownDoesNotThrowException() throws Exception {
-    context(consumer -> {
-      try {
-        consumer.shutdown();
-      } catch (final Exception ex) {
-        assertThat("shutdown should not throw an exception", false, is(true));
+          verify(executorService).shutdown();
+          verify(executorService).awaitTermination(60, TimeUnit.SECONDS);
+          verify(executorService).shutdownNow();
+          verify(scheduledExecutorService).shutdown();
+          verify(scheduledExecutorService).awaitTermination(60, TimeUnit.SECONDS);
+          verify(scheduledExecutorService, never()).shutdownNow();
+        }
       }
-    });
-  }
+    }
 
-  @Test
-  void testShutdownCanBeCalledMultipleTimes() throws Exception {
-    context(consumer -> {
-      try {
-        consumer.shutdown();
-        consumer.shutdown();
-      } catch (final Exception ex) {
-        assertThat("multiple shutdown calls should not throw an exception", false, is(true));
+    @Test
+    void testShutdownScheduledExecutorService() throws InterruptedException {
+      try (final MockedStatic<Executors> mockedStatic = mockStatic(Executors.class)) {
+
+        final ExecutorService executorService = mock();
+        final ScheduledExecutorService scheduledExecutorService = mock();
+
+        mockedStatic.when(() -> Executors.newSingleThreadScheduledExecutor(any())).thenReturn(scheduledExecutorService);
+
+        try (final TestableAmazonSnsConsumer snsConsumer = new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)) {
+          when(scheduledExecutorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(false);
+          when(scheduledExecutorService.shutdownNow()).thenReturn(Collections.singletonList(mock()));
+          when(executorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(true);
+
+          snsConsumer.shutdown();
+
+          verify(executorService).shutdown();
+          verify(executorService).awaitTermination(60, TimeUnit.SECONDS);
+          verify(executorService, never()).shutdownNow();
+          verify(scheduledExecutorService).shutdown();
+          verify(scheduledExecutorService).awaitTermination(60, TimeUnit.SECONDS);
+          verify(scheduledExecutorService).shutdownNow();
+        }
       }
-    });
+    }
+
   }
 
-  @Test
-  void testRunWithFifoTopicPublishesSynchronously() throws Exception {
-    when(topicProperty.isFifo()).thenReturn(true);
-    when(executorService.submit(any(Runnable.class))).thenReturn(null);
+  @Nested
+  class Run {
 
-    context(consumer -> {
-      final RequestEntry<String> entry = buildRequestEntry("fifo-message");
-      topicRequests.put(entry);
+    @Test
+    void testRunWithFifoTopicPublishesSynchronously() throws Exception {
+      when(topicProperty.isFifo()).thenReturn(true);
+      when(executorService.submit(any(Runnable.class))).thenReturn(null);
 
-      await()
-        .untilAsserted(() -> {
-          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1));
-          assertThat(consumer.getHandleResponseCallCount(), greaterThanOrEqualTo(1));
-        });
-    });
+      context(consumer -> {
+        final RequestEntry<String> entry = buildRequestEntry("fifo-message");
+        topicRequests.put(entry);
+
+        await()
+          .untilAsserted(() -> {
+            assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1));
+            assertThat(consumer.getHandleResponseCallCount(), greaterThanOrEqualTo(1));
+          });
+      });
+    }
+
+    @Test
+    void testRunWithNonFifoTopicPublishesAsynchronously() throws Exception {
+      when(topicProperty.isFifo()).thenReturn(false);
+      doAnswer(inv -> {
+        ((Runnable) inv.getArgument(0)).run();
+        return CompletableFuture.completedFuture(null);
+      }).when(executorService).execute(any(Runnable.class));
+
+      context(consumer -> {
+        final RequestEntry<String> entry = buildRequestEntry("non-fifo-message");
+        topicRequests.put(entry);
+
+        await()
+          .untilAsserted(() ->
+            verify(executorService, atLeastOnce()).execute(any(Runnable.class))
+          );
+      });
+    }
+
+    @Test
+    void testRunHandlesPublishExceptionWithoutCrashing() throws Exception {
+      when(topicProperty.isFifo()).thenReturn(true);
+
+      context(consumer -> {
+        consumer.setThrowOnPublish(true);
+
+        final RequestEntry<String> entry = buildRequestEntry("error-message");
+        topicRequests.put(entry);
+
+        await()
+          .untilAsserted(() -> {
+            assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
+            assertThat(consumer.getLastError(), is(notNullValue()));
+          });
+      });
+    }
+
+    @Test
+    void testRunRecordsCorrectExceptionOnPublishFailure() throws Exception {
+      when(topicProperty.isFifo()).thenReturn(true);
+
+      context(consumer -> {
+        consumer.setThrowOnPublish(true);
+
+        topicRequests.put(buildRequestEntry("fail-message"));
+
+        await()
+          .untilAsserted(() -> {
+            assertThat(consumer.getLastError(), instanceOf(RuntimeException.class));
+            assertThat(consumer.getLastError().getMessage(), containsString("publish failed"));
+          });
+      });
+    }
+
+    @Test
+    void testRunHandlesRejectedExecutionExceptionFromExecutorWithoutCrashing() throws Exception {
+      when(topicProperty.isFifo()).thenReturn(false);
+      doThrow(new RejectedExecutionException("executor full")).when(executorService).execute(any(Runnable.class));
+
+      context(consumer -> {
+        topicRequests.put(buildRequestEntry("rejected-message"));
+
+        await()
+          .untilAsserted(() -> {
+            assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
+            assertThat(consumer.getLastError(), instanceOf(RejectedExecutionException.class));
+          });
+      });
+    }
+
+    @Test
+    void testRunDoesNotPublishWhenQueueIsEmpty() throws Exception {
+      context(consumer -> {
+        await()
+          .untilAsserted(() -> {
+            assertThat(consumer.getPublishCallCount(), is(0));
+            assertThat(consumer.getHandleErrorCallCount(), is(0));
+          });
+      });
+    }
+
+    @Test
+    void testRunPublishesMultipleEntriesInSingleBatch() throws Exception {
+      when(topicProperty.isFifo()).thenReturn(true);
+
+      context(consumer -> {
+        for (int i = 0; i < 5; i++) {
+          topicRequests.put(buildRequestEntry("message-" + i));
+        }
+
+        await()
+          .untilAsserted(() ->
+            assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1))
+          );
+      });
+    }
+
+    @Test
+    void testRunRespectMaxBatchSizeByPublishingInMultipleBatches() throws Exception {
+      when(topicProperty.isFifo()).thenReturn(true);
+      when(topicProperty.getMaxBatchSize()).thenReturn(2);
+
+      context(consumer -> {
+        for (int i = 0; i < 6; i++) {
+          topicRequests.put(buildRequestEntry("msg-" + i));
+        }
+
+        await()
+          .untilAsserted(() ->
+            assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2))
+          );
+      });
+    }
   }
 
-  @Test
-  void testRunWithNonFifoTopicPublishesAsynchronously() throws Exception {
-    when(topicProperty.isFifo()).thenReturn(false);
-    doAnswer(inv -> {
-      ((Runnable) inv.getArgument(0)).run();
-      return CompletableFuture.completedFuture(null);
-    }).when(executorService).execute(any(Runnable.class));
+  @Nested
+  class PendingRequests {
 
-    context(consumer -> {
-      final RequestEntry<String> entry = buildRequestEntry("non-fifo-message");
-      topicRequests.put(entry);
+    @Test
+    void testPendingRequestsIsEmptyOnConstruction() {
+      assertThat(pendingRequests.isEmpty(), is(true));
+    }
 
-      await()
-        .untilAsserted(() ->
-          verify(executorService, atLeastOnce()).execute(any(Runnable.class))
-        );
-    });
+    @Test
+    void testPendingRequestsCanHoldMultipleEntries() {
+      pendingRequests.put("id-1", listenableFutureImpl);
+      pendingRequests.put("id-2", listenableFutureImpl);
+
+      assertThat(pendingRequests.size(), is(2));
+      assertThat(pendingRequests, hasKey("id-1"));
+      assertThat(pendingRequests, hasKey("id-2"));
+    }
+
+    @Test
+    void testPendingRequestsCanBeRemovedAfterProcessing() {
+      pendingRequests.put("id-1", listenableFutureImpl);
+      pendingRequests.remove("id-1");
+
+      assertThat(pendingRequests.isEmpty(), is(true));
+    }
   }
 
-  @Test
-  void testRunHandlesPublishExceptionWithoutCrashing() throws Exception {
-    when(topicProperty.isFifo()).thenReturn(true);
+  @Nested
+  class TopicRequests {
 
-    context(consumer -> {
-      consumer.setThrowOnPublish(true);
+    @Test
+    void testTopicRequestsIsEmptyOnConstruction() {
+      assertThat(topicRequests.isEmpty(), is(true));
+    }
 
-      final RequestEntry<String> entry = buildRequestEntry("error-message");
-      topicRequests.put(entry);
+    @Test
+    void testTopicRequestsAcceptsRequestEntries() throws InterruptedException {
+      topicRequests.put(buildRequestEntry("payload-1"));
+      topicRequests.put(buildRequestEntry("payload-2"));
 
-      await()
-        .untilAsserted(() -> {
-          assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
-          assertThat(consumer.getLastError(), is(notNullValue()));
-        });
-    });
+      assertThat(topicRequests.size(), is(2));
+    }
+
+    @Test
+    void testTopicRequestsPollRemovesEntry() throws InterruptedException {
+      topicRequests.put(buildRequestEntry("payload"));
+
+      final RequestEntry<String> polled = topicRequests.take();
+
+      assertThat(polled, is(notNullValue()));
+      assertThat(topicRequests.isEmpty(), is(true));
+    }
   }
 
-  @Test
-  void testRunRecordsCorrectExceptionOnPublishFailure() throws Exception {
-    when(topicProperty.isFifo()).thenReturn(true);
+  @Nested
+  class PublishDecorator {
 
-    context(consumer -> {
-      consumer.setThrowOnPublish(true);
+    @Test
+    void testPublishDecoratorIsAppliedBeforePublish() throws Exception {
+      final Object decoratedObject = new Object();
+      final UnaryOperator<Object> trackingDecorator = req -> decoratedObject;
 
-      topicRequests.put(buildRequestEntry("fail-message"));
+      when(topicProperty.isFifo()).thenReturn(true);
 
-      await()
-        .untilAsserted(() -> {
-          assertThat(consumer.getLastError(), instanceOf(RuntimeException.class));
-          assertThat(consumer.getLastError().getMessage(), containsString("publish failed"));
-        });
-    });
+      context(trackingDecorator, consumer -> {
+        topicRequests.put(buildRequestEntry("decorated-message"));
+
+        await()
+          .untilAsserted(() ->
+            assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1))
+          );
+      });
+    }
+
+    @Test
+    void testPublishDecoratorIdentityDoesNotAlterRequest() throws Exception {
+      when(topicProperty.isFifo()).thenReturn(true);
+
+      context(consumer -> {
+        topicRequests.put(buildRequestEntry("identity-message"));
+
+        await()
+          .untilAsserted(() -> {
+            assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1));
+            assertThat(consumer.getHandleErrorCallCount(), is(0));
+          });
+      });
+    }
   }
 
-  @Test
-  void testRunHandlesRejectedExecutionExceptionFromExecutorWithoutCrashing() throws Exception {
-    when(topicProperty.isFifo()).thenReturn(false);
-    doThrow(new RejectedExecutionException("executor full")).when(executorService).execute(any(Runnable.class));
+  @Nested
+  class CanAddPayload {
 
-    context(consumer -> {
-      topicRequests.put(buildRequestEntry("rejected-message"));
+    @Test
+    void testCanAddPayloadAllowsEntryWellBelowSizeThreshold() throws Exception {
+      when(topicProperty.isFifo()).thenReturn(true);
 
-      await()
-        .untilAsserted(() -> {
-          assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
-          assertThat(consumer.getLastError(), instanceOf(RejectedExecutionException.class));
-        });
-    });
+      context(consumer -> {
+        topicRequests.put(buildRequestEntry("small-payload"));
+
+        await()
+          .untilAsserted(() -> {
+            assertThat(consumer.getTotalPublishedEntries(), is(1));
+            assertThat(consumer.getHandleErrorCallCount(), is(0));
+          });
+      });
+    }
+
+    @Test
+    void testCanAddPayloadAllowsEntryExactlyAtSizeThreshold() throws Exception {
+      when(topicProperty.isFifo()).thenReturn(true);
+
+      context(consumer -> {
+        final String payloadAtThreshold = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold());
+        topicRequests.put(buildRequestEntry(payloadAtThreshold));
+
+        await()
+          .untilAsserted(() -> {
+            assertThat(consumer.getTotalPublishedEntries(), is(1));
+            assertThat(consumer.getHandleErrorCallCount(), is(0));
+          });
+      });
+    }
+
+    @Test
+    void testCanAddPayloadRejectsEntryExceedingSizeThreshold() throws Exception {
+      when(topicProperty.isFifo()).thenReturn(true);
+
+      context(consumer -> {
+        final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold() + 1);
+        topicRequests.put(buildRequestEntry(oversizedPayload));
+
+        await()
+          .untilAsserted(() -> {
+            assertThat(consumer.getTotalPublishedEntries(), is(0));
+            assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(0));
+          });
+      });
+    }
+
+    @Test
+    void testCanAddPayloadStopsAccumulatingWhenBatchExceedsThreshold() throws Exception {
+      when(topicProperty.isFifo()).thenReturn(true);
+      when(topicProperty.getMaxBatchSize()).thenReturn(10);
+
+      context(consumer -> {
+        final int halfThreshold = TestableAmazonSnsConsumer.batchSizeBytesThreshold() / 2;
+        topicRequests.put(buildRequestEntry(buildPayloadOfBytes(halfThreshold)));
+        topicRequests.put(buildRequestEntry(buildPayloadOfBytes(halfThreshold)));
+        topicRequests.put(buildRequestEntry("small-overflow"));
+
+        await()
+          .untilAsserted(() -> {
+            assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2));
+            assertThat(consumer.getTotalPublishedEntries(), is(3));
+          });
+      });
+    }
+
+    @Test
+    void testCanAddPayloadPublishesFirstEntryAloneWhenItFillsThreshold() throws Exception {
+      when(topicProperty.isFifo()).thenReturn(true);
+      when(topicProperty.getMaxBatchSize()).thenReturn(10);
+
+      context(consumer -> {
+        final int fullThreshold = TestableAmazonSnsConsumer.batchSizeBytesThreshold();
+        topicRequests.put(buildRequestEntry(buildPayloadOfBytes(fullThreshold)));
+        topicRequests.put(buildRequestEntry("second-entry"));
+
+        await()
+          .untilAsserted(() -> {
+            assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2));
+            assertThat(consumer.getPublishedBatchSizes().get(0), is(1));
+          });
+      });
+    }
+
+    @Test
+    void testCanAddPayloadAllowsMultipleSmallEntriesUpToThreshold() throws Exception {
+      when(topicProperty.isFifo()).thenReturn(true);
+      when(topicProperty.getMaxBatchSize()).thenReturn(100);
+
+      context(consumer -> {
+        for (int i = 0; i < 10; i++) {
+          topicRequests.put(buildRequestEntry("entry-" + i));
+        }
+
+        await()
+          .untilAsserted(() -> {
+            assertThat(consumer.getTotalPublishedEntries(), is(10));
+            assertThat(consumer.getHandleErrorCallCount(), is(0));
+          });
+      });
+    }
+
+    @Test
+    void testCanAddPayloadSplitsBatchWhenCumulativeSizeExceedsThreshold() throws Exception {
+      when(topicProperty.isFifo()).thenReturn(true);
+      when(topicProperty.getMaxBatchSize()).thenReturn(10);
+
+      context(consumer -> {
+        final int chunkSize = (TestableAmazonSnsConsumer.batchSizeBytesThreshold() / 3) + 1;
+        topicRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
+        topicRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
+        topicRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
+
+        await()
+          .untilAsserted(() -> {
+            assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2));
+            assertThat(consumer.getTotalPublishedEntries(), is(3));
+          });
+      });
+    }
+
+    @Test
+    void testCanAddPayloadDoesNotPublishEmptyBatchWhenAllEntriesExceedThreshold() throws Exception {
+      when(topicProperty.isFifo()).thenReturn(true);
+
+      context(consumer -> {
+        final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold() + 100);
+        topicRequests.put(buildRequestEntry(oversizedPayload));
+
+        await()
+          .untilAsserted(() -> {
+            assertThat(consumer.getTotalPublishedEntries(), is(0));
+            assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(0));
+          });
+      });
+    }
   }
 
-  @Test
-  void testRunDoesNotPublishWhenQueueIsEmpty() throws Exception {
-    context(consumer -> {
-      await()
-        .untilAsserted(() -> {
-          assertThat(consumer.getPublishCallCount(), is(0));
-          assertThat(consumer.getHandleErrorCallCount(), is(0));
-        });
-    });
-  }
+  @Nested
+  class PoisonRequestEntry {
 
-  @Test
-  void testRunPublishesMultipleEntriesInSingleBatch() throws Exception {
-    when(topicProperty.isFifo()).thenReturn(true);
+    @Test
+    void testPoisonRequestEntryRemovesFromPendingRequestsAndFailsListenableFuture() throws Exception {
+      when(topicProperty.isFifo()).thenReturn(true);
 
-    context(consumer -> {
-      for (int i = 0; i < 5; i++) {
-        topicRequests.put(buildRequestEntry("message-" + i));
-      }
-
-      await()
-        .untilAsserted(() ->
-          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1))
-        );
-    });
-  }
-
-  @Test
-  void testRunRespectMaxBatchSizeByPublishingInMultipleBatches() throws Exception {
-    when(topicProperty.isFifo()).thenReturn(true);
-    when(topicProperty.getMaxBatchSize()).thenReturn(2);
-
-    context(consumer -> {
-      for (int i = 0; i < 6; i++) {
-        topicRequests.put(buildRequestEntry("msg-" + i));
-      }
-
-      await()
-        .untilAsserted(() ->
-          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2))
-        );
-    });
-  }
-
-  @Test
-  void testPendingRequestsIsEmptyOnConstruction() {
-    assertThat(pendingRequests.isEmpty(), is(true));
-  }
-
-  @Test
-  void testPendingRequestsCanHoldMultipleEntries() {
-    pendingRequests.put("id-1", listenableFutureImpl);
-    pendingRequests.put("id-2", listenableFutureImpl);
-
-    assertThat(pendingRequests.size(), is(2));
-    assertThat(pendingRequests, hasKey("id-1"));
-    assertThat(pendingRequests, hasKey("id-2"));
-  }
-
-  @Test
-  void testPendingRequestsCanBeRemovedAfterProcessing() {
-    pendingRequests.put("id-1", listenableFutureImpl);
-    pendingRequests.remove("id-1");
-
-    assertThat(pendingRequests.isEmpty(), is(true));
-  }
-
-  @Test
-  void testTopicRequestsIsEmptyOnConstruction() {
-    assertThat(topicRequests.isEmpty(), is(true));
-  }
-
-  @Test
-  void testTopicRequestsAcceptsRequestEntries() throws InterruptedException {
-    topicRequests.put(buildRequestEntry("payload-1"));
-    topicRequests.put(buildRequestEntry("payload-2"));
-
-    assertThat(topicRequests.size(), is(2));
-  }
-
-  @Test
-  void testTopicRequestsPollRemovesEntry() throws InterruptedException {
-    topicRequests.put(buildRequestEntry("payload"));
-
-    final RequestEntry<String> polled = topicRequests.take();
-
-    assertThat(polled, is(notNullValue()));
-    assertThat(topicRequests.isEmpty(), is(true));
-  }
-
-  @Test
-  void testPublishDecoratorIsAppliedBeforePublish() throws Exception {
-    final Object decoratedObject = new Object();
-    final UnaryOperator<Object> trackingDecorator = req -> decoratedObject;
-
-    when(topicProperty.isFifo()).thenReturn(true);
-
-    context(trackingDecorator, consumer -> {
-      topicRequests.put(buildRequestEntry("decorated-message"));
-
-      await()
-        .untilAsserted(() ->
-          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1))
-        );
-    });
-  }
-
-  @Test
-  void testPublishDecoratorIdentityDoesNotAlterRequest() throws Exception {
-    when(topicProperty.isFifo()).thenReturn(true);
-
-    context(consumer -> {
-      topicRequests.put(buildRequestEntry("identity-message"));
-
-      await()
-        .untilAsserted(() -> {
-          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1));
-          assertThat(consumer.getHandleErrorCallCount(), is(0));
-        });
-    });
-  }
-
-  @Test
-  void testCanAddPayloadAllowsEntryWellBelowSizeThreshold() throws Exception {
-    when(topicProperty.isFifo()).thenReturn(true);
-
-    context(consumer -> {
-      topicRequests.put(buildRequestEntry("small-payload"));
-
-      await()
-        .untilAsserted(() -> {
-          assertThat(consumer.getTotalPublishedEntries(), is(1));
-          assertThat(consumer.getHandleErrorCallCount(), is(0));
-        });
-    });
-  }
-
-  @Test
-  void testCanAddPayloadAllowsEntryExactlyAtSizeThreshold() throws Exception {
-    when(topicProperty.isFifo()).thenReturn(true);
-
-    context(consumer -> {
-      final String payloadAtThreshold = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold());
-      topicRequests.put(buildRequestEntry(payloadAtThreshold));
-
-      await()
-        .untilAsserted(() -> {
-          assertThat(consumer.getTotalPublishedEntries(), is(1));
-          assertThat(consumer.getHandleErrorCallCount(), is(0));
-        });
-    });
-  }
-
-  @Test
-  void testCanAddPayloadRejectsEntryExceedingSizeThreshold() throws Exception {
-    when(topicProperty.isFifo()).thenReturn(true);
-
-    context(consumer -> {
-      final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold() + 1);
-      topicRequests.put(buildRequestEntry(oversizedPayload));
-
-      await()
-        .untilAsserted(() -> {
-          assertThat(consumer.getTotalPublishedEntries(), is(0));
-          assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(0));
-        });
-    });
-  }
-
-  @Test
-  void testCanAddPayloadStopsAccumulatingWhenBatchExceedsThreshold() throws Exception {
-    when(topicProperty.isFifo()).thenReturn(true);
-    when(topicProperty.getMaxBatchSize()).thenReturn(10);
-
-    context(consumer -> {
-      final int halfThreshold = TestableAmazonSnsConsumer.batchSizeBytesThreshold() / 2;
-      topicRequests.put(buildRequestEntry(buildPayloadOfBytes(halfThreshold)));
-      topicRequests.put(buildRequestEntry(buildPayloadOfBytes(halfThreshold)));
-      topicRequests.put(buildRequestEntry("small-overflow"));
-
-      await()
-        .untilAsserted(() -> {
-          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2));
-          assertThat(consumer.getTotalPublishedEntries(), is(3));
-        });
-    });
-  }
-
-  @Test
-  void testCanAddPayloadPublishesFirstEntryAloneWhenItFillsThreshold() throws Exception {
-    when(topicProperty.isFifo()).thenReturn(true);
-    when(topicProperty.getMaxBatchSize()).thenReturn(10);
-
-    context(consumer -> {
-      final int fullThreshold = TestableAmazonSnsConsumer.batchSizeBytesThreshold();
-      topicRequests.put(buildRequestEntry(buildPayloadOfBytes(fullThreshold)));
-      topicRequests.put(buildRequestEntry("second-entry"));
-
-      await()
-        .untilAsserted(() -> {
-          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2));
-          assertThat(consumer.getPublishedBatchSizes().get(0), is(1));
-        });
-    });
-  }
-
-  @Test
-  void testCanAddPayloadAllowsMultipleSmallEntriesUpToThreshold() throws Exception {
-    when(topicProperty.isFifo()).thenReturn(true);
-    when(topicProperty.getMaxBatchSize()).thenReturn(100);
-
-    context(consumer -> {
-      for (int i = 0; i < 10; i++) {
-        topicRequests.put(buildRequestEntry("entry-" + i));
-      }
-
-      await()
-        .untilAsserted(() -> {
-          assertThat(consumer.getTotalPublishedEntries(), is(10));
-          assertThat(consumer.getHandleErrorCallCount(), is(0));
-        });
-    });
-  }
-
-  @Test
-  void testCanAddPayloadSplitsBatchWhenCumulativeSizeExceedsThreshold() throws Exception {
-    when(topicProperty.isFifo()).thenReturn(true);
-    when(topicProperty.getMaxBatchSize()).thenReturn(10);
-
-    context(consumer -> {
-      final int chunkSize = (TestableAmazonSnsConsumer.batchSizeBytesThreshold() / 3) + 1;
-      topicRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
-      topicRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
-      topicRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
-
-      await()
-        .untilAsserted(() -> {
-          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2));
-          assertThat(consumer.getTotalPublishedEntries(), is(3));
-        });
-    });
-  }
-
-  @Test
-  void testPoisonRequestEntryRemovesFromPendingRequestsAndFailsListenableFuture() throws Exception {
-    when(topicProperty.isFifo()).thenReturn(true);
-
-    final String poisonId = "poison-id";
-    final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold() + 100);
-    final RequestEntry<String> poisonEntry = RequestEntry.<String>builder()
-      .withId(poisonId)
-      .withValue(oversizedPayload)
-      .build();
-
-    pendingRequests.put(poisonId, listenableFutureImpl);
-
-    context(consumer -> {
-      topicRequests.put(poisonEntry);
-
-      await()
-        .untilAsserted(() -> {
-          assertThat(pendingRequests.containsKey(poisonId), is(false));
-
-          final ArgumentCaptor<ResponseFailEntry> captor = ArgumentCaptor.forClass(ResponseFailEntry.class);
-          verify(listenableFutureImpl, atLeastOnce()).fail(captor.capture());
-
-          final ResponseFailEntry failEntry = captor.getValue();
-          assertThat(failEntry.getId(), is(poisonId));
-          assertThat(failEntry.getCode(), is("000"));
-          assertThat(failEntry.getSenderFault(), is(true));
-          assertThat(failEntry.getThrowable(), instanceOf(PoisonRequestEntryException.class));
-        });
-    });
-  }
-
-  @Test
-  void testCanAddPayloadDoesNotPublishEmptyBatchWhenAllEntriesExceedThreshold() throws Exception {
-    when(topicProperty.isFifo()).thenReturn(true);
-
-    context(consumer -> {
+      final String poisonId = "poison-id";
       final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold() + 100);
-      topicRequests.put(buildRequestEntry(oversizedPayload));
+      final RequestEntry<String> poisonEntry = RequestEntry.<String>builder()
+        .withId(poisonId)
+        .withValue(oversizedPayload)
+        .build();
 
-      await()
-        .untilAsserted(() -> {
-          assertThat(consumer.getTotalPublishedEntries(), is(0));
-          assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(0));
-        });
-    });
+      pendingRequests.put(poisonId, listenableFutureImpl);
+
+      context(consumer -> {
+        topicRequests.put(poisonEntry);
+
+        await()
+          .untilAsserted(() -> {
+            assertThat(pendingRequests.containsKey(poisonId), is(false));
+
+            final ArgumentCaptor<ResponseFailEntry> captor = ArgumentCaptor.forClass(ResponseFailEntry.class);
+            verify(listenableFutureImpl, atLeastOnce()).fail(captor.capture());
+
+            final ResponseFailEntry failEntry = captor.getValue();
+            assertThat(failEntry.getId(), is(poisonId));
+            assertThat(failEntry.getCode(), is("000"));
+            assertThat(failEntry.getSenderFault(), is(true));
+            assertThat(failEntry.getThrowable(), instanceOf(PoisonRequestEntryException.class));
+          });
+      });
+    }
   }
 
   private RequestEntry<String> buildRequestEntry(final String value) {
