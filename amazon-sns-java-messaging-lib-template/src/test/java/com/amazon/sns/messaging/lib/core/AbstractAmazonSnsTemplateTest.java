@@ -38,6 +38,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.function.UnaryOperator;
 
+import org.apache.fory.json.ForyJson;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -227,6 +228,14 @@ class AbstractAmazonSnsTemplateTest {
   }
 
   @Test
+  void testBuilderForyJsonThrowsWhenNull() {
+    final TopicProperty topicProperty = mock(TopicProperty.class);
+    final AbstractAmazonSnsTemplate.Builder<Object, Object, Object, String, ?> builder = new AbstractAmazonSnsTemplate.Builder<>(b -> null, new Object(), topicProperty);
+
+    assertThrows(NullPointerException.class, () -> builder.foryJson(null));
+  }
+
+  @Test
   void testBuilderPublishDecoratorThrowsWhenNull() {
     final TopicProperty topicProperty = mock(TopicProperty.class);
     final AbstractAmazonSnsTemplate.Builder<Object, Object, Object, String, ?> builder = new AbstractAmazonSnsTemplate.Builder<>(b -> null, new Object(), topicProperty);
@@ -272,8 +281,8 @@ class AbstractAmazonSnsTemplateTest {
     final TopicProperty topicProperty = mock(TopicProperty.class);
     final AbstractAmazonSnsTemplate.Builder<Object, Object, Object, String, ?> builder = new AbstractAmazonSnsTemplate.Builder<>(b -> null, new Object(), topicProperty);
 
-    assertThat(builder.getObjectMapper(), is(notNullValue()));
-    assertThat(builder.getObjectMapper(), is(instanceOf(ObjectMapper.class)));
+    assertThat(builder.getJsonMapper(), is(notNullValue()));
+    assertThat(builder.getJsonMapper(), is(instanceOf(JsonMapperFactory.JsonMapperJackson.class)));
   }
 
   @Test
@@ -312,6 +321,16 @@ class AbstractAmazonSnsTemplateTest {
     final AbstractAmazonSnsTemplate.Builder<Object, Object, Object, String, ?> builder = new AbstractAmazonSnsTemplate.Builder<>(b -> null, new Object(), topicProperty);
 
     final AbstractAmazonSnsTemplate.Builder<?, ?, ?, ?, ?> result = builder.objectMapper(new ObjectMapper());
+
+    assertThat(result, is(equalTo(builder)));
+  }
+
+  @Test
+  void testBuilderForyJsonReturnsSelf() {
+    final TopicProperty topicProperty = mock(TopicProperty.class);
+    final AbstractAmazonSnsTemplate.Builder<Object, Object, Object, String, ?> builder = new AbstractAmazonSnsTemplate.Builder<>(b -> null, new Object(), topicProperty);
+
+    final AbstractAmazonSnsTemplate.Builder<?, ?, ?, ?, ?> result = builder.foryJson(ForyJson.builder().build());
 
     assertThat(result, is(equalTo(builder)));
   }
@@ -425,12 +444,23 @@ class AbstractAmazonSnsTemplateTest {
   @Test
   void testBuilderSetsObjectMapper() {
     final TopicProperty topicProperty = mock(TopicProperty.class);
-    final ObjectMapper customMapper = new ObjectMapper();
 
     final AbstractAmazonSnsTemplate.Builder<Object, Object, Object, String, ?> builder = new AbstractAmazonSnsTemplate.Builder<>(b -> null, new Object(), topicProperty);
-    builder.objectMapper(customMapper);
+    builder.objectMapper(new ObjectMapper());
 
-    assertThat(builder.getObjectMapper(), is(equalTo(customMapper)));
+    assertThat(builder.getJsonMapper(), is(notNullValue()));
+    assertThat(builder.getJsonMapper(), is(instanceOf(JsonMapperFactory.JsonMapperJackson.class)));
+  }
+
+  @Test
+  void testBuilderSetsForyJsonMapper() {
+    final TopicProperty topicProperty = mock(TopicProperty.class);
+
+    final AbstractAmazonSnsTemplate.Builder<Object, Object, Object, String, ?> builder = new AbstractAmazonSnsTemplate.Builder<>(b -> null, new Object(), topicProperty);
+    builder.foryJson(ForyJson.builder().build());
+
+    assertThat(builder.getJsonMapper(), is(notNullValue()));
+    assertThat(builder.getJsonMapper(), is(instanceOf(JsonMapperFactory.JsonMapperFory.class)));
   }
 
   @Test

@@ -36,6 +36,7 @@ import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.fory.json.ForyJson;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -185,6 +186,7 @@ class AmazonSnsTemplateIntegrationTest {
     return AmazonSnsTemplate.builder(snsClient, topicProperty)
       .meterRegistry(new SimpleMeterRegistry())
       .topicRequests(new RingBufferBlockingQueue<>(1024))
+      .foryJson(ForyJson.builder().build())
       .build();
   }
 
