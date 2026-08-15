@@ -16,8 +16,13 @@
 
 package com.amazon.sns.messaging.lib.model;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.not;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,7 +37,7 @@ class RequestEntryTest {
     final Map<String, Object> messageHeaders = new HashMap<>();
 
     final RequestEntry<Object> requestEntry = RequestEntry.builder()
-      .withCreateTime(12345)
+      .withCreateTime(12345L)
       .withDeduplicationId("deduplicationId")
       .withGroupId("groupId")
       .withId("id")
@@ -48,6 +53,21 @@ class RequestEntryTest {
     assertThat(requestEntry.getMessageHeaders(), equalTo(messageHeaders));
     assertThat(requestEntry.getSubject(), equalTo("subject"));
     assertThat(requestEntry.getValue(), equalTo("value"));
+  }
+
+  @Test
+  void testSuccessMissingFields() {
+    final RequestEntry<Object> requestEntry = RequestEntry.builder()
+      .withValue("value")
+      .build();
+
+    assertThat(requestEntry.getCreateTime(), greaterThan(0L));
+    assertThat(requestEntry.getDeduplicationId(), nullValue());
+    assertThat(requestEntry.getGroupId(), nullValue());
+    assertThat(requestEntry.getId(), not(nullValue()));
+    assertThat(requestEntry.getMessageHeaders().entrySet(), empty());
+    assertThat(requestEntry.getSubject(), nullValue());
+    assertThat(requestEntry.getValue(), is("value"));
   }
 
 }
