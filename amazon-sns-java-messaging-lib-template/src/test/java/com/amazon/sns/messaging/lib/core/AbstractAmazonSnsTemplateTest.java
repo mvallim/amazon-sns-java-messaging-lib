@@ -286,14 +286,6 @@ class AbstractAmazonSnsTemplateTest {
   }
 
   @Test
-  void testBuilderDefaultForyJsonIsNotNull() {
-    final TopicProperty topicProperty = mock(TopicProperty.class);
-    final AbstractAmazonSnsTemplate.Builder<Object, Object, Object, String, ?> builder = new AbstractAmazonSnsTemplate.Builder<>(b -> null, new Object(), topicProperty);
-
-    assertThat(builder.getForyJson(), is(notNullValue()));
-  }
-
-  @Test
   void testBuilderDefaultMeterRegistryIsSimpleMeterRegistry() {
     final TopicProperty topicProperty = mock(TopicProperty.class);
     final AbstractAmazonSnsTemplate.Builder<Object, Object, Object, String, ?> builder = new AbstractAmazonSnsTemplate.Builder<>(b -> null, new Object(), topicProperty);

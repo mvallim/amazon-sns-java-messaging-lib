@@ -159,11 +159,6 @@ abstract class AbstractAmazonSnsTemplate<R, O, E> {
     private JsonMapper jsonMapper = JsonMapperFactory.create(new ObjectMapper());
 
     /**
-     * The ForyJson for serializing payloads.
-     */
-    private final ForyJson foryJson = ForyJson.builder().build();
-
-    /**
      * Decorator function applied to the publish batch request before sending.
      */
     private UnaryOperator<R> publishDecorator = UnaryOperator.identity();
