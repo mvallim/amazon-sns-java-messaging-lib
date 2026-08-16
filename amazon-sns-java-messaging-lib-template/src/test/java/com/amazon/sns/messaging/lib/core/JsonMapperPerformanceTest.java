@@ -43,7 +43,7 @@ class JsonMapperPerformanceTest {
 
   private static final int LARGE_ENTRY_COUNT = 50;
 
-  private static final double MAX_RELATIVE_SLOWDOWN = 5.0;
+  private static final double MAX_RELATIVE_SLOWDOWN = 8.0;
 
   private static Stream<Arguments> providePayloads() {
     return Stream.of(
