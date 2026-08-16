@@ -283,4 +283,4 @@ mvn test
 mvn verify -P integration-test
 ```
 
-The integration tests use [Testcontainers](https://testcontainers.com) with `localstack/localstack:3.4.0` to spin up real SNS and SQS services. Messages are verified by subscribing an SQS queue to the SNS topic and polling for delivery.
+The integration tests use [Testcontainers](https://testcontainers.com) with `ministackorg/ministack:1.4.0` to spin up real SNS and SQS services. Messages are verified by subscribing an SQS queue to the SNS topic and polling for delivery.
