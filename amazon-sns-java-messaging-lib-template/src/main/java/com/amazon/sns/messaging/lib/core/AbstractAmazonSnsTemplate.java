@@ -26,6 +26,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
+import org.apache.fory.json.ForyJson;
+
 import com.amazon.sns.messaging.lib.concurrent.AmazonSnsThreadPoolExecutor;
 import com.amazon.sns.messaging.lib.concurrent.RingBufferBlockingQueue;
 import com.amazon.sns.messaging.lib.metrics.BlockingQueueMetricsDecorator;
@@ -152,9 +154,9 @@ abstract class AbstractAmazonSnsTemplate<R, O, E> {
     private BlockingQueue<RequestEntry<E>> topicRequests;
 
     /**
-     * The Jackson ObjectMapper for serializing payloads.
+     * The JsonMapper for serializing payloads.
      */
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private JsonMapper jsonMapper = JsonMapperFactory.create(new ObjectMapper());
 
     /**
      * Decorator function applied to the publish batch request before sending.
@@ -213,7 +215,18 @@ abstract class AbstractAmazonSnsTemplate<R, O, E> {
      * @return this builder
      */
     public Builder<C, R, O, E, T> objectMapper(final ObjectMapper objectMapper) {
-      this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
+      jsonMapper = JsonMapperFactory.create(objectMapper);
+      return this;
+    }
+
+    /**
+     * Sets the Fory for serializing payloads.
+     *
+     * @param objectMapper the Fory
+     * @return this builder
+     */
+    public Builder<C, R, O, E, T> foryJson(final ForyJson foryJson) {
+      jsonMapper = JsonMapperFactory.create(foryJson);
       return this;
     }
 
