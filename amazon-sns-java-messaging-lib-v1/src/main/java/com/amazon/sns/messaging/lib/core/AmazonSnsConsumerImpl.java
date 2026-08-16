@@ -39,7 +39,6 @@ import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.model.PublishBatchRequest;
 import com.amazonaws.services.sns.model.PublishBatchRequestEntry;
 import com.amazonaws.services.sns.model.PublishBatchResult;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 // @formatter:off
 /**
@@ -61,7 +60,7 @@ class AmazonSnsConsumerImpl<E> extends AbstractAmazonSnsConsumer<AmazonSNS, Publ
    *
    * @param amazonSnsClient  the v1 {@link AmazonSNS} client
    * @param topicProperty    the topic configuration
-   * @param objectMapper     the Jackson ObjectMapper for payload serialization
+   * @param jsonMapper       the JsonMapper for payload serialization
    * @param pendingRequests  the shared map of pending requests
    * @param topicRequests    the shared blocking queue of requests
    * @param executorService  the executor service for async publishing
@@ -70,12 +69,12 @@ class AmazonSnsConsumerImpl<E> extends AbstractAmazonSnsConsumer<AmazonSNS, Publ
   public AmazonSnsConsumerImpl(
     final AmazonSNS amazonSnsClient,
     final TopicProperty topicProperty,
-    final ObjectMapper objectMapper,
+    final JsonMapper jsonMapper,
     final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
     final BlockingQueue<RequestEntry<E>> topicRequests,
     final ExecutorService executorService,
     final UnaryOperator<PublishBatchRequest> publishDecorator) {
-    super(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator);
+    super(amazonSnsClient, topicProperty, jsonMapper, pendingRequests, topicRequests, executorService, publishDecorator);
   }
 
   /**

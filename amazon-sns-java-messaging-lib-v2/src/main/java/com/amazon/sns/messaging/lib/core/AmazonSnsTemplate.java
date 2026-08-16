@@ -16,14 +16,8 @@
 
 package com.amazon.sns.messaging.lib.core;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.function.UnaryOperator;
-
-import com.amazon.sns.messaging.lib.concurrent.RingBufferBlockingQueue;
 import com.amazon.sns.messaging.lib.metrics.AmazonSnsConsumerMetricsDecorator;
-import com.amazon.sns.messaging.lib.model.RequestEntry;
 import com.amazon.sns.messaging.lib.model.TopicProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.PublishBatchRequest;
@@ -48,7 +42,7 @@ public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<PublishBatch
         new AmazonSnsConsumerImpl<>(
           builder.getAmazonSnsClient(),
           builder.getTopicProperty(),
-          builder.getObjectMapper(),
+          builder.getJsonMapper(),
           builder.getPendingRequests(),
           builder.getTopicRequests(),
           getExecutorService(builder.getTopicProperty(), builder.getMeterRegistry()),
@@ -72,154 +66,6 @@ public class AmazonSnsTemplate<E> extends AbstractAmazonSnsTemplate<PublishBatch
       final SnsClient amazonSnsClient,
       final TopicProperty topicProperty) {
     return new Builder<>(AmazonSnsTemplate::new, amazonSnsClient, topicProperty);
-  }
-
-  /**
-   * Creates a new v2 SNS template with default settings.
-   *
-   * @deprecated since 1.3.0, use {@link #builder(SnsClient, TopicProperty)} instead
-   *
-   * @param amazonSnsClient the v2 {@link SnsClient}
-   * @param topicProperty   the topic configuration
-   */
-  @Deprecated
-  public AmazonSnsTemplate(
-      final SnsClient amazonSnsClient,
-      final TopicProperty topicProperty) {
-    this(amazonSnsClient, topicProperty, UnaryOperator.identity());
-  }
-
-  /**
-   * Creates a new v2 SNS template with a custom publish decorator.
-   *
-   * @deprecated since 1.3.0, use {@link #builder(SnsClient, TopicProperty)} and {@link Builder#publishDecorator(UnaryOperator)} instead
-   *
-   * @param amazonSnsClient  the v2 {@link SnsClient}
-   * @param topicProperty    the topic configuration
-   * @param publishDecorator a decorator for the publish batch request
-   */
-  @Deprecated
-  public AmazonSnsTemplate(
-      final SnsClient amazonSnsClient,
-      final TopicProperty topicProperty,
-      final UnaryOperator<PublishBatchRequest> publishDecorator) {
-    this(amazonSnsClient, topicProperty, new ObjectMapper(), publishDecorator);
-  }
-
-  /**
-   * Creates a new v2 SNS template with a custom topic request queue.
-   *
-   * @deprecated since 1.3.0, use {@link #builder(SnsClient, TopicProperty)} and {@link Builder#topicRequests(BlockingQueue)} instead
-   *
-   * @param amazonSnsClient the v2 {@link SnsClient}
-   * @param topicProperty   the topic configuration
-   * @param topicRequests   the blocking queue for topic requests
-   */
-  @Deprecated
-  public AmazonSnsTemplate(
-      final SnsClient amazonSnsClient,
-      final TopicProperty topicProperty,
-      final BlockingQueue<RequestEntry<E>> topicRequests) {
-    this(amazonSnsClient, topicProperty, topicRequests, UnaryOperator.identity());
-  }
-
-  /**
-   * Creates a new v2 SNS template with a custom queue and publish decorator.
-   *
-   * @deprecated since 1.3.0, use {@link #builder(SnsClient, TopicProperty)} with {@link Builder#topicRequests(BlockingQueue)} and {@link Builder#publishDecorator(UnaryOperator)} instead
-   *
-   * @param amazonSnsClient  the v2 {@link SnsClient}
-   * @param topicProperty    the topic configuration
-   * @param topicRequests    the blocking queue for topic requests
-   * @param publishDecorator a decorator for the publish batch request
-   */
-  @Deprecated
-  public AmazonSnsTemplate(
-      final SnsClient amazonSnsClient,
-      final TopicProperty topicProperty,
-      final BlockingQueue<RequestEntry<E>> topicRequests,
-      final UnaryOperator<PublishBatchRequest> publishDecorator) {
-    this(amazonSnsClient, topicProperty, topicRequests, new ObjectMapper(), publishDecorator);
-  }
-
-  /**
-   * Creates a new v2 SNS template with a custom ObjectMapper.
-   *
-   * @deprecated since 1.3.0, use {@link #builder(SnsClient, TopicProperty)} and {@link Builder#objectMapper(ObjectMapper)} instead
-   *
-   * @param amazonSnsClient the v2 {@link SnsClient}
-   * @param topicProperty   the topic configuration
-   * @param objectMapper    the Jackson ObjectMapper for payload serialization
-   */
-  @Deprecated
-  public AmazonSnsTemplate(
-      final SnsClient amazonSnsClient,
-      final TopicProperty topicProperty,
-      final ObjectMapper objectMapper) {
-    this(amazonSnsClient, topicProperty, objectMapper, UnaryOperator.identity());
-  }
-
-  /**
-   * Creates a new v2 SNS template with a custom ObjectMapper and publish decorator.
-   *
-   * @deprecated since 1.3.0, use {@link #builder(SnsClient, TopicProperty)} with {@link Builder#objectMapper(ObjectMapper)} and {@link Builder#publishDecorator(UnaryOperator)} instead
-   *
-   * @param amazonSnsClient  the v2 {@link SnsClient}
-   * @param topicProperty    the topic configuration
-   * @param objectMapper     the Jackson ObjectMapper for payload serialization
-   * @param publishDecorator a decorator for the publish batch request
-   */
-  @Deprecated
-  public AmazonSnsTemplate(
-      final SnsClient amazonSnsClient,
-      final TopicProperty topicProperty,
-      final ObjectMapper objectMapper,
-      final UnaryOperator<PublishBatchRequest> publishDecorator) {
-    this(amazonSnsClient, topicProperty, new RingBufferBlockingQueue<>(topicProperty.getMaximumPoolSize() * topicProperty.getMaxBatchSize()), objectMapper, publishDecorator);
-  }
-
-  /**
-   * Creates a new v2 SNS template with a custom queue and ObjectMapper.
-   *
-   * @deprecated since 1.3.0, use {@link #builder(SnsClient, TopicProperty)} with {@link Builder#topicRequests(BlockingQueue)} and {@link Builder#objectMapper(ObjectMapper)} instead
-   *
-   * @param amazonSnsClient the v2 {@link SnsClient}
-   * @param topicProperty   the topic configuration
-   * @param topicRequests   the blocking queue for topic requests
-   * @param objectMapper    the Jackson ObjectMapper for payload serialization
-   */
-  @Deprecated
-  public AmazonSnsTemplate(
-      final SnsClient amazonSnsClient,
-      final TopicProperty topicProperty,
-      final BlockingQueue<RequestEntry<E>> topicRequests,
-      final ObjectMapper objectMapper) {
-    this(amazonSnsClient, topicProperty, topicRequests, objectMapper, UnaryOperator.identity());
-  }
-
-  /**
-   * Creates a new v2 SNS template with full custom configuration.
-   *
-   * @deprecated since 1.3.0, use {@link #builder(SnsClient, TopicProperty)} with builder setters instead
-   *
-   * @param amazonSnsClient  the v2 {@link SnsClient}
-   * @param topicProperty    the topic configuration
-   * @param topicRequests    the blocking queue for topic requests
-   * @param objectMapper     the Jackson ObjectMapper for payload serialization
-   * @param publishDecorator a decorator for the publish batch request
-   */
-  @Deprecated
-  public AmazonSnsTemplate(
-      final SnsClient amazonSnsClient,
-      final TopicProperty topicProperty,
-      final BlockingQueue<RequestEntry<E>> topicRequests,
-      final ObjectMapper objectMapper,
-      final UnaryOperator<PublishBatchRequest> publishDecorator) {
-    this(AmazonSnsTemplate.<E>builder(amazonSnsClient, topicProperty)
-      .topicRequests(topicRequests)
-      .objectMapper(objectMapper)
-      .publishDecorator(publishDecorator)
-    );
   }
 
 }

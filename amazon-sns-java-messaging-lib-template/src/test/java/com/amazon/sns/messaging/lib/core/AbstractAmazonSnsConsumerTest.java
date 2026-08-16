@@ -96,7 +96,7 @@ class AbstractAmazonSnsConsumerTest {
   @Mock(strictness = Strictness.LENIENT)
   private ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> listenableFutureImpl;
 
-  private ObjectMapper objectMapper;
+  private JsonMapper jsonMapper;
 
   private ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests;
 
@@ -106,7 +106,7 @@ class AbstractAmazonSnsConsumerTest {
 
   @BeforeEach
   void setUp() {
-    objectMapper = new ObjectMapper();
+    jsonMapper = JsonMapperFactory.create(new ObjectMapper());
     pendingRequests = new ConcurrentHashMap<>();
     topicRequests = new RingBufferBlockingQueue<>();
     publishDecorator = UnaryOperator.identity();
@@ -135,7 +135,7 @@ class AbstractAmazonSnsConsumerTest {
     @Test
     void testConstructorThrowsNpeWhenTopicPropertyIsNull() {
       final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
-        new TestableAmazonSnsConsumer(amazonSnsClient, null, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)
+        new TestableAmazonSnsConsumer(amazonSnsClient, null, jsonMapper, pendingRequests, topicRequests, executorService, publishDecorator)
       );
 
       assertThat(thrown.getMessage(), containsString("topicProperty cannot be null"));
@@ -144,7 +144,7 @@ class AbstractAmazonSnsConsumerTest {
     @Test
     void testConstructorThrowsNpeWhenAmazonSnsClientIsNull() {
       final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
-        new TestableAmazonSnsConsumer(null, topicProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)
+        new TestableAmazonSnsConsumer(null, topicProperty, jsonMapper, pendingRequests, topicRequests, executorService, publishDecorator)
       );
 
       assertThat(thrown.getMessage(), containsString("amazonSnsClient cannot be null"));
@@ -156,13 +156,13 @@ class AbstractAmazonSnsConsumerTest {
         new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, null, pendingRequests, topicRequests, executorService, publishDecorator)
       );
 
-      assertThat(thrown.getMessage(), containsString("objectMapper cannot be null"));
+      assertThat(thrown.getMessage(), containsString("jsonMapper cannot be null"));
     }
 
     @Test
     void testConstructorThrowsNpeWhenExecutorServiceIsNull() {
       final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
-        new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, null, publishDecorator)
+        new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, jsonMapper, pendingRequests, topicRequests, null, publishDecorator)
       );
 
       assertThat(thrown.getMessage(), containsString("executorService cannot be null"));
@@ -310,7 +310,7 @@ class AbstractAmazonSnsConsumerTest {
 
         mockedStatic.when(() -> Executors.newSingleThreadScheduledExecutor(any())).thenReturn(scheduledExecutorService);
 
-        try (final TestableAmazonSnsConsumer snsConsumer = new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)) {
+        try (final TestableAmazonSnsConsumer snsConsumer = new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, jsonMapper, pendingRequests, topicRequests, executorService, publishDecorator)) {
           when(executorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(false);
           when(executorService.shutdownNow()).thenReturn(Collections.singletonList(mock()));
           when(scheduledExecutorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(true);
@@ -336,7 +336,7 @@ class AbstractAmazonSnsConsumerTest {
 
         mockedStatic.when(() -> Executors.newSingleThreadScheduledExecutor(any())).thenReturn(scheduledExecutorService);
 
-        try (final TestableAmazonSnsConsumer snsConsumer = new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)) {
+        try (final TestableAmazonSnsConsumer snsConsumer = new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, jsonMapper, pendingRequests, topicRequests, executorService, publishDecorator)) {
           when(scheduledExecutorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(false);
           when(scheduledExecutorService.shutdownNow()).thenReturn(Collections.singletonList(mock()));
           when(executorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(true);
@@ -349,6 +349,30 @@ class AbstractAmazonSnsConsumerTest {
           verify(scheduledExecutorService).shutdown();
           verify(scheduledExecutorService).awaitTermination(60, TimeUnit.SECONDS);
           verify(scheduledExecutorService).shutdownNow();
+        }
+      }
+    }
+
+    @Test
+    void testShutdownRiseInterruptedException() throws InterruptedException {
+      try (final MockedStatic<Executors> mockedStatic = mockStatic(Executors.class)) {
+
+        final ExecutorService executorService = mock();
+        final ScheduledExecutorService scheduledExecutorService = mock();
+
+        mockedStatic.when(() -> Executors.newSingleThreadScheduledExecutor(any())).thenReturn(scheduledExecutorService);
+
+        try (final TestableAmazonSnsConsumer snsConsumer = new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, jsonMapper, pendingRequests, topicRequests, executorService, publishDecorator)) {
+
+          doAnswer(invocation -> {
+            throw new InterruptedException("interrupt");
+          }).when(executorService).shutdown();
+
+          final Thread worker = new Thread(snsConsumer::shutdown);
+
+          worker.start();
+
+          assertThat(Thread.currentThread().isInterrupted(), is(false));
         }
       }
     }
@@ -766,13 +790,13 @@ class AbstractAmazonSnsConsumerTest {
   }
 
   private void context(final TryConsumer<TestableAmazonSnsConsumer> consumer) throws Exception {
-    try (final TestableAmazonSnsConsumer snsConsumer = new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)) {
+    try (final TestableAmazonSnsConsumer snsConsumer = new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, jsonMapper, pendingRequests, topicRequests, executorService, publishDecorator)) {
       consumer.accept(snsConsumer);
     }
   }
 
   private void context(final UnaryOperator<Object> trackingDecorator, final TryConsumer<TestableAmazonSnsConsumer> consumer) throws Exception {
-    try (final TestableAmazonSnsConsumer snsConsumer = new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, executorService, trackingDecorator)) {
+    try (final TestableAmazonSnsConsumer snsConsumer = new TestableAmazonSnsConsumer(amazonSnsClient, topicProperty, jsonMapper, pendingRequests, topicRequests, executorService, trackingDecorator)) {
       consumer.accept(snsConsumer);
     }
   }
@@ -792,12 +816,12 @@ class AbstractAmazonSnsConsumerTest {
     TestableAmazonSnsConsumer(
         final Object amazonSnsClient,
         final TopicProperty topicProperty,
-        final ObjectMapper objectMapper,
+        final JsonMapper jsonMapper,
         final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
         final BlockingQueue<RequestEntry<String>> topicRequests,
         final ExecutorService executorService,
         final UnaryOperator<Object> publishDecorator) {
-      super(amazonSnsClient, topicProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator);
+      super(amazonSnsClient, topicProperty, jsonMapper, pendingRequests, topicRequests, executorService, publishDecorator);
     }
 
     @Override
