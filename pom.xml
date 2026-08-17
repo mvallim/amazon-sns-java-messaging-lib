@@ -37,7 +37,7 @@
 		<micrometer.version>1.16.3</micrometer.version>
 		<testcontainers.version>1.20.4</testcontainers.version>
 		<java-fluent-validator>1.10.1</java-fluent-validator>
-		<fory.version>1.6.0</fory.version>
+		<fory.version>1.6.1</fory.version>
 
 		<!-- Plugins -->
 		<maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
