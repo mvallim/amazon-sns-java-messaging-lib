@@ -90,7 +90,7 @@ class MessageAttributesTest {
 
     assertThat(attributes.containsKey("stringArray"), is(true));
     assertThat(attributes.get("stringArray").dataType(), is("String.Array"));
-    assertThat(attributes.get("stringArray").stringValue(), is("[ \"123\", \"456\" ]"));
+    assertThat(attributes.get("stringArray").stringValue(), is("[\"123\",\"456\"]"));
   }
 
   @Test

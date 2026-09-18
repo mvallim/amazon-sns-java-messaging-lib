@@ -37,7 +37,7 @@ class AbstractMessageAttributesTest {
 
   @BeforeEach
   void setUp() {
-    messageAttributes = new AbstractMessageAttributes<String>() {
+    messageAttributes = new AbstractMessageAttributes<>() {
 
       @Override
       protected String getEnumMessageAttribute(final Enum<?> value) {
@@ -161,7 +161,7 @@ class AbstractMessageAttributesTest {
 
     final String result = AbstractMessageAttributes.stringArray(list);
 
-    assertThat(result, is("[ \"foo\", \"bar\" ]"));
+    assertThat(result, is("[\"foo\",\"bar\"]"));
   }
 
   @Test
@@ -173,14 +173,14 @@ class AbstractMessageAttributesTest {
 
     final String result = AbstractMessageAttributes.stringArray(list);
 
-    assertThat(result, is("[ \"valid\", \"also-valid\" ]"));
+    assertThat(result, is("[\"valid\",\"also-valid\"]"));
   }
 
   @Test
   void testStringArrayReturnsEmptyBracketsForEmptyList() {
     final String result = AbstractMessageAttributes.stringArray(Collections.emptyList());
 
-    assertThat(result, is("[  ]"));
+    assertThat(result, is("[]"));
   }
 
   @Test
@@ -192,7 +192,7 @@ class AbstractMessageAttributesTest {
 
     final String result = AbstractMessageAttributes.stringArray(list);
 
-    assertThat(result, is("[  ]"));
+    assertThat(result, is("[]"));
   }
 
 }
