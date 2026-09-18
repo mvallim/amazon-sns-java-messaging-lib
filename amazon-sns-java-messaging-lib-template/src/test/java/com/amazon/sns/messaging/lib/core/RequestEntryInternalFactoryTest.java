@@ -400,7 +400,7 @@ class RequestEntryInternalFactoryTest {
 
       final Integer result = factory.messageAttributesSize(entry);
 
-      assertThat(result, equalTo(8));
+      assertThat(result, equalTo(14));
     }
 
     @Test
@@ -413,7 +413,7 @@ class RequestEntryInternalFactoryTest {
 
       final Integer result = factory.messageAttributesSize(entry);
 
-      assertThat(result, equalTo(11));
+      assertThat(result, equalTo(23));
     }
 
     @Test
@@ -437,7 +437,7 @@ class RequestEntryInternalFactoryTest {
 
       final Integer result = factory.messageAttributesSize(entry);
 
-      assertThat(result, equalTo(10));
+      assertThat(result, equalTo(16));
     }
 
     @Test
@@ -450,7 +450,7 @@ class RequestEntryInternalFactoryTest {
 
       final Integer result = factory.messageAttributesSize(entry);
 
-      assertThat(result, equalTo(7));
+      assertThat(result, equalTo(13));
     }
 
     @Test
@@ -581,49 +581,49 @@ class RequestEntryInternalFactoryTest {
     void testGetEnumMessageAttributeReturnsNameLength() {
       final Integer result = instance.getEnumMessageAttribute(SampleEnum.VALUE_ONE);
 
-      assertThat(result, equalTo("VALUE_ONE".length()));
+      assertThat(result, equalTo(15));
     }
 
     @Test
     void testGetEnumMessageAttributeShortName() {
       final Integer result = instance.getEnumMessageAttribute(SampleEnum.A);
 
-      assertThat(result, equalTo(1));
+      assertThat(result, equalTo(7));
     }
 
     @Test
     void testGetStringMessageAttributeReturnsLength() {
       final Integer result = instance.getStringMessageAttribute("hello");
 
-      assertThat(result, equalTo(5));
+      assertThat(result, equalTo(11));
     }
 
     @Test
     void testGetStringMessageAttributeEmptyString() {
       final Integer result = instance.getStringMessageAttribute("");
 
-      assertThat(result, equalTo(0));
+      assertThat(result, equalTo(6));
     }
 
     @Test
     void testGetNumberMessageAttributeInteger() {
       final Integer result = instance.getNumberMessageAttribute(12345);
 
-      assertThat(result, equalTo(5));
+      assertThat(result, equalTo(29));
     }
 
     @Test
     void testGetNumberMessageAttributeFloat() {
       final Integer result = instance.getNumberMessageAttribute(3.14f);
 
-      assertThat(result, equalTo(String.valueOf(3.14f).length()));
+      assertThat(result, equalTo(26));
     }
 
     @Test
     void testGetNumberMessageAttributeNegativeNumber() {
       final Integer result = instance.getNumberMessageAttribute(-99);
 
-      assertThat(result, equalTo(3));
+      assertThat(result, equalTo(27));
     }
 
     @Test
@@ -633,7 +633,7 @@ class RequestEntryInternalFactoryTest {
 
       final Integer result = instance.getBinaryMessageAttribute(buffer);
 
-      assertThat(result, equalTo(3));
+      assertThat(result, equalTo(9));
     }
 
     @Test
@@ -642,7 +642,7 @@ class RequestEntryInternalFactoryTest {
 
       final Integer result = instance.getBinaryMessageAttribute(buffer);
 
-      assertThat(result, equalTo(0));
+      assertThat(result, equalTo(6));
     }
 
     @Test

@@ -35,11 +35,13 @@ import com.amazon.sns.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sns.messaging.lib.model.ResponseSuccessEntry;
 import com.amazon.sns.messaging.lib.model.TopicProperty;
 
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.PublishBatchRequest;
 import software.amazon.awssdk.services.sns.model.PublishBatchRequestEntry;
 import software.amazon.awssdk.services.sns.model.PublishBatchResponse;
+import software.amazon.awssdk.services.sns.model.SnsException;
 
 // @formatter:off
 /**
@@ -145,13 +147,26 @@ class AmazonSnsConsumerImpl<E> extends AbstractAmazonSnsConsumer<SnsClient, Publ
     );
 
     publishBatchResult.failed().forEach(entry ->
-      Optional.ofNullable(pendingRequests.remove(entry.id())).ifPresent(listenableFuture ->
-        listenableFuture.fail(ResponseFailEntry.builder()
-          .withId(entry.id())
-          .withCode(entry.code())
-          .withMessage(entry.message())
-          .withSenderFault(entry.senderFault())
-          .build())
+      Optional.ofNullable(pendingRequests.remove(entry.id())).ifPresent(listenableFuture -> {
+          final AwsErrorDetails awsErrorDetails = AwsErrorDetails.builder()
+            .errorCode(entry.code())
+            .errorMessage(entry.message())
+            .serviceName("SNS")
+            .build();
+
+          final AwsServiceException throwable = SnsException.builder()
+            .awsErrorDetails(awsErrorDetails)
+            .message(entry.message())
+            .build();
+
+          listenableFuture.fail(ResponseFailEntry.builder()
+            .withId(entry.id())
+            .withCode(entry.code())
+            .withMessage(entry.message())
+            .withSenderFault(entry.senderFault())
+            .withThrowable(throwable)
+            .build());
+        }
       )
     );
   }

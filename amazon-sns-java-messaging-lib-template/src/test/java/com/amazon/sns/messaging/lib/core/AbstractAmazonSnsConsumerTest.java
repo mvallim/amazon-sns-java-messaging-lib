@@ -40,9 +40,11 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -811,7 +813,7 @@ class AbstractAmazonSnsConsumerTest {
     private Throwable lastError;
     private boolean throwOnPublish = false;
     private final RuntimeException publishException = new RuntimeException("publish failed");
-    private final List<Integer> publishedBatchSizes = Collections.synchronizedList(new LinkedList<>());
+    private final Queue<Integer> publishedBatchSizes = new ConcurrentLinkedQueue<>();
 
     TestableAmazonSnsConsumer(
         final Object amazonSnsClient,
@@ -873,7 +875,7 @@ class AbstractAmazonSnsConsumerTest {
     }
 
     List<Integer> getPublishedBatchSizes() {
-      return publishedBatchSizes;
+      return new LinkedList<>(publishedBatchSizes);
     }
 
     int getTotalPublishedEntries() {
