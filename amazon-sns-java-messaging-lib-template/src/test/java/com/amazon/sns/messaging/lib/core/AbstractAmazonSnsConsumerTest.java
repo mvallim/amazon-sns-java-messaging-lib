@@ -117,6 +117,7 @@ class AbstractAmazonSnsConsumerTest {
     when(topicProperty.getLinger()).thenReturn(LINGER_MS);
     when(topicProperty.getMaxBatchSize()).thenReturn(MAX_BATCH_SIZE);
     when(topicProperty.isFifo()).thenReturn(false);
+    when(topicProperty.getMaxMessageSize()).thenReturn(256 * TestableAmazonSnsConsumer.KB);
   }
 
   @Nested
@@ -629,7 +630,7 @@ class AbstractAmazonSnsConsumerTest {
       when(topicProperty.isFifo()).thenReturn(true);
 
       context(consumer -> {
-        final String payloadAtThreshold = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold());
+        final String payloadAtThreshold = buildPayloadOfBytes(topicProperty.getMaxMessageSize());
         topicRequests.put(buildRequestEntry(payloadAtThreshold));
 
         await()
@@ -645,7 +646,7 @@ class AbstractAmazonSnsConsumerTest {
       when(topicProperty.isFifo()).thenReturn(true);
 
       context(consumer -> {
-        final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold() + 1);
+        final String oversizedPayload = buildPayloadOfBytes(topicProperty.getMaxMessageSize() + 1);
         topicRequests.put(buildRequestEntry(oversizedPayload));
 
         await()
@@ -662,7 +663,7 @@ class AbstractAmazonSnsConsumerTest {
       when(topicProperty.getMaxBatchSize()).thenReturn(10);
 
       context(consumer -> {
-        final int halfThreshold = TestableAmazonSnsConsumer.batchSizeBytesThreshold() / 2;
+        final int halfThreshold = topicProperty.getMaxMessageSize() / 2;
         topicRequests.put(buildRequestEntry(buildPayloadOfBytes(halfThreshold)));
         topicRequests.put(buildRequestEntry(buildPayloadOfBytes(halfThreshold)));
         topicRequests.put(buildRequestEntry("small-overflow"));
@@ -681,7 +682,7 @@ class AbstractAmazonSnsConsumerTest {
       when(topicProperty.getMaxBatchSize()).thenReturn(10);
 
       context(consumer -> {
-        final int fullThreshold = TestableAmazonSnsConsumer.batchSizeBytesThreshold();
+        final int fullThreshold = topicProperty.getMaxMessageSize();
         topicRequests.put(buildRequestEntry(buildPayloadOfBytes(fullThreshold)));
         topicRequests.put(buildRequestEntry("second-entry"));
 
@@ -717,7 +718,7 @@ class AbstractAmazonSnsConsumerTest {
       when(topicProperty.getMaxBatchSize()).thenReturn(10);
 
       context(consumer -> {
-        final int chunkSize = (TestableAmazonSnsConsumer.batchSizeBytesThreshold() / 3) + 1;
+        final int chunkSize = (topicProperty.getMaxMessageSize() / 3) + 1;
         topicRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
         topicRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
         topicRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
@@ -735,7 +736,7 @@ class AbstractAmazonSnsConsumerTest {
       when(topicProperty.isFifo()).thenReturn(true);
 
       context(consumer -> {
-        final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold() + 100);
+        final String oversizedPayload = buildPayloadOfBytes(topicProperty.getMaxMessageSize() + 100);
         topicRequests.put(buildRequestEntry(oversizedPayload));
 
         await()
@@ -755,7 +756,7 @@ class AbstractAmazonSnsConsumerTest {
       when(topicProperty.isFifo()).thenReturn(true);
 
       final String poisonId = "poison-id";
-      final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold() + 100);
+      final String oversizedPayload = buildPayloadOfBytes(topicProperty.getMaxMessageSize() + 100);
       final RequestEntry<String> poisonEntry = RequestEntry.<String>builder()
         .withId(poisonId)
         .withValue(oversizedPayload)
@@ -805,7 +806,7 @@ class AbstractAmazonSnsConsumerTest {
 
   static class TestableAmazonSnsConsumer extends AbstractAmazonSnsConsumer<Object, Object, Object, String> implements AutoCloseable {
 
-    private static final int BATCH_SIZE_BYTES_THRESHOLD = 256 * 1024;
+    public static final int KB = 1024;
 
     private final AtomicInteger publishCallCount = new AtomicInteger(0);
     private final AtomicInteger handleErrorCallCount = new AtomicInteger(0);
@@ -880,10 +881,6 @@ class AbstractAmazonSnsConsumerTest {
 
     int getTotalPublishedEntries() {
       return publishedBatchSizes.stream().mapToInt(Integer::intValue).sum();
-    }
-
-    static int batchSizeBytesThreshold() {
-      return BATCH_SIZE_BYTES_THRESHOLD;
     }
 
     @Override

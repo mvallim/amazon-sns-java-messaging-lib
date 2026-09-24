@@ -68,11 +68,6 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, Amazon
    */
   private static final Integer KB = 1024;
 
-  /**
-   * Maximum batch size threshold of 256 KB imposed by Amazon SNS.
-   */
-  private static final Integer BATCH_SIZE_BYTES_THRESHOLD = 256 * AbstractAmazonSnsConsumer.KB;
-
   /** Class logger. */
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAmazonSnsConsumer.class);
 
@@ -123,7 +118,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, Amazon
     this.topicProperty = Objects.requireNonNull(topicProperty, "topicProperty cannot be null");
     this.amazonSnsClient = Objects.requireNonNull(amazonSnsClient, "amazonSnsClient cannot be null");
     this.executorService = Objects.requireNonNull(executorService, "executorService cannot be null");
-    this.requestEntryInternalFactory = RequestEntryInternalFactory.build(jsonMapper);
+    requestEntryInternalFactory = RequestEntryInternalFactory.build(jsonMapper);
     this.pendingRequests = pendingRequests;
     this.topicRequests = topicRequests;
     this.publishDecorator = publishDecorator;
@@ -271,7 +266,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, Amazon
    * @return true if the request can be added
    */
   private boolean canAddToBatch(final int batchSizeBytes, final int requestEntriesSize, final RequestEntry<E> request) {
-    return (batchSizeBytes < BATCH_SIZE_BYTES_THRESHOLD)
+    return (batchSizeBytes < topicProperty.getMaxMessageSize())
       && (requestEntriesSize < topicProperty.getMaxBatchSize())
       && Objects.nonNull(request);
   }
@@ -283,7 +278,7 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, Amazon
    * @return true if the batch is still within the size limit
    */
   private boolean canAddPayload(final int batchSizeBytes) {
-    return batchSizeBytes <= BATCH_SIZE_BYTES_THRESHOLD;
+    return batchSizeBytes <= topicProperty.getMaxMessageSize();
   }
 
   /**
@@ -309,8 +304,9 @@ abstract class AbstractAmazonSnsConsumer<C, R, O, E> implements Runnable, Amazon
 
         final Integer messageSize = messageBodySize + messageAttributesSize;
 
-        if (messageSize > BATCH_SIZE_BYTES_THRESHOLD) {
-          throw PoisonRequestEntryException.fromMaximumAllowedMessage("The maximum allowed message size exceeding 256KB (262,144 bytes).");
+        if (messageSize > topicProperty.getMaxMessageSize()) {
+          final String message = String.format("The maximum allowed message size exceeding %dKB (%,d bytes).", topicProperty.getMaxMessageSize() / KB, topicProperty.getMaxMessageSize());
+          throw PoisonRequestEntryException.fromMaximumAllowedMessage(message);
         }
 
         if (canAddPayload(batchSizeBytes.get() + messageSize)) {

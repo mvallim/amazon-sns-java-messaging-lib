@@ -51,7 +51,15 @@ import lombok.ToString;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class TopicProperty {
 
+  private static final int KB = 1024;
+
   private static final long DEFAULT_LINGER = 10L;
+
+  private static final int DEFAULT_MESSAGE_SIZE = 256 * KB;
+
+  private static final int MIN_MESSAGE_SIZE = KB;
+
+  private static final int MAX_MESSAGE_SIZE = 1024 * KB;
 
   /**
    * Whether the topic is a FIFO topic.
@@ -77,6 +85,11 @@ public class TopicProperty {
    * The maximum number of messages per batch.
    */
   private final int maxBatchSize;
+
+  /**
+   * The maximum message size in bytes.
+   */
+  private final int maxMessageSize;
 
   @NoArgsConstructor(access = AccessLevel.PRIVATE)
   static final class TopicPropertyValidator extends AbstractValidator<TopicProperty> {
@@ -111,6 +124,10 @@ public class TopicProperty {
       ruleFor("linger", TopicProperty::getLinger)
         .must(greaterThanOrEqual(DEFAULT_LINGER))
           .withMessage("'linger' must be greater than or equal to 10 (ten)");
+
+      ruleFor("maxMessageSize", TopicProperty::getMaxMessageSize)
+        .must(betweenInclusive(MIN_MESSAGE_SIZE, MAX_MESSAGE_SIZE))
+          .withMessage("'maxMessageSize' must be in the range of 1Kb (1,024 bytes) to 1024Kb (1,048,576 bytes)");
 
       ruleFor("maxBatchSize", TopicProperty::getMaxBatchSize)
         .must(betweenInclusive(1, 10))
@@ -152,6 +169,14 @@ public class TopicProperty {
     private boolean linger$set;
 
     /**
+     * Tracks whether {@code maxMessageSize(int)} was explicitly invoked.
+     *
+     * <p>This flag allows applying {@link TopicProperty#DEFAULT_MESSAGE_SIZE} only when
+     * no explicit value was provided through the builder.
+     */
+    private boolean maxMessageSize$set;
+
+    /**
      * Sets the batching linger time in milliseconds.
      *
      * @param linger the linger time in milliseconds
@@ -160,6 +185,18 @@ public class TopicProperty {
     public TopicPropertyBuilder linger(final long linger) {
       this.linger = linger;
       linger$set = true;
+      return this;
+    }
+
+    /**
+     * Sets the maximum message size in bytes.
+     *
+     * @param maxMessageSize the maximum message size in bytes
+     * @return this builder
+     */
+    public TopicPropertyBuilder maxMessageSize(final int maxMessageSize) {
+      this.maxMessageSize = maxMessageSize;
+      maxMessageSize$set = true;
       return this;
     }
 
@@ -173,8 +210,9 @@ public class TopicProperty {
      */
     public TopicProperty build() {
       final long linger = linger$set ? this.linger : DEFAULT_LINGER;
+      final int maxMessageSize = maxMessageSize$set ? this.maxMessageSize : DEFAULT_MESSAGE_SIZE;
 
-      final TopicProperty topicProperty = new TopicProperty(fifo, maximumPoolSize, topicArn, linger, maxBatchSize);
+      final TopicProperty topicProperty = new TopicProperty(fifo, maximumPoolSize, topicArn, linger, maxBatchSize, maxMessageSize);
 
       final ValidationResult validationResult = TopicPropertyValidator.INSTANCE.validate(topicProperty);
 
