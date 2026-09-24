@@ -49,7 +49,7 @@ class MessageAttributes extends AbstractMessageAttributes<MessageAttributeValue>
    */
   @Override
   protected MessageAttributeValue getNumberMessageAttribute(final Number value) {
-    return new MessageAttributeValue().withDataType(NUMBER + "." + value.getClass().getName()).withStringValue(value.toString());
+    return new MessageAttributeValue().withDataType(NUMBER.concat(".").concat(value.getClass().getName())).withStringValue(value.toString());
   }
 
   /**
